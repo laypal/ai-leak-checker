@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 /**
  * Playwright E2E configuration for AI Leak Checker extension.
@@ -7,6 +8,10 @@ import path from 'path';
  * Tests load the extension in Chrome and verify behavior on real AI chat sites.
  * Note: Some tests may require network access to ChatGPT/Claude.
  */
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false, // Extension tests need sequential execution
@@ -27,6 +32,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  // TypeScript configuration for test files
+  globalSetup: undefined,
   projects: [
     {
       name: 'chromium-extension',
