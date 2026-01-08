@@ -168,6 +168,12 @@ export function scan(text: string, options?: Partial<ScanOptions>): DetectionRes
           const normalizedAllowed = allowed.trim().toLowerCase();
           const normalizedValue = f.value.trim().toLowerCase();
           
+          // Skip empty allowlist entries (after trimming)
+          // Empty strings would match everything via includes("") and disable detection
+          if (normalizedAllowed === '') {
+            return false;
+          }
+          
           // Exact match
           if (normalizedValue === normalizedAllowed) {
             return true;

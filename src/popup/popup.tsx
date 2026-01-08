@@ -6,7 +6,13 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import type { Settings, Stats } from '@/shared/types';
-import { MessageType, DetectorType, DEFAULT_SETTINGS, DEFAULT_STATS } from '@/shared/types';
+import {
+  MessageType,
+  DetectorType,
+  DETECTOR_LABELS,
+  DEFAULT_SETTINGS,
+  DEFAULT_STATS,
+} from '@/shared/types';
 
 // Styles
 const styles = {
@@ -135,9 +141,22 @@ function App() {
 
   async function loadData() {
     try {
+      const correlationId = `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       const [settingsRes, statsRes] = await Promise.all([
-        chrome.runtime.sendMessage({ type: MessageType.SETTINGS_GET }),
-        chrome.runtime.sendMessage({ type: MessageType.STATS_GET }),
+        chrome.runtime.sendMessage({
+          type: MessageType.SETTINGS_GET,
+          payload: undefined,
+          timestamp: Date.now(),
+          correlationId,
+          source: 'popup',
+        }),
+        chrome.runtime.sendMessage({
+          type: MessageType.STATS_GET,
+          payload: undefined,
+          timestamp: Date.now(),
+          correlationId: `${correlationId}-2`,
+          source: 'popup',
+        }),
       ]);
       if (settingsRes && !settingsRes.error) setSettings(settingsRes);
       if (statsRes && !statsRes.error) setStats(statsRes);
@@ -146,12 +165,31 @@ function App() {
     }
   }
 
+  async function refreshStats() {
+    try {
+      const statsRes = await chrome.runtime.sendMessage({
+        type: MessageType.STATS_GET,
+        payload: undefined,
+        timestamp: Date.now(),
+        correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        source: 'popup',
+      });
+      if (statsRes && !statsRes.error) setStats(statsRes);
+    } catch (error) {
+      console.error('Failed to refresh stats:', error);
+    }
+  }
+
   async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
+    // Send settings update with proper payload structure: { settings: Partial<Settings> }
     await chrome.runtime.sendMessage({
       type: MessageType.SETTINGS_UPDATE,
       payload: { settings: { [key]: value } },
+      timestamp: Date.now(),
+      correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      source: 'popup',
     });
   }
 
@@ -162,7 +200,13 @@ function App() {
   }
 
   async function resetStats() {
-    await chrome.runtime.sendMessage({ type: MessageType.STATS_CLEAR });
+    await chrome.runtime.sendMessage({
+      type: MessageType.STATS_CLEAR,
+      payload: undefined,
+      timestamp: Date.now(),
+      correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      source: 'popup',
+    });
     setStats(DEFAULT_STATS);
   }
 
@@ -253,7 +297,21 @@ function App() {
             </div>
           )}
 
-          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+          <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <button
+              onClick={refreshStats}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: '#0d6efd',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Refresh
+            </button>
             <button
               onClick={resetStats}
               style={{
@@ -300,31 +358,95 @@ function App() {
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Enabled Detectors</div>
             
-            <Toggle
-              label="API Keys"
-              checked={settings.detectors[DetectorType.API_KEY_OPENAI]}
-              onChange={() => toggleDetector(DetectorType.API_KEY_OPENAI)}
-            />
-            <Toggle
-              label="Credit Cards"
-              checked={settings.detectors[DetectorType.CREDIT_CARD]}
-              onChange={() => toggleDetector(DetectorType.CREDIT_CARD)}
-            />
-            <Toggle
-              label="Email Addresses"
-              checked={settings.detectors[DetectorType.EMAIL]}
-              onChange={() => toggleDetector(DetectorType.EMAIL)}
-            />
-            <Toggle
-              label="Phone Numbers"
-              checked={settings.detectors[DetectorType.PHONE_UK]}
-              onChange={() => toggleDetector(DetectorType.PHONE_UK)}
-            />
-            <Toggle
-              label="High Entropy Secrets"
-              checked={settings.detectors[DetectorType.HIGH_ENTROPY]}
-              onChange={() => toggleDetector(DetectorType.HIGH_ENTROPY)}
-            />
+            {/* API Keys - Critical */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6c757d', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Critical API Keys
+              </div>
+              {[
+                DetectorType.API_KEY_OPENAI,
+                DetectorType.API_KEY_AWS,
+                DetectorType.API_KEY_GITHUB,
+                DetectorType.API_KEY_STRIPE,
+                DetectorType.API_KEY_ANTHROPIC,
+              ].map((type) => (
+                <Toggle
+                  key={type}
+                  label={DETECTOR_LABELS[type]}
+                  checked={settings.detectors[type]}
+                  onChange={() => toggleDetector(type)}
+                />
+              ))}
+            </div>
+
+            {/* Other API Keys */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6c757d', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Other API Keys
+              </div>
+              {[
+                DetectorType.API_KEY_SLACK,
+                DetectorType.API_KEY_GOOGLE,
+                DetectorType.API_KEY_SENDGRID,
+                DetectorType.API_KEY_TWILIO,
+                DetectorType.API_KEY_MAILCHIMP,
+                DetectorType.API_KEY_HEROKU,
+                DetectorType.API_KEY_NPM,
+                DetectorType.API_KEY_PYPI,
+                DetectorType.API_KEY_DOCKER,
+                DetectorType.API_KEY_SUPABASE,
+                DetectorType.API_KEY_FIREBASE,
+                DetectorType.API_KEY_GENERIC,
+              ].map((type) => (
+                <Toggle
+                  key={type}
+                  label={DETECTOR_LABELS[type]}
+                  checked={settings.detectors[type]}
+                  onChange={() => toggleDetector(type)}
+                />
+              ))}
+            </div>
+
+            {/* Secrets & Financial */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6c757d', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Secrets & Financial
+              </div>
+              {[
+                DetectorType.PRIVATE_KEY,
+                DetectorType.PASSWORD,
+                DetectorType.CREDIT_CARD,
+                DetectorType.IBAN,
+                DetectorType.HIGH_ENTROPY,
+              ].map((type) => (
+                <Toggle
+                  key={type}
+                  label={DETECTOR_LABELS[type]}
+                  checked={settings.detectors[type]}
+                  onChange={() => toggleDetector(type)}
+                />
+              ))}
+            </div>
+
+            {/* PII */}
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: '#6c757d', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Personal Information (PII)
+              </div>
+              {[
+                DetectorType.EMAIL,
+                DetectorType.PHONE_UK,
+                DetectorType.UK_NI_NUMBER,
+                DetectorType.US_SSN,
+              ].map((type) => (
+                <Toggle
+                  key={type}
+                  label={DETECTOR_LABELS[type]}
+                  checked={settings.detectors[type]}
+                  onChange={() => toggleDetector(type)}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Strict Mode */}

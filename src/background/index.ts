@@ -12,10 +12,12 @@ import {
   type Stats,
   type StorageSchema,
   type StatsIncrementPayload,
+  type SettingsUpdatePayload,
   MessageType,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
   CURRENT_SCHEMA_VERSION,
+  isMessageType,
 } from '@/shared/types';
 
 /**
@@ -83,18 +85,59 @@ chrome.runtime.onMessage.addListener(
 );
 
 /**
+ * Validate message structure and type.
+ */
+function validateMessage(message: unknown): message is ExtensionMessage {
+  if (!message || typeof message !== 'object') {
+    return false;
+  }
+  
+  const msg = message as Record<string, unknown>;
+  
+  // Check for required fields
+  if (typeof msg.type !== 'string') {
+    return false;
+  }
+  
+  // Validate message type is known
+  if (!Object.values(MessageType).includes(msg.type as MessageType)) {
+    return false;
+  }
+  
+  // Payload is optional for some message types, but must exist if present
+  if ('payload' in msg && msg.payload === undefined) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Process incoming messages.
  */
 async function handleMessage(
-  message: ExtensionMessage,
+  message: unknown,
   sender: chrome.runtime.MessageSender
 ): Promise<unknown> {
+  // Validate message structure
+  if (!validateMessage(message)) {
+    console.error('[AI Leak Checker] Invalid message structure:', message);
+    return { error: 'Invalid message structure' };
+  }
+
   switch (message.type) {
     case MessageType.SETTINGS_GET:
       return getSettings();
 
-    case MessageType.SETTINGS_UPDATE:
+    case MessageType.SETTINGS_UPDATE: {
+      // Extract settings from payload: SettingsUpdatePayload = { settings: Partial<Settings> }
+      const payload = message.payload as SettingsUpdatePayload;
+      if (payload && typeof payload === 'object' && 'settings' in payload) {
+        return updateSettings(payload.settings);
+      }
+      // Fallback for backwards compatibility (direct Partial<Settings>)
       return updateSettings(message.payload as Partial<Settings>);
+    }
 
     case MessageType.STATS_GET:
       return getStats();
@@ -105,8 +148,14 @@ async function handleMessage(
     case MessageType.STATS_CLEAR:
       return resetStats();
 
-    case MessageType.GET_STATUS:
-      return { active: true, version: chrome.runtime.getManifest().version };
+    case MessageType.GET_STATUS: {
+      try {
+        const manifest = chrome.runtime.getManifest();
+        return { active: true, version: manifest.version };
+      } catch {
+        return { active: true, version: 'unknown' };
+      }
+    }
 
     default:
       console.warn('[AI Leak Checker] Unknown message type:', message.type);
@@ -124,11 +173,57 @@ async function getSettings(): Promise<Settings> {
 }
 
 /**
+ * Check storage quota and usage.
+ */
+async function checkStorageQuota(): Promise<{
+  usage: number;
+  quota: number;
+  percentage: number;
+}> {
+  try {
+    // Chrome storage API doesn't provide quota info directly
+    // We can estimate by checking storage usage
+    const storage = await chrome.storage.local.get(null);
+    const usageBytes = new Blob([JSON.stringify(storage)]).size;
+    
+    // Chrome extension storage quota is typically 10MB (10,485,760 bytes)
+    const quotaBytes = 10 * 1024 * 1024;
+    const percentage = (usageBytes / quotaBytes) * 100;
+    
+    // Warn if usage exceeds 80%
+    if (percentage > 80) {
+      console.warn(
+        `[AI Leak Checker] Storage quota warning: ${percentage.toFixed(1)}% used (${(usageBytes / 1024).toFixed(1)}KB / ${(quotaBytes / 1024).toFixed(1)}KB)`
+      );
+    }
+    
+    return {
+      usage: usageBytes,
+      quota: quotaBytes,
+      percentage,
+    };
+  } catch (error) {
+    console.error('[AI Leak Checker] Failed to check storage quota:', error);
+    return {
+      usage: 0,
+      quota: 10 * 1024 * 1024,
+      percentage: 0,
+    };
+  }
+}
+
+/**
  * Update settings.
  */
 async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
   const current = await getSettings();
   const updated: Settings = { ...current, ...updates };
+  
+  // Check quota before saving
+  const quotaInfo = await checkStorageQuota();
+  if (quotaInfo.percentage > 95) {
+    throw new Error('Storage quota exceeded. Please clear stats or reset settings.');
+  }
   
   await chrome.storage.local.set({ settings: updated });
 
@@ -139,7 +234,7 @@ async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
       try {
         await chrome.tabs.sendMessage(tab.id, {
           type: MessageType.SETTINGS_UPDATED,
-          payload: updated,
+          payload: { settings: updated },
         });
       } catch {
         // Tab might not have content script
@@ -207,6 +302,10 @@ async function incrementStats(payload: StatsIncrementPayload | { field: keyof St
 async function resetStats(): Promise<Stats> {
   await chrome.storage.local.set({ stats: DEFAULT_STATS });
   await updateBadge();
+  
+  // Check quota after reset
+  await checkStorageQuota();
+  
   return DEFAULT_STATS;
 }
 
