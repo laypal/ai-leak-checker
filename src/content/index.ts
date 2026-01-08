@@ -12,9 +12,10 @@ import {
   type Finding,
   type DetectionResult,
   type SiteConfig,
-  type Message,
+  type ExtensionMessage,
   MessageType,
-  SITE_CONFIGS,
+  BUNDLED_SELECTORS,
+  getSiteConfig,
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
@@ -47,12 +48,10 @@ function initialize(): void {
   const hostname = window.location.hostname;
   
   // Find matching site configuration
-  for (const [siteName, config] of Object.entries(SITE_CONFIGS)) {
-    if (config.hostnames.some(h => hostname.includes(h))) {
-      siteConfig = config;
-      console.log(`[AI Leak Checker] Initialized for ${siteName}`);
-      break;
-    }
+  const config = getSiteConfig(hostname);
+  if (config) {
+    siteConfig = config;
+    console.log(`[AI Leak Checker] Initialized for ${hostname}`);
   }
 
   if (!siteConfig) {
@@ -315,7 +314,7 @@ function showWarning(
   chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: {
-      field: 'totalBlocked',
+      field: 'actions.cancelled',
       byType: result.summary.byType,
     },
   });
@@ -341,7 +340,7 @@ function handleContinueWithRedaction(): void {
   // Log the action
   chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
-    payload: { field: 'totalRedacted' },
+      payload: { field: 'actions.masked' },
   });
 
   // Trigger the submit after a short delay to allow UI update
@@ -361,7 +360,7 @@ function handleSendAnyway(): void {
   // Log the bypass
   chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
-    payload: { field: 'totalBypassed' },
+      payload: { field: 'actions.proceeded' },
   });
 
   // Trigger the original submission
@@ -461,7 +460,7 @@ function injectMainWorldScript(): void {
  * Handle messages from service worker.
  */
 function handleMessage(
-  message: Message,
+  message: ExtensionMessage,
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: unknown) => void
 ): boolean {
@@ -474,7 +473,7 @@ function handleMessage(
     case MessageType.GET_STATUS:
       sendResponse({
         active: !!siteConfig,
-        site: siteConfig?.hostnames[0] ?? 'unknown',
+        site: siteConfig?.name ?? window.location.hostname,
       });
       return true;
   }

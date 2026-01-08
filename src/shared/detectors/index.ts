@@ -3,7 +3,8 @@
  * @module detectors
  */
 
-export { scan, quickCheck, describeFinding, DetectorType } from './engine';
-export type { Finding, DetectionResult, ScanOptions } from './engine';
+export { scan, quickCheck, describeFinding } from './engine';
+export { DetectorType } from '@/shared/types';
+export type { Finding, DetectionResult, ScanOptions } from '@/shared/types';
 export { scanForApiKeys, API_KEY_PATTERNS } from './patterns';
 export { scanForEmails, scanForUKPhones, scanForUKNationalInsurance, scanForUSSSN, scanForIBAN } from './pii';

@@ -75,7 +75,7 @@ export const API_KEY_PATTERNS: PatternDefinition[] = [
   {
     type: DetectorType.API_KEY_GITHUB,
     name: 'GitHub Fine-grained PAT',
-    pattern: /\bgithub_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59}\b/g,
+    pattern: /\bgithub_pat_[A-Za-z0-9_-]{50,}\b/g,
     baseConfidence: 0.98,
     contextKeywords: ['github', 'pat', 'token'],
   },
@@ -147,7 +147,7 @@ export const API_KEY_PATTERNS: PatternDefinition[] = [
   {
     type: DetectorType.API_KEY_GOOGLE,
     name: 'Google OAuth Secret',
-    pattern: /\bGOCspx-[A-Za-z0-9_-]{28}\b/g,
+    pattern: /\bGOCspx-[A-Za-z0-9_-]{24,}\b/g,
     baseConfidence: 0.98,
     contextKeywords: ['google', 'oauth', 'client_secret'],
   },

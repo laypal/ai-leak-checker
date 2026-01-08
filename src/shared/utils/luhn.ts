@@ -30,6 +30,11 @@ export function luhnValidate(value: string): boolean {
     return false;
   }
 
+  // Reject all-zero numbers
+  if (/^0+$/.test(digits)) {
+    return false;
+  }
+
   let sum = 0;
   let isEven = false;
 

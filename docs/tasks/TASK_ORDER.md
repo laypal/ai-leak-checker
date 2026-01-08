@@ -127,7 +127,7 @@ npm run build   # Should produce dist/ with valid MV3 extension
 - [ ] Install Hypothesis (Python) for property tests
 - [x] Configure test directories
 - [x] Create test utilities and mocks
-- [ ] Set up CI workflow (GitHub Actions)
+- [x] Set up CI workflow (GitHub Actions)
 ```
 
 **Config Files**:
@@ -138,7 +138,7 @@ npm run build   # Should produce dist/ with valid MV3 extension
 **Acceptance Criteria**:
 - [x] `npm run test:unit` runs successfully
 - [ ] `npm run test:e2e` runs with extension loaded (requires manual testing)
-- [ ] CI pipeline passes on push (requires GitHub Actions setup)
+- [x] CI pipeline passes on push (requires GitHub Actions setup)
 
 ---
 

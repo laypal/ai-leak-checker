@@ -6,7 +6,8 @@
  * @version 1.0.0
  */
 
-import type { DetectorType } from './detection';
+import { DetectorType } from './detection';
+import type { DetectorType as DetectorTypeType } from './detection';
 import type { SelectorConfig } from './selectors';
 
 // =============================================================================
@@ -18,7 +19,7 @@ import type { SelectorConfig } from './selectors';
  */
 export interface Settings {
   /** Enabled/disabled state for each detector */
-  detectors: Record<DetectorType, boolean>;
+  detectors: Record<DetectorTypeType, boolean>;
 
   /** Global sensitivity level */
   sensitivity: 'low' | 'medium' | 'high';
@@ -55,25 +56,13 @@ export interface Settings {
  * Default settings for new installations.
  */
 export const DEFAULT_SETTINGS: Settings = {
-  detectors: {
-    api_key_openai: true,
-    api_key_aws_access: true,
-    api_key_aws_secret: true,
-    api_key_github_pat: true,
-    api_key_github_oauth: true,
-    api_key_stripe_live: true,
-    api_key_stripe_test: false, // Low risk
-    api_key_slack_bot: true,
-    api_key_slack_user: true,
-    api_key_generic: true,
-    credit_card: true,
-    email: false, // Often false positive
-    phone_uk: false, // Often false positive
-    nino: true,
-    postcode_uk: false, // Low risk
-    high_entropy: true,
-    password_context: true,
-  },
+  detectors: Object.values(DetectorType).reduce(
+    (acc, type) => {
+      acc[type] = true;
+      return acc;
+    },
+    {} as Record<DetectorTypeType, boolean>
+  ),
   sensitivity: 'medium',
   strictMode: false,
   allowlist: [],
@@ -102,7 +91,7 @@ export interface Stats {
   totalDetections: number;
 
   /** Detections by detector type */
-  byDetector: Record<DetectorType, number>;
+  byDetector: Record<DetectorTypeType, number>;
 
   /** Detections by site domain */
   bySite: Record<string, number>;
@@ -130,25 +119,13 @@ export interface Stats {
 export const DEFAULT_STATS: Stats = {
   totalScans: 0,
   totalDetections: 0,
-  byDetector: {
-    api_key_openai: 0,
-    api_key_aws_access: 0,
-    api_key_aws_secret: 0,
-    api_key_github_pat: 0,
-    api_key_github_oauth: 0,
-    api_key_stripe_live: 0,
-    api_key_stripe_test: 0,
-    api_key_slack_bot: 0,
-    api_key_slack_user: 0,
-    api_key_generic: 0,
-    credit_card: 0,
-    email: 0,
-    phone_uk: 0,
-    nino: 0,
-    postcode_uk: 0,
-    high_entropy: 0,
-    password_context: 0,
-  },
+  byDetector: Object.values(DetectorType).reduce(
+    (acc, type) => {
+      acc[type] = 0;
+      return acc;
+    },
+    {} as Record<DetectorTypeType, number>
+  ),
   bySite: {},
   actions: {
     masked: 0,
@@ -269,9 +246,9 @@ export function statsToCSV(stats: Stats): string {
 
   // Add detector counts
   for (const [detector, count] of Object.entries(stats.byDetector)) {
-    if (count > 0) {
+    if (count !== undefined && count > 0 && typeof detector === 'string') {
       rows.push([
-        new Date().toISOString().split('T')[0],
+        new Date().toISOString().split('T')[0] ?? '',
         detector,
         'all',
         count.toString(),
@@ -281,9 +258,9 @@ export function statsToCSV(stats: Stats): string {
 
   // Add site counts
   for (const [site, count] of Object.entries(stats.bySite)) {
-    if (count > 0) {
+    if (count !== undefined && count > 0 && typeof site === 'string') {
       rows.push([
-        new Date().toISOString().split('T')[0],
+        new Date().toISOString().split('T')[0] ?? '',
         'all',
         site,
         count.toString(),

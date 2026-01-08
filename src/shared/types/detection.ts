@@ -191,18 +191,18 @@ export interface DetectionResult {
 // =============================================================================
 
 /**
- * Sensitivity level for detection thresholds.
- */
-export type SensitivityLevel = 'low' | 'medium' | 'high';
-
-/**
  * Sensitivity level enum-like object for convenient access.
  */
 export const SensitivityLevel = {
   LOW: 'low' as const,
   MEDIUM: 'medium' as const,
   HIGH: 'high' as const,
-};
+} as const;
+
+/**
+ * Sensitivity level type derived from the const object.
+ */
+export type SensitivityLevel = typeof SensitivityLevel[keyof typeof SensitivityLevel];
 
 /**
  * Options for configuring a detection scan.

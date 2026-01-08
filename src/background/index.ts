@@ -7,14 +7,15 @@
  */
 
 import {
-  type Message,
+  type ExtensionMessage,
   type Settings,
   type Stats,
   type StorageSchema,
+  type StatsIncrementPayload,
   MessageType,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
-  STORAGE_SCHEMA_VERSION,
+  CURRENT_SCHEMA_VERSION,
 } from '@/shared/types';
 
 /**
@@ -37,7 +38,7 @@ async function initializeStorage(): Promise<void> {
   const storage = await chrome.storage.local.get(['schemaVersion', 'settings', 'stats']);
 
   // Check if migration is needed
-  if (storage.schemaVersion !== STORAGE_SCHEMA_VERSION) {
+  if (storage.schemaVersion !== CURRENT_SCHEMA_VERSION) {
     console.log('[AI Leak Checker] Migrating storage schema...');
     await migrateStorage(storage.schemaVersion ?? 0);
   }
@@ -59,15 +60,15 @@ async function initializeStorage(): Promise<void> {
 async function migrateStorage(fromVersion: number): Promise<void> {
   // Future migrations would go here
   // For now, just set the current version
-  await chrome.storage.local.set({ schemaVersion: STORAGE_SCHEMA_VERSION });
-  console.log(`[AI Leak Checker] Migrated storage from v${fromVersion} to v${STORAGE_SCHEMA_VERSION}`);
+    await chrome.storage.local.set({ schemaVersion: CURRENT_SCHEMA_VERSION });
+    console.log(`[AI Leak Checker] Migrated storage from v${fromVersion} to v${CURRENT_SCHEMA_VERSION}`);
 }
 
 /**
  * Handle messages from content scripts and popup.
  */
 chrome.runtime.onMessage.addListener(
-  (message: Message, sender, sendResponse): boolean => {
+  (message: ExtensionMessage, sender, sendResponse): boolean => {
     // Handle async responses
     handleMessage(message, sender)
       .then(response => sendResponse(response))
@@ -85,23 +86,23 @@ chrome.runtime.onMessage.addListener(
  * Process incoming messages.
  */
 async function handleMessage(
-  message: Message,
+  message: ExtensionMessage,
   sender: chrome.runtime.MessageSender
 ): Promise<unknown> {
   switch (message.type) {
-    case MessageType.GET_SETTINGS:
+    case MessageType.SETTINGS_GET:
       return getSettings();
 
-    case MessageType.UPDATE_SETTINGS:
+    case MessageType.SETTINGS_UPDATE:
       return updateSettings(message.payload as Partial<Settings>);
 
-    case MessageType.GET_STATS:
+    case MessageType.STATS_GET:
       return getStats();
 
     case MessageType.STATS_INCREMENT:
       return incrementStats(message.payload as StatsIncrementPayload);
 
-    case MessageType.RESET_STATS:
+    case MessageType.STATS_CLEAR:
       return resetStats();
 
     case MessageType.GET_STATUS:
@@ -113,10 +114,6 @@ async function handleMessage(
   }
 }
 
-interface StatsIncrementPayload {
-  field: keyof Stats;
-  byType?: Record<string, number>;
-}
 
 /**
  * Get current settings.
@@ -164,19 +161,38 @@ async function getStats(): Promise<Stats> {
 /**
  * Increment stats counters.
  */
-async function incrementStats(payload: StatsIncrementPayload): Promise<Stats> {
+async function incrementStats(payload: StatsIncrementPayload | { field: keyof Stats | 'actions.masked' | 'actions.proceeded' | 'actions.cancelled'; byDetector?: Record<string, number> }): Promise<Stats> {
   const stats = await getStats();
 
-  // Increment the specified field
-  if (payload.field in stats) {
-    (stats as Record<string, number>)[payload.field]++;
-  }
-
-  // Increment by-type counters
-  if (payload.byType) {
-    for (const [type, count] of Object.entries(payload.byType)) {
-      stats.byType[type] = (stats.byType[type] ?? 0) + count;
+  // Support legacy format with field/byDetector
+  if ('field' in payload) {
+    const legacyPayload = payload as { field: keyof Stats | 'actions.masked' | 'actions.proceeded' | 'actions.cancelled'; byDetector?: Record<string, number> };
+    // Handle action fields
+    if (legacyPayload.field === 'actions.masked') {
+      stats.actions.masked++;
+    } else if (legacyPayload.field === 'actions.proceeded') {
+      stats.actions.proceeded++;
+    } else if (legacyPayload.field === 'actions.cancelled') {
+      stats.actions.cancelled++;
+    } else if (legacyPayload.field in stats && typeof stats[legacyPayload.field as keyof Stats] === 'number') {
+      (stats[legacyPayload.field as keyof Stats] as number)++;
     }
+
+    // Increment by-detector counters
+    if (legacyPayload.byDetector) {
+      for (const [type, count] of Object.entries(legacyPayload.byDetector)) {
+        if (type in stats.byDetector) {
+          stats.byDetector[type as keyof typeof stats.byDetector] += count;
+        }
+      }
+    }
+  } else {
+    // Support new format with detectorType/site
+    stats.totalDetections++;
+    if (payload.detectorType in stats.byDetector) {
+      stats.byDetector[payload.detectorType]++;
+    }
+    stats.bySite[payload.site] = (stats.bySite[payload.site] ?? 0) + 1;
   }
 
   await chrome.storage.local.set({ stats });
@@ -199,7 +215,7 @@ async function resetStats(): Promise<Stats> {
  */
 async function updateBadge(): Promise<void> {
   const stats = await getStats();
-  const blocked = stats.totalBlocked;
+  const blocked = stats.actions.cancelled;
 
   if (blocked > 0) {
     const text = blocked > 99 ? '99+' : blocked.toString();

@@ -180,7 +180,7 @@ export function getSupportedHostnames(
   config: SelectorConfig = BUNDLED_SELECTORS
 ): string[] {
   return Object.keys(config.sites).filter(
-    (hostname) => config.sites[hostname].enabled
+    (hostname): hostname is string => config.sites[hostname]?.enabled ?? false
   );
 }
 
