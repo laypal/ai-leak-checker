@@ -15,7 +15,7 @@
 | Phase 2: DOM Interception | ✅ Complete | 5/5 |
 | Phase 3: Service Worker | ✅ Complete | 3/3 |
 | Phase 4: Popup UI | ✅ Complete | 3/3 |
-| Phase 5: E2E Testing | 🔄 In Progress | 0/3 |
+| Phase 5: E2E Testing | ✅ Complete | 3/3 |
 | Phase 6: Documentation | 🔄 In Progress | 1/4 |
 
 **Next Steps**:
@@ -344,42 +344,60 @@ ElementWatcher integrated into content script with MutationObserver.
 
 ---
 
-## Phase 5: E2E Testing & Polish (Days 23-28)
+## Phase 5: E2E Testing & Polish (Days 23-28) - ✅ COMPLETE
 
 ### Task 5.1: Playwright Test Suite
-**Estimate**: 6 hours | **Priority**: P0
+**Estimate**: 6 hours | **Priority**: P0 | **Status**: ✅ COMPLETE
 
-```typescript
-// tests/e2e/chatgpt.spec.ts
-test.describe('ChatGPT Integration', () => {
-  test.beforeEach(async ({ context }) => {
-    await context.addExtension('./dist');
-  });
+**Files**:
+- `tests/e2e/extension-loading.spec.ts` - Extension loading and popup structure tests
+- `tests/e2e/chatgpt-integration.spec.ts` - ChatGPT-like page integration tests
+- `tests/e2e/detection-engine.spec.ts` - Detection engine behavior tests
+- `tests/e2e/helpers.ts` - Test utilities and helpers
 
-  test('warns on API key paste', async ({ page }) => {
-    await page.goto('https://chat.openai.com');
-    // ...
-  });
+**Implemented**:
+- Extension loading verification (structure, no fatal errors)
+- Mock ChatGPT page structure tests
+- Detection engine integration tests (API keys, PII, credit cards, UK phones)
+- QuickCheck performance validation
 
-  test('allows clean text through', async ({ page }) => {
-    // ...
-  });
-
-  test('mask function works correctly', async ({ page }) => {
-    // ...
-  });
-});
-```
+**Test Results**: 33 tests passing, 1 skipped (requires Chrome extension loading)
 
 ### Task 5.2: False Positive Corpus Testing
-**Estimate**: 4 hours | **Priority**: P0
+**Estimate**: 4 hours | **Priority**: P0 | **Status**: ✅ COMPLETE
 
-Run detection engine against corpus of safe text to measure false positive rate.
+**File**: `tests/e2e/false-positives.spec.ts`
+
+**Implemented**:
+- UUID/GUID detection validation
+- Git commit hash detection
+- Hex color codes
+- Timestamps
+- Base64 image data URIs
+- Hash values (MD5, SHA256, SHA512)
+- Common placeholder patterns
+- Technical strings
+- IP addresses
+- Contextual false positives (code examples)
+
+**Coverage**: All false positive categories from `tests/fixtures/false_positives.json` are tested.
 
 ### Task 5.3: Performance Benchmarks
-**Estimate**: 2 hours | **Priority**: P1
+**Estimate**: 2 hours | **Priority**: P1 | **Status**: ✅ COMPLETE
 
-Measure scan latency on various text sizes.
+**File**: `tests/e2e/performance.spec.ts`
+
+**Implemented**:
+- Scan latency tests for various text sizes:
+  - Small text (<50ms target)
+  - Medium text (~5KB, <200ms target)
+  - Large text (~50KB, <1000ms target)
+  - Very large text (~500KB, <5000ms target)
+- QuickCheck performance (<5-10ms for clean/suspicious text)
+- Batch scanning efficiency
+- Memory usage validation (no leaks)
+
+**Results**: All performance benchmarks passing within target thresholds.
 
 ---
 
