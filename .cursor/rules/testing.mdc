@@ -1,0 +1,158 @@
+---
+description: Testing patterns and conventions for unit, integration, and E2E tests.
+globs:
+  - tests/**/*.ts
+  - tests/**/*.test.ts
+  - tests/**/*.spec.ts
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+alwaysApply: false
+---
+
+# Testing Standards
+
+## Test Structure
+
+```
+tests/
+├── unit/           # Vitest - isolated function tests
+│   ├── patterns.test.ts
+│   ├── entropy.test.ts
+│   └── luhn.test.ts
+├── integration/    # Vitest - component interaction
+│   ├── message-passing.test.ts
+│   └── storage.test.ts
+├── e2e/            # Playwright - browser tests
+│   ├── chatgpt.spec.ts
+│   └── claude.spec.ts
+└── fixtures/       # Test data
+    ├── api_keys.json
+    └── false_positives.json
+```
+
+## Unit Test Template
+
+```typescript
+/**
+ * @file patterns.test.ts
+ * @description Tests for regex pattern matchers
+ */
+
+import { describe, test, expect } from 'vitest';
+import { matchPatterns } from '@/shared/detectors/patterns';
+
+describe('OpenAI API Key Pattern', () => {
+  const validKeys = [
+    'sk-1234567890abcdefghij1234567890ab',
+    'sk-proj-abcdefghijklmnopqrstuvwxyz1234',
+  ];
+
+  const invalidKeys = [
+    'sk-short',           // Too short
+    'not-an-api-key',     // Wrong prefix
+  ];
+
+  test.each(validKeys)('detects valid key: %s', (key) => {
+    const result = matchPatterns(key);
+    expect(result).toContainEqual(
+      expect.objectContaining({ type: 'api_key_openai' })
+    );
+  });
+
+  test.each(invalidKeys)('ignores invalid: %s', (key) => {
+    const result = matchPatterns(key);
+    expect(result.filter(f => f.type === 'api_key_openai')).toHaveLength(0);
+  });
+});
+```
+
+## E2E Test Template (Playwright)
+
+```typescript
+/**
+ * @file chatgpt.spec.ts
+ * @description E2E tests for ChatGPT integration
+ */
+
+import { test, expect, BrowserContext } from '@playwright/test';
+
+test.describe('ChatGPT Integration', () => {
+  test('shows warning when API key typed', async ({ page }) => {
+    await page.goto('https://chat.openai.com');
+    
+    const textarea = await page.waitForSelector('#prompt-textarea');
+    await textarea.fill('My key: sk-test1234567890abcdefghij');
+    await page.keyboard.press('Enter');
+    
+    const modal = await page.waitForSelector('[data-testid="leak-warning-modal"]');
+    expect(modal).toBeTruthy();
+  });
+
+  test('allows clean text without warning', async ({ page }) => {
+    await page.goto('https://chat.openai.com');
+    
+    const textarea = await page.waitForSelector('#prompt-textarea');
+    await textarea.fill('Hello, how are you?');
+    await page.keyboard.press('Enter');
+    
+    const modal = page.locator('[data-testid="leak-warning-modal"]');
+    await expect(modal).not.toBeVisible({ timeout: 2000 });
+  });
+});
+```
+
+## Testing Requirements
+
+### Must Test
+
+- ✅ All regex patterns against valid AND invalid inputs
+- ✅ False positive fixtures (UUIDs, hashes, placeholders)
+- ✅ Edge cases: empty strings, very long text, special chars
+- ✅ Entropy calculations for high/low entropy strings
+- ✅ Credit card Luhn validation
+
+### Test Naming
+
+```typescript
+// ✅ Good - describes behavior
+test('detects OpenAI key with sk- prefix')
+test('ignores UUID that looks like API key')
+test('handles empty string without throwing')
+
+// ❌ Bad - vague
+test('works correctly')
+test('test1')
+```
+
+### Fixtures Location
+
+Use `tests/fixtures/` for test data:
+
+```typescript
+import apiKeys from '../fixtures/api_keys.json';
+import falsePositives from '../fixtures/false_positives.json';
+
+test.each(apiKeys.openai)('detects OpenAI key: %s', (key) => {
+  // ...
+});
+
+test.each(falsePositives.uuids)('ignores UUID: %s', (uuid) => {
+  // ...
+});
+```
+
+## Commands
+
+```bash
+npm run test:unit       # Run unit tests
+npm run test:e2e        # Run Playwright tests
+npm run test:coverage   # Generate coverage report
+npm run test:watch      # Watch mode for development
+```
+
+## Coverage Targets
+
+- Statements: 70%
+- Branches: 65%
+- Functions: 70%
+- Lines: 70%

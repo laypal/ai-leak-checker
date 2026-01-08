@@ -29,12 +29,13 @@ const DEFAULT_OPTIONS: Required<ScanOptions> = {
   contextSize: 50,
   filterDomains: [],
   minConfidence: 0.5,
+  allowlist: [],
 };
 
 /**
  * Sensitivity level thresholds.
  */
-const SENSITIVITY_THRESHOLDS: Record<ScanOptions['sensitivityLevel'], number> = {
+const SENSITIVITY_THRESHOLDS: Record<Required<ScanOptions>['sensitivityLevel'], number> = {
   low: 0.8,     // Only high-confidence matches
   medium: 0.6,  // Balanced detection
   high: 0.4,    // More aggressive, may have false positives
@@ -62,36 +63,45 @@ export function scan(text: string, options?: Partial<ScanOptions>): DetectionRes
     return createEmptyResult(startTime);
   }
 
+  // Normalize enabledDetectors to Set
+  const enabledDetectorsSet = opts.enabledDetectors instanceof Set
+    ? opts.enabledDetectors
+    : new Set(
+        Object.entries(opts.enabledDetectors)
+          .filter(([, enabled]) => enabled)
+          .map(([type]) => type as DetectorType)
+      );
+
   // Collect findings from all enabled detectors
   const allFindings: Finding[] = [];
 
   // Run pattern-based API key detection
-  const apiKeyFindings = scanForApiKeys(text, opts.enabledDetectors);
+  const apiKeyFindings = scanForApiKeys(text, enabledDetectorsSet);
   allFindings.push(...apiKeyFindings);
 
   // Run PII detectors
-  if (opts.enabledDetectors.has(DetectorType.EMAIL)) {
+  if (enabledDetectorsSet.has(DetectorType.EMAIL)) {
     allFindings.push(...scanForEmails(text, opts.filterDomains));
   }
 
-  if (opts.enabledDetectors.has(DetectorType.PHONE_UK)) {
+  if (enabledDetectorsSet.has(DetectorType.PHONE_UK)) {
     allFindings.push(...scanForUKPhones(text));
   }
 
-  if (opts.enabledDetectors.has(DetectorType.UK_NI_NUMBER)) {
+  if (enabledDetectorsSet.has(DetectorType.UK_NI_NUMBER)) {
     allFindings.push(...scanForUKNationalInsurance(text));
   }
 
-  if (opts.enabledDetectors.has(DetectorType.US_SSN)) {
+  if (enabledDetectorsSet.has(DetectorType.US_SSN)) {
     allFindings.push(...scanForUSSSN(text));
   }
 
-  if (opts.enabledDetectors.has(DetectorType.IBAN)) {
+  if (enabledDetectorsSet.has(DetectorType.IBAN)) {
     allFindings.push(...scanForIBAN(text));
   }
 
   // Run credit card detection
-  if (opts.enabledDetectors.has(DetectorType.CREDIT_CARD)) {
+  if (enabledDetectorsSet.has(DetectorType.CREDIT_CARD)) {
     const cards = extractCreditCards(text);
     for (const card of cards) {
       allFindings.push({
@@ -110,7 +120,7 @@ export function scan(text: string, options?: Partial<ScanOptions>): DetectionRes
   }
 
   // Run high-entropy detection for generic secrets
-  if (opts.enabledDetectors.has(DetectorType.HIGH_ENTROPY)) {
+  if (enabledDetectorsSet.has(DetectorType.HIGH_ENTROPY)) {
     const threshold = opts.sensitivityLevel === 'high'
       ? ENTROPY_THRESHOLDS.suspicious
       : opts.sensitivityLevel === 'low'
@@ -183,15 +193,23 @@ export function quickCheck(text: string): boolean {
   }
 
   // Quick pattern checks (no regex exec, just test)
+  // More lenient for quick filtering - catches potential issues
   const quickPatterns = [
-    /sk-[a-zA-Z0-9]{20,}/,   // OpenAI
-    /AKIA[A-Z0-9]{16}/,      // AWS
-    /ghp_[a-zA-Z0-9]{36}/,   // GitHub
+    /sk-[a-zA-Z0-9]{5,}/,    // OpenAI (lenient - at least 5 chars)
+    /AKIA[A-Z0-9]{5,}/,      // AWS (lenient)
+    /ghp_[a-zA-Z0-9]{5,}/,   // GitHub (lenient)
     /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/, // Credit card
     /-----BEGIN.*PRIVATE KEY-----/, // Private key
+    /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/, // Email
   ];
 
-  return quickPatterns.some(p => p.test(text));
+  // Check keyword patterns (password=, secret:, api_key=, token:)
+  const keywordPatterns = [
+    /(?:password|passwd|pwd|secret|token|api_key|apikey|auth)\s*[:=]\s*/i,
+  ];
+
+  return quickPatterns.some(p => p.test(text)) || 
+         keywordPatterns.some(p => p.test(text));
 }
 
 /**
@@ -355,4 +373,4 @@ export function describeFinding(finding: Finding): string {
 
 // Re-export for convenience
 export { DetectorType };
-export type { Finding, DetectionResult, ScanOptions };
+export type { Finding, DetectionResult, ScanOptions } from '@/shared/types';

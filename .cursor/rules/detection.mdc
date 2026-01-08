@@ -1,0 +1,142 @@
+---
+description: Detection engine patterns, regex guidelines, and false positive management.
+globs:
+  - src/shared/detectors/**/*.ts
+  - src/shared/utils/entropy.ts
+  - src/shared/utils/luhn.ts
+alwaysApply: false
+---
+
+# Detection Engine Guidelines
+
+## Pattern Design Principles
+
+### Avoid False Positives
+
+```typescript
+// ❌ Too broad - matches UUIDs, hashes
+const BAD_PATTERN = /[a-zA-Z0-9]{32}/;
+
+// ✅ Better - requires specific prefix
+const OPENAI_KEY = /sk-[a-zA-Z0-9]{48}/;
+
+// ✅ Best - prefix + entropy check
+function isLikelyApiKey(match: string): boolean {
+  return hasPrefix(match) && calculateEntropy(match) > 4.0;
+}
+```
+
+### Use Anchoring Context
+
+```typescript
+// Look for context words near high-entropy strings
+const CONTEXT_KEYWORDS = [
+  'key', 'token', 'secret', 'password', 'api',
+  'auth', 'credential', 'bearer', 'authorization'
+];
+
+function hasSecretContext(text: string, position: number): boolean {
+  const window = text.slice(Math.max(0, position - 50), position + 50);
+  return CONTEXT_KEYWORDS.some(kw => 
+    window.toLowerCase().includes(kw)
+  );
+}
+```
+
+## Entropy Thresholds
+
+| Level | Threshold | Use Case |
+|-------|-----------|----------|
+| Suspicious | 3.5 | Flag for review |
+| Likely | 4.0 | Default detection |
+| Definite | 4.5 | High confidence |
+
+```typescript
+const ENTROPY_THRESHOLDS = {
+  suspicious: 3.5,
+  likely: 4.0,
+  definite: 4.5,
+};
+```
+
+## Pattern Categories
+
+### API Keys (High Entropy + Prefix)
+
+```typescript
+const API_KEY_PATTERNS = {
+  openai: /sk-(?:proj-)?[a-zA-Z0-9]{32,}/,
+  aws_access: /(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}/,
+  github: /gh[pousr]_[a-zA-Z0-9]{36,}/,
+  stripe: /[sr]k_(?:live|test)_[a-zA-Z0-9]{24,}/,
+};
+```
+
+### PII (Format + Validation)
+
+```typescript
+// Credit card: format + Luhn validation
+function detectCreditCard(text: string): Finding[] {
+  const matches = text.match(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g);
+  return (matches ?? [])
+    .filter(m => luhnValidate(m.replace(/\D/g, '')))
+    .map(m => ({ type: 'credit_card', value: m }));
+}
+
+// Email: format + confidence scoring
+function detectEmail(text: string): Finding[] {
+  const matches = text.match(EMAIL_REGEX);
+  return (matches ?? []).map(m => ({
+    type: 'email',
+    value: m,
+    confidence: getEmailConfidence(m), // Higher for personal domains
+  }));
+}
+```
+
+## Adding New Patterns
+
+1. **Add type** to `src/shared/types/detection.ts`:
+   ```typescript
+   export const DetectorType = {
+     // ... existing
+     API_KEY_NEW_SERVICE: 'api_key_new_service',
+   } as const;
+   ```
+
+2. **Add pattern** to `src/shared/detectors/patterns.ts`:
+   ```typescript
+   {
+     type: DetectorType.API_KEY_NEW_SERVICE,
+     pattern: /prefix_[a-zA-Z0-9]{32}/g,
+     confidence: 0.9,
+     validator: (match) => calculateEntropy(match) > 4.0,
+   }
+   ```
+
+3. **Add tests** to `tests/unit/patterns.test.ts`:
+   ```typescript
+   describe('New Service API Key', () => {
+     test.each(validKeys)('detects: %s', ...);
+     test.each(invalidKeys)('ignores: %s', ...);
+   });
+   ```
+
+4. **Add fixtures** to `tests/fixtures/api_keys.json`
+
+## Performance Considerations
+
+- **Quick check first**: Use `quickCheck()` before full scan
+- **Limit text length**: Don't scan >100KB
+- **Reuse compiled regex**: Define patterns as module constants
+- **Early exit**: Stop after `maxResults` findings
+
+```typescript
+function quickCheck(text: string): boolean {
+  // Fast string checks before expensive regex
+  return text.includes('sk-') ||
+         text.includes('AKIA') ||
+         text.includes('ghp_') ||
+         /\d{16}/.test(text);
+}
+```

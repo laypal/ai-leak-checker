@@ -5,10 +5,9 @@
  * @version 1.0.0
  */
 
-// Detection types
+// Detection types - export DetectorType and SensitivityLevel as values (they're const objects)
+// Export other types as type-only
 export type {
-  DetectorType,
-  SensitivityLevel,
   Finding,
   DetectionResult,
   DetectionSummary,
@@ -18,6 +17,8 @@ export type {
   PatternDefinition,
 } from './detection';
 
+// Export DetectorType and SensitivityLevel as values (needed for runtime use)
+// The const objects also provide their types when imported
 export {
   DetectorType,
   SensitivityLevel,
@@ -48,9 +49,8 @@ export {
   checkSelectorHealth,
 } from './selectors';
 
-// Message types
+// Message types - export MessageType as value (it's a const object)
 export type {
-  MessageType,
   BaseMessage,
   ScanRequestPayload,
   ScanResultPayload,
@@ -82,15 +82,21 @@ export type {
   ExtensionMessage,
   MessageResponse,
   ResponseTypeMap,
+  StatusMessage,
 } from './messages';
 
+// Export MessageType as value (needed for runtime use)
 export {
+  MessageType,
   generateCorrelationId,
   createMessage,
   createSuccessResponse,
   createErrorResponse,
   isMessageType,
 } from './messages';
+
+// Alias ExtensionMessage as Message for convenience
+export type { ExtensionMessage as Message } from './messages';
 
 // Storage types
 export type {
@@ -112,3 +118,6 @@ export {
   STORAGE_KEYS,
   statsToCSV,
 } from './storage';
+
+// Export STORAGE_SCHEMA_VERSION as alias for CURRENT_SCHEMA_VERSION
+export { CURRENT_SCHEMA_VERSION as STORAGE_SCHEMA_VERSION } from './storage';

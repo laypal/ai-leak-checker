@@ -152,11 +152,14 @@ describe('scan', () => {
     });
 
     it('respects context size', () => {
-      const text = 'A'.repeat(100) + 'sk-abc123def456ghi789jkl012mno345pqr678' + 'B'.repeat(100);
+      // Use the same format as the "includes context when requested" test above
+      const text = 'A'.repeat(100) + 'Here is my secret key: sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz please keep safe' + 'B'.repeat(100);
       const result = scan(text, { includeContext: true, contextSize: 10 });
 
+      // Should have findings
+      expect(result.findings.length).toBeGreaterThan(0);
       // Context should be limited
-      expect(result.findings[0].context?.length).toBeLessThan(text.length);
+      expect(result.findings[0]?.context?.length).toBeLessThan(text.length);
     });
   });
 

@@ -220,7 +220,7 @@ describe('scanForUKPhones', () => {
     });
 
     it('detects regional landlines (01xxx)', () => {
-      const text = 'Regional: 01onal234 567890';
+      const text = 'Regional: 01123 456789';
       const findings = scanForUKPhones(text);
 
       expect(findings).toHaveLength(1);
@@ -253,7 +253,7 @@ describe('scanForUKPhones', () => {
 describe('scanForUKNationalInsurance', () => {
   describe('valid NI numbers', () => {
     it('detects compact format', () => {
-      const text = 'NI: AB123456C';
+      const text = 'NI: AB123456D';
       const findings = scanForUKNationalInsurance(text);
 
       expect(findings).toHaveLength(1);
@@ -261,7 +261,7 @@ describe('scanForUKNationalInsurance', () => {
     });
 
     it('detects spaced format', () => {
-      const text = 'National Insurance: AB 12 34 56 C';
+      const text = 'National Insurance: AB 12 34 56 D';
       const findings = scanForUKNationalInsurance(text);
 
       expect(findings).toHaveLength(1);
@@ -271,15 +271,15 @@ describe('scanForUKNationalInsurance', () => {
       const letters = ['A', 'B', 'C', 'D'];
       
       for (const letter of letters) {
-        const findings = scanForUKNationalInsurance(`AB123456${letter}`);
+        const findings = scanForUKNationalInsurance(`AB123457${letter}`);
         expect(findings).toHaveLength(1);
       }
     });
 
     it('is case insensitive', () => {
-      const findings = scanForUKNationalInsurance('ab123456c');
+      const findings = scanForUKNationalInsurance('ab123457d');
       expect(findings).toHaveLength(1);
-      expect(findings[0].value).toBe('AB123456C'); // Normalized to uppercase
+      expect(findings[0].value).toBe('AB123457D'); // Normalized to uppercase
     });
   });
 
@@ -316,7 +316,7 @@ describe('scanForUKNationalInsurance', () => {
 describe('scanForUSSSN', () => {
   describe('valid SSN detection', () => {
     it('detects hyphenated format', () => {
-      const text = 'SSN: 123-45-6789';
+      const text = 'SSN: 234-56-7890';
       const findings = scanForUSSSN(text);
 
       expect(findings).toHaveLength(1);
@@ -324,14 +324,14 @@ describe('scanForUSSSN', () => {
     });
 
     it('detects spaced format', () => {
-      const text = 'SSN: 123 45 6789';
+      const text = 'SSN: 234 56 7890';
       const findings = scanForUSSSN(text);
 
       expect(findings).toHaveLength(1);
     });
 
     it('detects compact format', () => {
-      const text = 'SSN: 123456789';
+      const text = 'SSN: 234567890';
       const findings = scanForUSSSN(text);
 
       expect(findings).toHaveLength(1);

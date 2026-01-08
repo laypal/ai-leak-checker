@@ -108,13 +108,19 @@ export function scanForUKPhones(text: string): Finding[] {
   // UK phone patterns
   const patterns = [
     // International format: +44 7xxx xxx xxx or +44 (0) 7xxx xxx xxx
-    /\+44\s*\(?\s*0?\s*\)?\s*[1-9]\d{2}[\s.-]?\d{3}[\s.-]?\d{3,4}\b/g,
+    // Mobile: +44 7 followed by 9 digits
+    // Landline: +44 1 or 2 followed by 8-9 digits
+    /\+44\s*\(?\s*0?\s*\)?\s*[1-9]\d{2,3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}/g,
     
     // Mobile: 07xxx xxxxxx (with various separators)
-    /\b07\d{3}[\s.-]?\d{3}[\s.-]?\d{3}\b/g,
+    // 07 followed by 9 more digits = 11 digits total
+    // Format: 07xxx xxxxxx (can be grouped as 07xxx xxxxxx or 07xx xxx xxxx)
+    /\b07\d{2,3}[\s.-]?\d{3}[\s.-]?\d{3,4}/g,
     
     // Landline: 01xxx xxxxxx or 02x xxxx xxxx
-    /\b0[12]\d{2,3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}\b/g,
+    // 01xxx or 011x or 012x or 013x or 014x or 015x or 016x or 017x or 018x or 019x
+    // 020 or 023 or 024 or 028 or 029
+    /\b0[12]\d{1,3}[\s.-]?\d{3,4}[\s.-]?\d{3,4}/g,
   ];
 
   const seen = new Set<number>(); // Track match positions to avoid duplicates
@@ -168,8 +174,13 @@ function isValidUKPhone(phone: string): boolean {
 
   // Check valid UK prefixes
   if (digits.startsWith('44')) {
-    // International format - check what follows
-    const local = digits.slice(2);
+    // International format - remove country code
+    let local = digits.slice(2);
+    // If local starts with 0 (from +44 (0) format), remove it
+    if (local.startsWith('0')) {
+      local = local.slice(1);
+    }
+    // Local should start with 1-9 (mobile 7xxx or landline 1xxx/2xxx)
     return /^[1-9]/.test(local);
   }
 
@@ -196,12 +207,26 @@ export function scanForUKNationalInsurance(text: string): Finding[] {
   // Format: 2 letters, 6 digits, 1 letter (A, B, C, or D)
   // First letter cannot be D, F, I, Q, U, or V
   // Second letter cannot be D, F, I, O, Q, U, or V
-  const niPattern = /\b(?![DFIQUV])[A-CEGHJ-PR-TW-Z](?![DFIOQU])[A-CEGHJ-NPR-TW-Z]\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-D]\b/gi;
+  // Match format first, validate letters later
+  const niPattern = /\b[A-CEGHJ-PR-TW-Za-ceghj-pr-tw-z][A-CEGHJ-NPR-TW-Za-ceghj-npr-tw-z]\s?\d{2}\s?\d{2}\s?\d{2}\s?[A-Da-d]\b/gi;
 
   let match: RegExpExecArray | null;
 
   while ((match = niPattern.exec(text)) !== null) {
     const value = match[0];
+    const normalized = value.replace(/\s/g, '').toUpperCase();
+
+    // Validate first letter is not D, F, I, Q, U, or V
+    const firstLetter = normalized[0];
+    if (firstLetter && ['D', 'F', 'I', 'Q', 'U', 'V'].includes(firstLetter)) {
+      continue;
+    }
+
+    // Validate second letter is not D, F, I, O, Q, U, or V
+    const secondLetter = normalized[1];
+    if (secondLetter && ['D', 'F', 'I', 'O', 'Q', 'U', 'V'].includes(secondLetter)) {
+      continue;
+    }
 
     // Skip if it looks like a test/example NI number
     if (isExampleNINumber(value)) {
@@ -210,7 +235,7 @@ export function scanForUKNationalInsurance(text: string): Finding[] {
 
     findings.push({
       type: DetectorType.UK_NI_NUMBER,
-      value: value.toUpperCase(),
+      value: normalized,
       start: match.index,
       end: match.index + value.length,
       confidence: 0.85,
@@ -251,6 +276,9 @@ export function scanForUSSSN(text: string): Finding[] {
   const findings: Finding[] = [];
 
   // SSN pattern: XXX-XX-XXXX (with optional dashes/spaces)
+  // Must not start with 000, 666, or 9xx in first group
+  // Must not have 00 in second group
+  // Must not have 0000 in third group
   const ssnPattern = /\b(?!000|666|9\d{2})\d{3}[-\s]?(?!00)\d{2}[-\s]?(?!0000)\d{4}\b/g;
 
   let match: RegExpExecArray | null;
