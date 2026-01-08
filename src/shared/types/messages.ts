@@ -17,32 +17,42 @@ import type { Settings, Stats } from './storage';
 
 /**
  * All possible message types in the extension.
+ * Const object for runtime access (allows MessageType.SCAN_REQUEST syntax)
  */
-export type MessageType =
+export const MessageType = {
   // Detection
-  | 'SCAN_REQUEST'
-  | 'SCAN_RESULT'
+  SCAN_REQUEST: 'SCAN_REQUEST',
+  SCAN_RESULT: 'SCAN_RESULT',
   // Settings
-  | 'SETTINGS_GET'
-  | 'SETTINGS_UPDATE'
-  | 'SETTINGS_RESET'
+  SETTINGS_GET: 'SETTINGS_GET',
+  SETTINGS_UPDATE: 'SETTINGS_UPDATE',
+  SETTINGS_RESET: 'SETTINGS_RESET',
+  SETTINGS_UPDATED: 'SETTINGS_UPDATED',
   // Stats
-  | 'STATS_GET'
-  | 'STATS_INCREMENT'
-  | 'STATS_CLEAR'
-  | 'STATS_EXPORT'
+  STATS_GET: 'STATS_GET',
+  STATS_INCREMENT: 'STATS_INCREMENT',
+  STATS_CLEAR: 'STATS_CLEAR',
+  STATS_EXPORT: 'STATS_EXPORT',
   // Selectors
-  | 'SELECTOR_GET'
-  | 'SELECTOR_UPDATE'
-  | 'SELECTOR_HEALTH'
+  SELECTOR_GET: 'SELECTOR_GET',
+  SELECTOR_UPDATE: 'SELECTOR_UPDATE',
+  SELECTOR_HEALTH: 'SELECTOR_HEALTH',
   // Lifecycle
-  | 'EXTENSION_READY'
-  | 'CONTENT_SCRIPT_LOADED'
-  | 'POPUP_OPENED'
+  EXTENSION_READY: 'EXTENSION_READY',
+  CONTENT_SCRIPT_LOADED: 'CONTENT_SCRIPT_LOADED',
+  POPUP_OPENED: 'POPUP_OPENED',
   // User Actions
-  | 'USER_ACTION_MASK'
-  | 'USER_ACTION_PROCEED'
-  | 'USER_ACTION_CANCEL';
+  USER_ACTION_MASK: 'USER_ACTION_MASK',
+  USER_ACTION_PROCEED: 'USER_ACTION_PROCEED',
+  USER_ACTION_CANCEL: 'USER_ACTION_CANCEL',
+  // Status (deprecated, use EXTENSION_READY)
+  GET_STATUS: 'GET_STATUS',
+} as const;
+
+/**
+ * Type derived from the const object values.
+ */
+export type MessageType = typeof MessageType[keyof typeof MessageType];
 
 // =============================================================================
 // Base Message Structure
@@ -97,6 +107,7 @@ export interface SettingsUpdatePayload {
 }
 
 export type SettingsUpdateMessage = BaseMessage<'SETTINGS_UPDATE', SettingsUpdatePayload>;
+export type SettingsUpdatedMessage = BaseMessage<'SETTINGS_UPDATED', SettingsUpdatePayload>;
 export type SettingsResetMessage = BaseMessage<'SETTINGS_RESET', undefined>;
 
 // =============================================================================
@@ -181,11 +192,14 @@ export type UserActionCancelMessage = BaseMessage<'USER_ACTION_CANCEL', UserActi
 /**
  * Union of all possible messages.
  */
+export type StatusMessage = BaseMessage<'GET_STATUS', undefined>;
+
 export type ExtensionMessage =
   | ScanRequestMessage
   | ScanResultMessage
   | SettingsGetMessage
   | SettingsUpdateMessage
+  | SettingsUpdatedMessage
   | SettingsResetMessage
   | StatsGetMessage
   | StatsIncrementMessage
@@ -199,7 +213,8 @@ export type ExtensionMessage =
   | PopupOpenedMessage
   | UserActionMaskMessage
   | UserActionProceedMessage
-  | UserActionCancelMessage;
+  | UserActionCancelMessage
+  | StatusMessage;
 
 // =============================================================================
 // Response Types

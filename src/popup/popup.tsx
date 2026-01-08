@@ -136,8 +136,8 @@ function App() {
   async function loadData() {
     try {
       const [settingsRes, statsRes] = await Promise.all([
-        chrome.runtime.sendMessage({ type: MessageType.GET_SETTINGS }),
-        chrome.runtime.sendMessage({ type: MessageType.GET_STATS }),
+        chrome.runtime.sendMessage({ type: MessageType.SETTINGS_GET }),
+        chrome.runtime.sendMessage({ type: MessageType.STATS_GET }),
       ]);
       if (settingsRes && !settingsRes.error) setSettings(settingsRes);
       if (statsRes && !statsRes.error) setStats(statsRes);
@@ -150,8 +150,8 @@ function App() {
     const updated = { ...settings, [key]: value };
     setSettings(updated);
     await chrome.runtime.sendMessage({
-      type: MessageType.UPDATE_SETTINGS,
-      payload: { [key]: value },
+      type: MessageType.SETTINGS_UPDATE,
+      payload: { settings: { [key]: value } },
     });
   }
 
@@ -162,7 +162,7 @@ function App() {
   }
 
   async function resetStats() {
-    await chrome.runtime.sendMessage({ type: MessageType.RESET_STATS });
+    await chrome.runtime.sendMessage({ type: MessageType.STATS_CLEAR });
     setStats(DEFAULT_STATS);
   }
 
@@ -225,25 +225,25 @@ function App() {
         <div>
           <div style={styles.statsGrid}>
             <div style={styles.statCard}>
-              <div style={{ ...styles.statValue, color: '#dc3545' }}>{stats.totalBlocked}</div>
+              <div style={{ ...styles.statValue, color: '#dc3545' }}>{stats.actions.cancelled}</div>
               <div style={styles.statLabel}>Blocked</div>
             </div>
             <div style={styles.statCard}>
-              <div style={{ ...styles.statValue, color: '#198754' }}>{stats.totalRedacted}</div>
+              <div style={{ ...styles.statValue, color: '#198754' }}>{stats.actions.masked}</div>
               <div style={styles.statLabel}>Redacted</div>
             </div>
             <div style={styles.statCard}>
-              <div style={{ ...styles.statValue, color: '#6c757d' }}>{stats.totalBypassed}</div>
+              <div style={{ ...styles.statValue, color: '#6c757d' }}>{stats.actions.proceeded}</div>
               <div style={styles.statLabel}>Bypassed</div>
             </div>
           </div>
 
           {/* Detection Breakdown */}
-          {Object.keys(stats.byType).length > 0 && (
+          {Object.keys(stats.byDetector).length > 0 && (
             <div style={{ ...styles.section, marginTop: '20px' }}>
               <div style={styles.sectionTitle}>Detection Breakdown</div>
               <div style={{ background: '#ffffff', borderRadius: '8px', padding: '12px' }}>
-                {Object.entries(stats.byType).map(([type, count]) => (
+                {Object.entries(stats.byDetector).map(([type, count]) => (
                   <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f0f0' }}>
                     <span style={{ fontSize: '12px', color: '#495057' }}>{formatDetectorType(type)}</span>
                     <span style={{ fontSize: '12px', fontWeight: '600' }}>{count}</span>
@@ -279,8 +279,8 @@ function App() {
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Sensitivity Level</div>
             <select
-              value={settings.sensitivityLevel}
-              onChange={(e) => updateSetting('sensitivityLevel', e.currentTarget.value as Settings['sensitivityLevel'])}
+              value={settings.sensitivity}
+              onChange={(e) => updateSetting('sensitivity', e.currentTarget.value as Settings['sensitivity'])}
               style={{
                 width: '100%',
                 padding: '10px 12px',
