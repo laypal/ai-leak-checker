@@ -1,0 +1,136 @@
+{
+  "$schema": "./fixtures.schema.json",
+  "description": "Known API key patterns for testing detection engine",
+  "version": "1.0.0",
+  "patterns": {
+    "openai": {
+      "description": "OpenAI API keys",
+      "validSamples": [
+        "sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI",
+        "sk-abcdefghijklmnopqrstuvwxyz12345678901234567890",
+        "sk-proj-test1234567890abcdefghijklmnopqrstuvwxyz1234567890"
+      ],
+      "invalidSamples": [
+        "sk-",
+        "sk-abc",
+        "not-an-openai-key"
+      ],
+      "prefixes": ["sk-", "sk-proj-"],
+      "minLength": 20,
+      "maxLength": 100
+    },
+    "aws": {
+      "description": "AWS Access Key IDs",
+      "validSamples": [
+        "AKIAIOSFODNN7EXAMPLE",
+        "AKIAI44QH8DHBEXAMPLE",
+        "AKIAXXXXXXXXXXXXXXXX"
+      ],
+      "invalidSamples": [
+        "AKIA",
+        "AKIAIOSFODNN7",
+        "akiaiosfodnn7example"
+      ],
+      "pattern": "^AKIA[0-9A-Z]{16}$",
+      "exactLength": 20
+    },
+    "awsSecret": {
+      "description": "AWS Secret Access Keys",
+      "validSamples": [
+        "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+        "abcdefghijklmnopqrstuvwxyz1234567890ABCD"
+      ],
+      "invalidSamples": [
+        "short",
+        "contains spaces in the middle"
+      ],
+      "exactLength": 40,
+      "notes": "Base64-like, 40 chars, often follows AKIA key"
+    },
+    "github": {
+      "description": "GitHub Personal Access Tokens",
+      "validSamples": [
+        "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "invalidSamples": [
+        "ghp_",
+        "ghp_short",
+        "github_pat_short"
+      ],
+      "prefixes": ["ghp_", "github_pat_", "gho_", "ghu_", "ghs_", "ghr_"]
+    },
+    "stripe": {
+      "description": "Stripe API Keys",
+      "validSamples": [
+        "sk_live_51234567890abcdefghijklmnopqrstuvwxyz",
+        "sk_test_51234567890abcdefghijklmnopqrstuvwxyz",
+        "pk_live_51234567890abcdefghijklmnopqrstuvwxyz",
+        "rk_live_51234567890abcdefghijklmnopqrstuvwxyz"
+      ],
+      "invalidSamples": [
+        "sk_live_",
+        "sk_test_short"
+      ],
+      "prefixes": ["sk_live_", "sk_test_", "pk_live_", "pk_test_", "rk_live_", "rk_test_"]
+    },
+    "slack": {
+      "description": "Slack Tokens",
+      "validSamples": [
+        "xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx",
+        "xoxp-123456789012-123456789012-123456789012-abcdefghijklmnopqrstuvwxyz123456",
+        "xoxa-2-123456789012-1234567890123-1234567890123-abcdefghijklmnopqrstuvwx"
+      ],
+      "invalidSamples": [
+        "xoxb-",
+        "xoxb-short"
+      ],
+      "prefixes": ["xoxb-", "xoxp-", "xoxa-", "xoxr-"]
+    },
+    "googleCloud": {
+      "description": "Google Cloud API Keys",
+      "validSamples": [
+        "AIzaSyA1234567890abcdefghijklmnopqrstuv"
+      ],
+      "invalidSamples": [
+        "AIzaSy",
+        "AIzaSyAshort"
+      ],
+      "prefix": "AIzaSy",
+      "length": 39
+    },
+    "sendgrid": {
+      "description": "SendGrid API Keys",
+      "validSamples": [
+        "SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      ],
+      "invalidSamples": [
+        "SG.",
+        "SG.short"
+      ],
+      "prefix": "SG."
+    },
+    "twilio": {
+      "description": "Twilio Account SID and Auth Token",
+      "validSamples": [
+        "AC1234567890abcdef1234567890abcdef",
+        "SK1234567890abcdef1234567890abcdef"
+      ],
+      "invalidSamples": [
+        "AC123",
+        "SKshort"
+      ],
+      "prefixes": ["AC", "SK"],
+      "length": 34
+    }
+  },
+  "contextualHints": {
+    "description": "Keywords that boost confidence when near potential secrets",
+    "keywords": [
+      "api_key", "apikey", "api-key",
+      "secret", "password", "token",
+      "access_key", "secret_key",
+      "auth", "bearer", "credential"
+    ]
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "$schema": "./selectors.schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-07T00:00:00Z",
+  "sites": {
+    "chat.openai.com": {
+      "name": "ChatGPT",
+      "enabled": true,
+      "inputSelectors": [
+        "#prompt-textarea",
+        "[data-id='root'] textarea",
+        "textarea[placeholder*='Message']",
+        "div[contenteditable='true'][data-id]"
+      ],
+      "submitSelectors": [
+        "button[data-testid='send-button']",
+        "button[data-testid='fruitjuice-send-button']",
+        "form button[type='submit']"
+      ],
+      "containerSelectors": [
+        "form.stretch",
+        "div[class*='composer']",
+        "main form"
+      ],
+      "apiEndpoints": [
+        "/backend-api/conversation",
+        "/backend-api/v1/conversation"
+      ],
+      "bodyExtractor": {
+        "type": "json",
+        "path": "messages[0].content.parts[0]"
+      },
+      "notes": "ChatGPT changes DOM frequently. Fallback chain ordered by stability."
+    },
+    "chatgpt.com": {
+      "name": "ChatGPT (New Domain)",
+      "enabled": true,
+      "inputSelectors": [
+        "#prompt-textarea",
+        "textarea[placeholder*='Message']",
+        "div[contenteditable='true']"
+      ],
+      "submitSelectors": [
+        "button[data-testid='send-button']",
+        "button[aria-label*='Send']"
+      ],
+      "containerSelectors": [
+        "form",
+        "div[class*='composer']"
+      ],
+      "apiEndpoints": [
+        "/backend-api/conversation"
+      ],
+      "bodyExtractor": {
+        "type": "json",
+        "path": "messages[0].content.parts[0]"
+      },
+      "notes": "Alias for chat.openai.com - OpenAI transitioning domains"
+    },
+    "claude.ai": {
+      "name": "Claude",
+      "enabled": true,
+      "inputSelectors": [
+        "div[contenteditable='true'][data-placeholder]",
+        "div.ProseMirror[contenteditable='true']",
+        "div[class*='input'][contenteditable='true']"
+      ],
+      "submitSelectors": [
+        "button[aria-label='Send message']",
+        "button[data-testid='send-button']",
+        "button[class*='send']"
+      ],
+      "containerSelectors": [
+        "div[class*='composer']",
+        "div[class*='input-container']"
+      ],
+      "apiEndpoints": [
+        "/api/organizations/*/chat_conversations/*/completion"
+      ],
+      "bodyExtractor": {
+        "type": "json",
+        "path": "prompt"
+      },
+      "notes": "Claude uses ProseMirror editor. contenteditable div, not textarea."
+    }
+  },
+  "fallbackBehavior": {
+    "onSelectorFailure": "warn",
+    "maxRetries": 3,
+    "retryIntervalMs": 1000,
+    "gracePeriodMs": 5000
+  },
+  "monitoring": {
+    "healthCheckIntervalMs": 3600000,
+    "reportEndpoint": null,
+    "localLogging": true
+  }
+}

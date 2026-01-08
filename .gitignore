@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+*.zip
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+.nyc_output/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Cache
+.cache/
+.eslintcache
+.prettiercache
+*.tsbuildinfo
+
+# Python (for property tests)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.hypothesis/
+venv/
+.venv/
+
+# Extension keys (NEVER commit)
+*.pem
+*.crx
+
+# Local development
+.local/
+*.local.json

@@ -1,0 +1,295 @@
+/**
+ * @file storage.ts
+ * @description Type definitions for extension storage schema.
+ *              Defines settings, stats, and persistence structures.
+ *
+ * @version 1.0.0
+ */
+
+import type { DetectorType } from './detection';
+import type { SelectorConfig } from './selectors';
+
+// =============================================================================
+// Settings Schema
+// =============================================================================
+
+/**
+ * User-configurable settings.
+ */
+export interface Settings {
+  /** Enabled/disabled state for each detector */
+  detectors: Record<DetectorType, boolean>;
+
+  /** Global sensitivity level */
+  sensitivity: 'low' | 'medium' | 'high';
+
+  /** Whether to block without override option */
+  strictMode: boolean;
+
+  /** User-defined strings to ignore */
+  allowlist: string[];
+
+  /** Sites to exclude from scanning */
+  siteAllowlist: string[];
+
+  /** Redaction style preference */
+  redactionStyle: 'bracket' | 'asterisk' | 'placeholder';
+
+  /** Show badge indicator on icon */
+  showBadge: boolean;
+
+  /** Play sound on detection */
+  soundEnabled: boolean;
+
+  /** Enable keyboard shortcuts */
+  keyboardShortcutsEnabled: boolean;
+
+  /** Theme preference */
+  theme: 'system' | 'light' | 'dark';
+
+  /** First run completed */
+  onboardingComplete: boolean;
+}
+
+/**
+ * Default settings for new installations.
+ */
+export const DEFAULT_SETTINGS: Settings = {
+  detectors: {
+    api_key_openai: true,
+    api_key_aws_access: true,
+    api_key_aws_secret: true,
+    api_key_github_pat: true,
+    api_key_github_oauth: true,
+    api_key_stripe_live: true,
+    api_key_stripe_test: false, // Low risk
+    api_key_slack_bot: true,
+    api_key_slack_user: true,
+    api_key_generic: true,
+    credit_card: true,
+    email: false, // Often false positive
+    phone_uk: false, // Often false positive
+    nino: true,
+    postcode_uk: false, // Low risk
+    high_entropy: true,
+    password_context: true,
+  },
+  sensitivity: 'medium',
+  strictMode: false,
+  allowlist: [],
+  siteAllowlist: [],
+  redactionStyle: 'bracket',
+  showBadge: true,
+  soundEnabled: false,
+  keyboardShortcutsEnabled: true,
+  theme: 'system',
+  onboardingComplete: false,
+};
+
+// =============================================================================
+// Statistics Schema
+// =============================================================================
+
+/**
+ * Anonymized usage statistics.
+ * Note: No prompt content or PII is ever stored.
+ */
+export interface Stats {
+  /** Total number of scans performed */
+  totalScans: number;
+
+  /** Total detections across all types */
+  totalDetections: number;
+
+  /** Detections by detector type */
+  byDetector: Record<DetectorType, number>;
+
+  /** Detections by site domain */
+  bySite: Record<string, number>;
+
+  /** User actions taken */
+  actions: {
+    masked: number;
+    proceeded: number;
+    cancelled: number;
+  };
+
+  /** Last scan timestamp (ISO 8601) */
+  lastScanAt: string | null;
+
+  /** First install timestamp (ISO 8601) */
+  installedAt: string;
+
+  /** Stats reset timestamp (ISO 8601) */
+  lastResetAt: string | null;
+}
+
+/**
+ * Default stats for new installations.
+ */
+export const DEFAULT_STATS: Stats = {
+  totalScans: 0,
+  totalDetections: 0,
+  byDetector: {
+    api_key_openai: 0,
+    api_key_aws_access: 0,
+    api_key_aws_secret: 0,
+    api_key_github_pat: 0,
+    api_key_github_oauth: 0,
+    api_key_stripe_live: 0,
+    api_key_stripe_test: 0,
+    api_key_slack_bot: 0,
+    api_key_slack_user: 0,
+    api_key_generic: 0,
+    credit_card: 0,
+    email: 0,
+    phone_uk: 0,
+    nino: 0,
+    postcode_uk: 0,
+    high_entropy: 0,
+    password_context: 0,
+  },
+  bySite: {},
+  actions: {
+    masked: 0,
+    proceeded: 0,
+    cancelled: 0,
+  },
+  lastScanAt: null,
+  installedAt: new Date().toISOString(),
+  lastResetAt: null,
+};
+
+// =============================================================================
+// Cache Schema
+// =============================================================================
+
+/**
+ * Cached selector configuration.
+ */
+export interface SelectorCache {
+  /** Cached selector config */
+  data: SelectorConfig;
+
+  /** When cache was fetched */
+  fetchedAt: string;
+
+  /** Cache expiry timestamp */
+  expiresAt: string;
+}
+
+// =============================================================================
+// Full Storage Schema
+// =============================================================================
+
+/**
+ * Complete storage schema with versioning.
+ */
+export interface StorageSchema {
+  /** Schema version for migrations */
+  schemaVersion: number;
+
+  /** User settings */
+  settings: Settings;
+
+  /** Usage statistics */
+  stats: Stats;
+
+  /** Selector cache (optional) */
+  selectorCache?: SelectorCache;
+}
+
+/**
+ * Current schema version.
+ * Increment when making breaking changes.
+ */
+export const CURRENT_SCHEMA_VERSION = 1;
+
+/**
+ * Default storage state.
+ */
+export const DEFAULT_STORAGE: StorageSchema = {
+  schemaVersion: CURRENT_SCHEMA_VERSION,
+  settings: DEFAULT_SETTINGS,
+  stats: DEFAULT_STATS,
+};
+
+// =============================================================================
+// Storage Keys
+// =============================================================================
+
+/**
+ * Keys used in chrome.storage.local.
+ */
+export const STORAGE_KEYS = {
+  SCHEMA_VERSION: 'schemaVersion',
+  SETTINGS: 'settings',
+  STATS: 'stats',
+  SELECTOR_CACHE: 'selectorCache',
+} as const;
+
+export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+
+// =============================================================================
+// Migration Types
+// =============================================================================
+
+/**
+ * Migration function signature.
+ */
+export type MigrationFn = (data: unknown) => Promise<StorageSchema>;
+
+/**
+ * Migration registry.
+ */
+export interface MigrationRegistry {
+  [fromVersion: number]: MigrationFn;
+}
+
+// =============================================================================
+// Export Types
+// =============================================================================
+
+/**
+ * CSV export row structure.
+ */
+export interface StatsExportRow {
+  date: string;
+  detectorType: string;
+  site: string;
+  count: number;
+}
+
+/**
+ * Generate CSV content from stats.
+ */
+export function statsToCSV(stats: Stats): string {
+  const headers = ['Date', 'Detector Type', 'Site', 'Count'];
+  const rows: string[][] = [headers];
+
+  // Add detector counts
+  for (const [detector, count] of Object.entries(stats.byDetector)) {
+    if (count > 0) {
+      rows.push([
+        new Date().toISOString().split('T')[0],
+        detector,
+        'all',
+        count.toString(),
+      ]);
+    }
+  }
+
+  // Add site counts
+  for (const [site, count] of Object.entries(stats.bySite)) {
+    if (count > 0) {
+      rows.push([
+        new Date().toISOString().split('T')[0],
+        'all',
+        site,
+        count.toString(),
+      ]);
+    }
+  }
+
+  return rows.map((row) => row.join(',')).join('\n');
+}
