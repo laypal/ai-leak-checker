@@ -159,8 +159,37 @@ export function scan(text: string, options?: Partial<ScanOptions>): DetectionRes
   // Deduplicate overlapping findings (keep highest confidence)
   const deduplicated = deduplicateFindings(filtered);
 
+  // Apply allowlist filter (user-defined strings to ignore)
+  const allowlistFiltered = opts.allowlist.length > 0
+    ? deduplicated.filter(f => {
+        // Check if finding value matches any allowlisted string
+        // Support both exact match and substring match for flexibility
+        return !opts.allowlist.some(allowed => {
+          const normalizedAllowed = allowed.trim().toLowerCase();
+          const normalizedValue = f.value.trim().toLowerCase();
+          
+          // Exact match
+          if (normalizedValue === normalizedAllowed) {
+            return true;
+          }
+          
+          // Substring match (finding contains allowlisted string)
+          if (normalizedValue.includes(normalizedAllowed)) {
+            return true;
+          }
+          
+          // Allowlisted string contains finding (for partial keys/tokens)
+          if (normalizedAllowed.includes(normalizedValue)) {
+            return true;
+          }
+          
+          return false;
+        });
+      })
+    : deduplicated;
+
   // Sort by position and limit results
-  const sorted = deduplicated
+  const sorted = allowlistFiltered
     .sort((a, b) => a.start - b.start)
     .slice(0, opts.maxResults);
 
