@@ -374,6 +374,40 @@ describe('scan', () => {
       expect(result.findings).toHaveLength(0);
     });
 
+    it('ignores empty allowlist entries (whitespace-only)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      // Empty or whitespace-only allowlist entries should be skipped
+      // Otherwise includes("") would match everything and disable detection
+      const result = scan(text, {
+        allowlist: ['', '   ', '\t\n', '  '],
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+      // Should still detect the API key despite empty allowlist entries
+      expect(result.findings.some(f => f.value.includes(apiKey))).toBe(true);
+    });
+
+    it('ignores empty allowlist entries but processes valid ones', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const otherKey = 'sk-xyz789abc123def456ghi789jkl012mno345pqr678stu901vwx';
+      const text = `Keys: ${apiKey} and ${otherKey}`;
+
+      // Mix of empty and valid entries - empty should be skipped
+      const result = scan(text, {
+        allowlist: ['', '   ', apiKey], // apiKey should be filtered, empty entries ignored
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+      // apiKey should be filtered (not found)
+      expect(result.findings.some(f => f.value === apiKey)).toBe(false);
+      // otherKey should still be detected
+      expect(result.findings.some(f => f.value.includes('xyz789'))).toBe(true);
+    });
+
     it('filters UK phone numbers in allowlist', () => {
       const phone = '07911123456';
       const text = `Call me on ${phone}`;
