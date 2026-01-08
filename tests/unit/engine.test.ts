@@ -254,6 +254,172 @@ describe('scan', () => {
       expect(result.findings.length).toBeGreaterThanOrEqual(0);
     });
   });
+
+  describe('allowlist filtering', () => {
+    it('filters out findings matching allowlisted strings (exact match)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      const result = scan(text, {
+        allowlist: [apiKey],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('filters out findings matching allowlisted strings (substring match)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      // Allowlist with partial match should still filter
+      const result = scan(text, {
+        allowlist: ['sk-abc123'],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('filters out email addresses in allowlist', () => {
+      const email = 'test@example.com';
+      const text = `Contact ${email} for more info`;
+
+      const result = scan(text, {
+        allowlist: [email],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('filters out credit card numbers in allowlist', () => {
+      const card = '4532015112830366';
+      const text = `Card number: ${card}`;
+
+      const result = scan(text, {
+        allowlist: [card],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('allows multiple allowlist entries', () => {
+      const key1 = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const key2 = 'AKIAIOSFODNN7EXAMPLE';
+      const email = 'test@example.com';
+      const text = `Keys: ${key1} and ${key2}, email: ${email}`;
+
+      const result = scan(text, {
+        allowlist: [key1, key2, email],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('filters out only allowlisted findings, keeps others', () => {
+      const allowlistedKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const otherKey = 'sk-xyz789abc123def456ghi789jkl012mno345pqr678stu901vwx';
+      const text = `Allowlisted: ${allowlistedKey}, Other: ${otherKey}`;
+
+      const result = scan(text, {
+        allowlist: [allowlistedKey],
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+      // Should not find the allowlisted key
+      expect(result.findings.some(f => f.value === allowlistedKey)).toBe(false);
+      // Should still find the other key
+      expect(result.findings.some(f => f.value.includes('xyz789'))).toBe(true);
+    });
+
+    it('handles case-insensitive allowlist matching', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      // Allowlist with different casing should still match
+      const result = scan(text, {
+        allowlist: [apiKey.toUpperCase()],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('handles empty allowlist (no filtering)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      const result = scan(text, {
+        allowlist: [],
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+    });
+
+    it('handles allowlist with whitespace (trimmed)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      // Allowlist with leading/trailing whitespace should still match
+      const result = scan(text, {
+        allowlist: [`  ${apiKey}  `],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it('ignores empty allowlist entries (whitespace-only)', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const text = `My API key is ${apiKey}`;
+
+      // Empty or whitespace-only allowlist entries should be skipped
+      // Otherwise includes("") would match everything and disable detection
+      const result = scan(text, {
+        allowlist: ['', '   ', '\t\n', '  '],
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+      // Should still detect the API key despite empty allowlist entries
+      expect(result.findings.some(f => f.value.includes(apiKey))).toBe(true);
+    });
+
+    it('ignores empty allowlist entries but processes valid ones', () => {
+      const apiKey = 'sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const otherKey = 'sk-xyz789abc123def456ghi789jkl012mno345pqr678stu901vwx';
+      const text = `Keys: ${apiKey} and ${otherKey}`;
+
+      // Mix of empty and valid entries - empty should be skipped
+      const result = scan(text, {
+        allowlist: ['', '   ', apiKey], // apiKey should be filtered, empty entries ignored
+      });
+
+      expect(result.hasSensitiveData).toBe(true);
+      expect(result.findings.length).toBeGreaterThan(0);
+      // apiKey should be filtered (not found)
+      expect(result.findings.some(f => f.value === apiKey)).toBe(false);
+      // otherKey should still be detected
+      expect(result.findings.some(f => f.value.includes('xyz789'))).toBe(true);
+    });
+
+    it('filters UK phone numbers in allowlist', () => {
+      const phone = '07911123456';
+      const text = `Call me on ${phone}`;
+
+      const result = scan(text, {
+        allowlist: [phone],
+      });
+
+      expect(result.hasSensitiveData).toBe(false);
+      expect(result.findings).toHaveLength(0);
+    });
+  });
 });
 
 describe('quickCheck', () => {
