@@ -78,7 +78,7 @@ function runCorpusTest(): void {
       totalSamples++;
       
       // Scan with high sensitivity (most strict)
-      const result = scan(sample, { sensitivity: 'high' });
+      const result = scan(sample, { sensitivityLevel: 'high' });
       
       results.push({
         sample,
