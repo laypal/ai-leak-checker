@@ -120,7 +120,7 @@ AI Leak Checker is designed to minimize data collection and protect your privacy
 
 If you have questions about this privacy policy or the extension's data practices, please:
 - Open an issue on our GitHub repository: https://github.com/laypal/ai-leak-checker
-- Email: [Contact email - to be added for Chrome Web Store submission]
+- Email: aileakchecker@proton.me
 
 ## Open Source
 
