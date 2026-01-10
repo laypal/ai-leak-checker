@@ -27,11 +27,48 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
   ];
 
   /**
-   * Check if URL matches a monitored endpoint.
+   * Extract message from parsed JSON structure.
    */
-  function isMonitoredEndpoint(url: string | URL): boolean {
-    const urlString = url.toString();
-    return MONITORED_ENDPOINTS.some(endpoint => urlString.includes(endpoint));
+  function extractFromParsed(data: unknown): string | null {
+    if (!data || typeof data !== 'object') return null;
+
+    if (!(data && typeof data === 'object')) return null;
+
+    const obj = data as Record<string, unknown>;
+
+    // ChatGPT format: { messages: [{ content: { parts: ["text"] } }] }
+    if (Array.isArray(obj.messages)) {
+      const messages = obj.messages as Array<{ content?: unknown }>;
+      for (const msg of messages) {
+        if (msg.content) {
+          if (typeof msg.content === 'string') {
+            return msg.content;
+          }
+          if (typeof msg.content === 'object' && msg.content !== null) {
+            const content = msg.content as { parts?: unknown };
+            if (Array.isArray(content.parts)) {
+              const parts = content.parts as string[];
+              return parts.join('\n');
+            }
+          }
+        }
+      }
+    }
+
+    // Claude format: { prompt: "text" } or { completion: { prompt: "text" } }
+    if (typeof obj.prompt === 'string') {
+      return obj.prompt;
+    }
+
+    // Generic: { message: "text" } or { text: "text" }
+    if (typeof obj.message === 'string') {
+      return obj.message;
+    }
+    if (typeof obj.text === 'string') {
+      return obj.text;
+    }
+
+    return null;
   }
 
   /**
@@ -59,48 +96,6 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
   }
 
   /**
-   * Extract message from parsed JSON structure.
-   */
-  function extractFromParsed(data: unknown): string | null {
-    if (!data || typeof data !== 'object') return null;
-
-    const obj = data as Record<string, unknown>;
-
-    // ChatGPT format: { messages: [{ content: { parts: ["text"] } }] }
-    if (Array.isArray(obj.messages)) {
-      const messages = obj.messages as Array<{ content?: unknown }>;
-      for (const msg of messages) {
-        if (msg.content) {
-          if (typeof msg.content === 'string') {
-            return msg.content;
-          }
-          if (typeof msg.content === 'object') {
-            const content = msg.content as { parts?: string[] };
-            if (Array.isArray(content.parts)) {
-              return content.parts.join('\n');
-            }
-          }
-        }
-      }
-    }
-
-    // Claude format: { prompt: "text" } or { completion: { prompt: "text" } }
-    if (typeof obj.prompt === 'string') {
-      return obj.prompt;
-    }
-
-    // Generic: { message: "text" } or { text: "text" }
-    if (typeof obj.message === 'string') {
-      return obj.message;
-    }
-    if (typeof obj.text === 'string') {
-      return obj.text;
-    }
-
-    return null;
-  }
-
-  /**
    * Send message to content script for scanning.
    */
   function requestScan(content: string): Promise<{ hasSensitiveData: boolean }> {
@@ -110,12 +105,19 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
       const handler = (event: MessageEvent): void => {
         if (
           event.source === window &&
-          event.data?.type === EXTENSION_MESSAGE_TYPE &&
-          event.data?.action === 'scan_result' &&
-          event.data?.messageId === messageId
+          event.data &&
+          typeof event.data === 'object' &&
+          'type' in event.data &&
+          event.data.type === EXTENSION_MESSAGE_TYPE &&
+          'action' in event.data &&
+          event.data.action === 'scan_result' &&
+          'messageId' in event.data &&
+          event.data.messageId === messageId &&
+          'result' in event.data
         ) {
           window.removeEventListener('message', handler);
-          resolve(event.data.result);
+          const result = event.data.result as { hasSensitiveData: boolean };
+          resolve(result);
         }
       };
 
@@ -194,7 +196,7 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
           console.log('[AI Leak Checker] Intercepted XHR to:', this._url);
 
           // Async scan - can't easily block XHR
-          requestScan(content).then(result => {
+          void requestScan(content).then(result => {
             if (result.hasSensitiveData) {
               console.warn('[AI Leak Checker] Sensitive data detected in XHR request');
             }

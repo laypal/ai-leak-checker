@@ -14,7 +14,6 @@ import {
   type SiteConfig,
   type ExtensionMessage,
   MessageType,
-  BUNDLED_SELECTORS,
   getSiteConfig,
 } from '@/shared/types';
 import { WarningModal } from './modal';
@@ -124,7 +123,9 @@ function attachListeners(): void {
     const inputs = document.querySelectorAll(selector);
     for (const input of inputs) {
       if (!attachedElements.has(input)) {
-        attachInputListeners(input as HTMLElement);
+        if (input instanceof HTMLElement) {
+          attachInputListeners(input);
+        }
         attachedElements.add(input);
       }
     }
@@ -135,7 +136,9 @@ function attachListeners(): void {
     const buttons = document.querySelectorAll(selector);
     for (const button of buttons) {
       if (!attachedElements.has(button)) {
-        attachSubmitListener(button as HTMLElement);
+        if (button instanceof HTMLElement) {
+          attachSubmitListener(button);
+        }
         attachedElements.add(button);
       }
     }
@@ -178,7 +181,8 @@ function handleKeyDown(event: KeyboardEvent): void {
     return;
   }
 
-  const target = event.target as HTMLElement;
+  const target = event.target;
+  if (!target || !(target instanceof HTMLElement)) return;
   const text = getInputText(target);
 
   if (text && shouldScan(text)) {
@@ -265,8 +269,8 @@ function getCurrentInputText(): string {
   if (!siteConfig) return '';
 
   for (const selector of siteConfig.inputSelectors) {
-    const input = document.querySelector(selector) as HTMLElement | null;
-    if (input) {
+    const input = document.querySelector(selector);
+    if (input && input instanceof HTMLElement) {
       const text = getInputText(input);
       if (text.trim()) {
         return text;
@@ -311,7 +315,7 @@ function showWarning(
   modal.show(result.findings);
 
   // Send stats to service worker
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: {
       field: 'actions.cancelled',
@@ -330,17 +334,17 @@ function handleContinueWithRedaction(): void {
   
   // Update the input with redacted text
   for (const selector of siteConfig.inputSelectors) {
-    const input = document.querySelector(selector) as HTMLElement | null;
-    if (input) {
+    const input = document.querySelector(selector);
+    if (input && input instanceof HTMLElement) {
       setInputText(input, redactedText);
       break;
     }
   }
 
   // Log the action
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
-      payload: { field: 'actions.masked' },
+    payload: { field: 'actions.masked' },
   });
 
   // Trigger the submit after a short delay to allow UI update
@@ -377,8 +381,8 @@ function handleCancel(): void {
   // Return focus to input
   if (siteConfig) {
     for (const selector of siteConfig.inputSelectors) {
-      const input = document.querySelector(selector) as HTMLElement | null;
-      if (input) {
+      const input = document.querySelector(selector);
+      if (input && input instanceof HTMLElement) {
         input.focus();
         break;
       }
@@ -408,8 +412,8 @@ function triggerSubmit(): void {
 
   // Find and click submit button
   for (const selector of siteConfig.submitSelectors) {
-    const button = document.querySelector(selector) as HTMLButtonElement | null;
-    if (button && !button.disabled) {
+    const button = document.querySelector(selector);
+    if (button instanceof HTMLButtonElement && !button.disabled) {
       button.click();
       return;
     }
@@ -417,8 +421,8 @@ function triggerSubmit(): void {
 
   // Fallback: simulate Enter key
   for (const selector of siteConfig.inputSelectors) {
-    const input = document.querySelector(selector) as HTMLElement | null;
-    if (input) {
+    const input = document.querySelector(selector);
+    if (input && input instanceof HTMLElement) {
       const enterEvent = new KeyboardEvent('keydown', {
         key: 'Enter',
         code: 'Enter',

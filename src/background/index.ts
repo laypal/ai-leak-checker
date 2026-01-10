@@ -10,14 +10,12 @@ import {
   type ExtensionMessage,
   type Settings,
   type Stats,
-  type StorageSchema,
   type StatsIncrementPayload,
   type SettingsUpdatePayload,
   MessageType,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
   CURRENT_SCHEMA_VERSION,
-  isMessageType,
 } from '@/shared/types';
 
 /**
@@ -40,9 +38,10 @@ async function initializeStorage(): Promise<void> {
   const storage = await chrome.storage.local.get(['schemaVersion', 'settings', 'stats']);
 
   // Check if migration is needed
-  if (storage.schemaVersion !== CURRENT_SCHEMA_VERSION) {
+  const schemaVersion = storage.schemaVersion as number | undefined;
+  if (schemaVersion !== CURRENT_SCHEMA_VERSION) {
     console.log('[AI Leak Checker] Migrating storage schema...');
-    await migrateStorage(storage.schemaVersion ?? 0);
+    await migrateStorage(schemaVersion ?? 0);
   }
 
   // Initialize settings if not present
@@ -75,8 +74,9 @@ chrome.runtime.onMessage.addListener(
     handleMessage(message, sender)
       .then(response => sendResponse(response))
       .catch(error => {
-        console.error('[AI Leak Checker] Message handler error:', error);
-        sendResponse({ error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error('[AI Leak Checker] Message handler error:', errorMessage);
+        sendResponse({ error: errorMessage });
       });
 
     // Return true to indicate async response
@@ -117,7 +117,7 @@ function validateMessage(message: unknown): message is ExtensionMessage {
  */
 async function handleMessage(
   message: unknown,
-  sender: chrome.runtime.MessageSender
+  _sender: chrome.runtime.MessageSender
 ): Promise<unknown> {
   // Validate message structure
   if (!validateMessage(message)) {
@@ -131,12 +131,13 @@ async function handleMessage(
 
     case MessageType.SETTINGS_UPDATE: {
       // Extract settings from payload: SettingsUpdatePayload = { settings: Partial<Settings> }
-      const payload = message.payload as SettingsUpdatePayload;
+      const payload = message.payload;
       if (payload && typeof payload === 'object' && 'settings' in payload) {
-        return updateSettings(payload.settings);
+        const settingsPayload = payload as SettingsUpdatePayload;
+        return updateSettings(settingsPayload.settings);
       }
       // Fallback for backwards compatibility (direct Partial<Settings>)
-      return updateSettings(message.payload as Partial<Settings>);
+      return updateSettings(payload as Partial<Settings>);
     }
 
     case MessageType.STATS_GET:
@@ -168,8 +169,9 @@ async function handleMessage(
  * Get current settings.
  */
 async function getSettings(): Promise<Settings> {
-  const { settings } = await chrome.storage.local.get('settings');
-  return settings ?? DEFAULT_SETTINGS;
+  const result = await chrome.storage.local.get('settings');
+  const settings = result.settings;
+  return (settings as Settings | undefined) ?? DEFAULT_SETTINGS;
 }
 
 /**
@@ -249,8 +251,9 @@ async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
  * Get current stats.
  */
 async function getStats(): Promise<Stats> {
-  const { stats } = await chrome.storage.local.get('stats');
-  return stats ?? DEFAULT_STATS;
+  const result = await chrome.storage.local.get('stats');
+  const stats = result.stats;
+  return (stats as Stats | undefined) ?? DEFAULT_STATS;
 }
 
 /**
@@ -328,27 +331,28 @@ async function updateBadge(): Promise<void> {
 /**
  * Handle extension installation/update.
  */
-chrome.runtime.onInstalled.addListener(async (details) => {
+chrome.runtime.onInstalled.addListener((details) => {
   console.log('[AI Leak Checker] Extension installed/updated:', details.reason);
 
-  if (details.reason === 'install') {
+  const reason = details.reason as 'install' | 'update' | 'chrome_update' | 'shared_module_update';
+  if (reason === 'install') {
     // First install - initialize storage
-    await initializeStorage();
+    void initializeStorage();
 
     // Could open onboarding page here
     // await chrome.tabs.create({ url: 'onboarding.html' });
-  } else if (details.reason === 'update') {
+  } else if (reason === 'update') {
     // Extension updated - run migrations
-    await initializeStorage();
+    void initializeStorage();
   }
 });
 
 /**
  * Handle extension startup.
  */
-chrome.runtime.onStartup.addListener(async () => {
+chrome.runtime.onStartup.addListener(() => {
   console.log('[AI Leak Checker] Extension started');
-  await initialize();
+  void initialize();
 });
 
 // Initialize on service worker load
