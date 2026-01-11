@@ -205,7 +205,7 @@ function maskGeneric(value: string): string {
 
   // Try to detect prefix (like sk-, ghp_, etc.)
   const prefixMatch = value.match(/^([a-zA-Z]{2,4}[-_])/);
-  if (prefixMatch && prefixMatch[1]) {
+  if (prefixMatch?.[1]) {
     const prefix = prefixMatch[1];
     const rest = value.slice(prefix.length);
     return prefix + '*'.repeat(Math.max(0, rest.length - 4)) + rest.slice(-4);

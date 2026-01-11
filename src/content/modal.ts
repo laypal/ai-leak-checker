@@ -5,7 +5,7 @@
  * Uses Shadow DOM to isolate styles from the host page.
  */
 
-import { type Finding, DetectorType } from '@/shared/types';
+import { type Finding } from '@/shared/types';
 import { describeFinding } from '@/shared/detectors';
 import { mask } from '@/shared/utils/redact';
 

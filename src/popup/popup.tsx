@@ -136,13 +136,13 @@ function App() {
 
   // Load settings and stats on mount
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   async function loadData() {
     try {
       const correlationId = `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const [settingsRes, statsRes] = await Promise.all([
+      const results = await Promise.all([
         chrome.runtime.sendMessage({
           type: MessageType.SETTINGS_GET,
           payload: undefined,
@@ -158,8 +158,13 @@ function App() {
           source: 'popup',
         }),
       ]);
-      if (settingsRes && !settingsRes.error) setSettings(settingsRes);
-      if (statsRes && !statsRes.error) setStats(statsRes);
+      const [settingsRes, statsRes] = results as [unknown, unknown];
+      if (settingsRes && typeof settingsRes === 'object' && !('error' in settingsRes)) {
+        setSettings(settingsRes as Settings);
+      }
+      if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
+        setStats(statsRes as Stats);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -173,8 +178,10 @@ function App() {
         timestamp: Date.now(),
         correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         source: 'popup',
-      });
-      if (statsRes && !statsRes.error) setStats(statsRes);
+      }) as unknown;
+      if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
+        setStats(statsRes as Stats);
+      }
     } catch (error) {
       console.error('Failed to refresh stats:', error);
     }
@@ -299,7 +306,7 @@ function App() {
 
           <div style={{ marginTop: '16px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
             <button
-              onClick={refreshStats}
+              onClick={() => { void refreshStats(); }}
               style={{
                 padding: '8px 16px',
                 border: '1px solid #dee2e6',
@@ -313,7 +320,7 @@ function App() {
               Refresh
             </button>
             <button
-              onClick={resetStats}
+              onClick={() => { void resetStats(); }}
               style={{
                 padding: '8px 16px',
                 border: '1px solid #dee2e6',
@@ -338,7 +345,7 @@ function App() {
             <div style={styles.sectionTitle}>Sensitivity Level</div>
             <select
               value={settings.sensitivity}
-              onChange={(e) => updateSetting('sensitivity', e.currentTarget.value as Settings['sensitivity'])}
+              onChange={(e) => { void updateSetting('sensitivity', e.currentTarget.value as Settings['sensitivity']); }}
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -374,7 +381,7 @@ function App() {
                   key={type}
                   label={DETECTOR_LABELS[type]}
                   checked={settings.detectors[type]}
-                  onChange={() => toggleDetector(type)}
+                  onChange={() => { void toggleDetector(type); }}
                 />
               ))}
             </div>
@@ -402,7 +409,7 @@ function App() {
                   key={type}
                   label={DETECTOR_LABELS[type]}
                   checked={settings.detectors[type]}
-                  onChange={() => toggleDetector(type)}
+                  onChange={() => { void toggleDetector(type); }}
                 />
               ))}
             </div>
@@ -423,7 +430,7 @@ function App() {
                   key={type}
                   label={DETECTOR_LABELS[type]}
                   checked={settings.detectors[type]}
-                  onChange={() => toggleDetector(type)}
+                  onChange={() => { void toggleDetector(type); }}
                 />
               ))}
             </div>
@@ -443,7 +450,7 @@ function App() {
                   key={type}
                   label={DETECTOR_LABELS[type]}
                   checked={settings.detectors[type]}
-                  onChange={() => toggleDetector(type)}
+                  onChange={() => { void toggleDetector(type); }}
                 />
               ))}
             </div>
@@ -454,7 +461,7 @@ function App() {
             <Toggle
               label="Strict Mode (no bypass option)"
               checked={settings.strictMode}
-              onChange={() => updateSetting('strictMode', !settings.strictMode)}
+              onChange={() => { void updateSetting('strictMode', !settings.strictMode); }}
             />
           </div>
         </div>
@@ -498,4 +505,7 @@ function formatDetectorType(type: string): string {
 }
 
 // Mount the app
-render(<App />, document.getElementById('app')!);
+const appElement = document.getElementById('app');
+if (appElement) {
+  render(<App />, appElement);
+}

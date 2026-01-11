@@ -10,6 +10,10 @@
  * with the content script via window.postMessage.
  */
 
+/* eslint-disable no-inner-declarations */
+// Functions are declared inside IIFE to avoid polluting global scope
+// This is intentional for injected scripts
+
 // Marker to prevent multiple injections
 if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerInjected) {
   console.log('[AI Leak Checker] Already injected, skipping');
@@ -35,30 +39,6 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
   }
 
   /**
-   * Extract message content from request body.
-   */
-  function extractMessageContent(body: unknown): string | null {
-    if (!body) return null;
-
-    try {
-      // Handle string body
-      if (typeof body === 'string') {
-        const parsed = JSON.parse(body);
-        return extractFromParsed(parsed);
-      }
-
-      // Handle object body
-      if (typeof body === 'object') {
-        return extractFromParsed(body);
-      }
-    } catch {
-      // Not JSON - could be FormData or other format
-    }
-
-    return null;
-  }
-
-  /**
    * Extract message from parsed JSON structure.
    */
   function extractFromParsed(data: unknown): string | null {
@@ -74,10 +54,11 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
           if (typeof msg.content === 'string') {
             return msg.content;
           }
-          if (typeof msg.content === 'object') {
-            const content = msg.content as { parts?: string[] };
+          if (typeof msg.content === 'object' && msg.content !== null) {
+            const content = msg.content as { parts?: unknown };
             if (Array.isArray(content.parts)) {
-              return content.parts.join('\n');
+              const parts = content.parts as string[];
+              return parts.join('\n');
             }
           }
         }
@@ -101,6 +82,30 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
   }
 
   /**
+   * Extract message content from request body.
+   */
+  function extractMessageContent(body: unknown): string | null {
+    if (!body) return null;
+
+    try {
+      // Handle string body
+      if (typeof body === 'string') {
+        const parsed: unknown = JSON.parse(body);
+        return extractFromParsed(parsed);
+      }
+
+      // Handle object body
+      if (typeof body === 'object') {
+        return extractFromParsed(body);
+      }
+    } catch {
+      // Not JSON - could be FormData or other format
+    }
+
+    return null;
+  }
+
+  /**
    * Send message to content script for scanning.
    */
   function requestScan(content: string): Promise<{ hasSensitiveData: boolean }> {
@@ -108,14 +113,23 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
       const messageId = `scan_${Date.now()}_${Math.random()}`;
 
       const handler = (event: MessageEvent): void => {
+        if (event.source !== window || !event.data || typeof event.data !== 'object') {
+          return;
+        }
+        
+        const data = event.data as Record<string, unknown>;
         if (
-          event.source === window &&
-          event.data?.type === EXTENSION_MESSAGE_TYPE &&
-          event.data?.action === 'scan_result' &&
-          event.data?.messageId === messageId
+          data.type === EXTENSION_MESSAGE_TYPE &&
+          data.action === 'scan_result' &&
+          typeof data.messageId === 'string' &&
+          data.messageId === messageId &&
+          data.result &&
+          typeof data.result === 'object' &&
+          'hasSensitiveData' in data.result
         ) {
           window.removeEventListener('message', handler);
-          resolve(event.data.result);
+          const result = data.result as { hasSensitiveData: boolean };
+          resolve(result);
         }
       };
 
@@ -194,7 +208,7 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
           console.log('[AI Leak Checker] Intercepted XHR to:', this._url);
 
           // Async scan - can't easily block XHR
-          requestScan(content).then(result => {
+          void requestScan(content).then(result => {
             if (result.hasSensitiveData) {
               console.warn('[AI Leak Checker] Sensitive data detected in XHR request');
             }
