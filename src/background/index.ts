@@ -11,7 +11,6 @@ import {
   type Settings,
   type Stats,
   type StatsIncrementPayload,
-  type SettingsUpdatePayload,
   MessageType,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
@@ -132,19 +131,30 @@ async function handleMessage(
     case MessageType.SETTINGS_UPDATE: {
       // Extract settings from payload: SettingsUpdatePayload = { settings: Partial<Settings> }
       const payload = message.payload;
-      if (payload && typeof payload === 'object' && 'settings' in payload) {
-        const settingsPayload = payload as SettingsUpdatePayload;
-        return updateSettings(settingsPayload.settings);
+      if (payload && typeof payload === 'object') {
+        if ('settings' in payload) {
+          const settingsPayload = payload as { settings: unknown };
+          const settings = settingsPayload.settings;
+          if (settings && typeof settings === 'object') {
+            return updateSettings(settings as Partial<Settings>);
+          }
+        }
+        // Fallback for backwards compatibility (direct Partial<Settings>)
+        return updateSettings(payload as Partial<Settings>);
       }
-      // Fallback for backwards compatibility (direct Partial<Settings>)
-      return updateSettings(payload as Partial<Settings>);
+      return updateSettings({});
     }
 
     case MessageType.STATS_GET:
       return getStats();
 
-    case MessageType.STATS_INCREMENT:
-      return incrementStats(message.payload as StatsIncrementPayload);
+    case MessageType.STATS_INCREMENT: {
+      const payload = message.payload;
+      if (payload && typeof payload === 'object') {
+        return incrementStats(payload as unknown as StatsIncrementPayload);
+      }
+      throw new Error('Invalid stats increment payload');
+    }
 
     case MessageType.STATS_CLEAR:
       return resetStats();
@@ -170,8 +180,10 @@ async function handleMessage(
  */
 async function getSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get('settings');
-  const settings = result.settings;
-  return (settings as Settings | undefined) ?? DEFAULT_SETTINGS;
+  if (result.settings && typeof result.settings === 'object') {
+    return result.settings as Settings;
+  }
+  return DEFAULT_SETTINGS;
 }
 
 /**
@@ -252,8 +264,10 @@ async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
  */
 async function getStats(): Promise<Stats> {
   const result = await chrome.storage.local.get('stats');
-  const stats = result.stats;
-  return (stats as Stats | undefined) ?? DEFAULT_STATS;
+  if (result.stats && typeof result.stats === 'object') {
+    return result.stats as Stats;
+  }
+  return DEFAULT_STATS;
 }
 
 /**

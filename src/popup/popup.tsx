@@ -136,30 +136,35 @@ function App() {
 
   // Load settings and stats on mount
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   async function loadData() {
     try {
       const correlationId = `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const [settingsRes, statsRes] = await Promise.all([
+      const results = await Promise.all([
         chrome.runtime.sendMessage({
           type: MessageType.SETTINGS_GET,
           payload: undefined,
           timestamp: Date.now(),
           correlationId,
           source: 'popup',
-        }) as Promise<Settings | { error: unknown }>,
+        }),
         chrome.runtime.sendMessage({
           type: MessageType.STATS_GET,
           payload: undefined,
           timestamp: Date.now(),
           correlationId: `${correlationId}-2`,
           source: 'popup',
-        }) as Promise<Stats | { error: unknown }>,
+        }),
       ]);
-      if (settingsRes && !('error' in settingsRes)) setSettings(settingsRes as Settings);
-      if (statsRes && !('error' in statsRes)) setStats(statsRes as Stats);
+      const [settingsRes, statsRes] = results as [unknown, unknown];
+      if (settingsRes && typeof settingsRes === 'object' && !('error' in settingsRes)) {
+        setSettings(settingsRes as Settings);
+      }
+      if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
+        setStats(statsRes as Stats);
+      }
     } catch (error) {
       console.error('Failed to load data:', error);
     }
@@ -173,8 +178,10 @@ function App() {
         timestamp: Date.now(),
         correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         source: 'popup',
-      });
-      if (statsRes && !statsRes.error) setStats(statsRes);
+      }) as unknown;
+      if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
+        setStats(statsRes as Stats);
+      }
     } catch (error) {
       console.error('Failed to refresh stats:', error);
     }

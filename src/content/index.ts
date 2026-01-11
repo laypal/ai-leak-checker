@@ -362,9 +362,9 @@ function handleSendAnyway(): void {
   if (!pendingSubmission) return;
 
   // Log the bypass
-  chrome.runtime.sendMessage({
+  void chrome.runtime.sendMessage({
     type: MessageType.STATS_INCREMENT,
-      payload: { field: 'actions.proceeded' },
+    payload: { field: 'actions.proceeded' },
   });
 
   // Trigger the original submission

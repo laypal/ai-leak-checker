@@ -10,6 +10,10 @@
  * with the content script via window.postMessage.
  */
 
+/* eslint-disable no-inner-declarations */
+// Functions are declared inside IIFE to avoid polluting global scope
+// This is intentional for injected scripts
+
 // Marker to prevent multiple injections
 if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerInjected) {
   console.log('[AI Leak Checker] Already injected, skipping');
@@ -25,6 +29,14 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
     '/v1/chat/completions',       // OpenAI API
     '/api/append_message',        // Claude
   ];
+
+  /**
+   * Check if URL matches a monitored endpoint.
+   */
+  function isMonitoredEndpoint(url: string | URL): boolean {
+    const urlString = url.toString();
+    return MONITORED_ENDPOINTS.some(endpoint => urlString.includes(endpoint));
+  }
 
   /**
    * Extract message from parsed JSON structure.
@@ -80,7 +92,7 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
     try {
       // Handle string body
       if (typeof body === 'string') {
-        const parsed = JSON.parse(body);
+        const parsed: unknown = JSON.parse(body);
         return extractFromParsed(parsed);
       }
 
@@ -103,20 +115,22 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
       const messageId = `scan_${Date.now()}_${Math.random()}`;
 
       const handler = (event: MessageEvent): void => {
+        if (event.source !== window || !event.data || typeof event.data !== 'object') {
+          return;
+        }
+        
+        const data = event.data as Record<string, unknown>;
         if (
-          event.source === window &&
-          event.data &&
-          typeof event.data === 'object' &&
-          'type' in event.data &&
-          event.data.type === EXTENSION_MESSAGE_TYPE &&
-          'action' in event.data &&
-          event.data.action === 'scan_result' &&
-          'messageId' in event.data &&
-          event.data.messageId === messageId &&
-          'result' in event.data
+          data.type === EXTENSION_MESSAGE_TYPE &&
+          data.action === 'scan_result' &&
+          typeof data.messageId === 'string' &&
+          data.messageId === messageId &&
+          data.result &&
+          typeof data.result === 'object' &&
+          'hasSensitiveData' in data.result
         ) {
           window.removeEventListener('message', handler);
-          const result = event.data.result as { hasSensitiveData: boolean };
+          const result = data.result as { hasSensitiveData: boolean };
           resolve(result);
         }
       };
