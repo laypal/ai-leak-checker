@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
 
 /**
  * Vite configuration for AI Leak Checker Chrome Extension
@@ -96,6 +96,18 @@ export default defineConfig(({ mode }) => ({
           if (existsSync(svgPath)) {
             copyFileSync(svgPath, resolve(distIconsDir, 'icon.svg'));
           }
+        }
+
+        // Move popup HTML from src/popup/index.html to popup.html at root
+        // and fix script paths to be relative
+        const popupSrcPath = resolve(distDir, 'src/popup/index.html');
+        const popupDestPath = resolve(distDir, 'popup.html');
+        if (existsSync(popupSrcPath)) {
+          let html = readFileSync(popupSrcPath, 'utf-8');
+          // Fix script paths: /popup.js -> popup.js, /chunks/ -> chunks/
+          html = html.replace(/src="\/(popup\.js)"/g, 'src="$1"');
+          html = html.replace(/href="\/(chunks\/[^"]+)"/g, 'href="$1"');
+          writeFileSync(popupDestPath, html);
         }
 
         console.log('[vite] Copied manifest.json and icons to dist/');
