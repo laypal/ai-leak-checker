@@ -3,7 +3,7 @@
  * Chrome extension content scripts must be single-file IIFE bundles.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -49,6 +49,9 @@ function inlineChunks(filePath, fileName) {
 
   console.log(`[inline-chunks] Inlining ${imports.length} chunk(s) into ${fileName}...`);
 
+  // Track chunk files to delete after inlining
+  const chunksToDelete = [];
+  
   // Read and inline each chunk (in reverse order to maintain position)
   for (const { exports, chunkFile, chunkPath, fullMatch } of imports.reverse()) {
     let chunkContent = readFileSync(chunkPath, 'utf-8');
@@ -62,7 +65,20 @@ function inlineChunks(filePath, fileName) {
     // (e.g., $1, $&, $$) in the chunk content
     content = content.replace(fullMatch, () => chunkContent);
     
+    // Mark chunk file for deletion after successful inlining
+    chunksToDelete.push(chunkPath);
+    
     console.log(`[inline-chunks] Inlined chunk: ${chunkFile}`);
+  }
+  
+  // Clean up inlined chunk files
+  for (const chunkPath of chunksToDelete) {
+    try {
+      unlinkSync(chunkPath);
+      console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
+    } catch (e) {
+      console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
+    }
   }
 
   // Convert ES module to IIFE format only if not already wrapped
