@@ -14,6 +14,7 @@ const CHUNKS_DIR = join(DIST_DIR, 'chunks');
 
 /**
  * Inline chunk imports into content or injected script.
+ * Recursively inlines nested chunks until no imports remain.
  */
 function inlineChunks(filePath, fileName) {
   if (!existsSync(filePath)) {
@@ -22,47 +23,64 @@ function inlineChunks(filePath, fileName) {
   }
 
   let content = readFileSync(filePath, 'utf-8');
-  
-  // Find all chunk imports: import{...}from"./chunks/file.js"
+  const chunksToDelete = new Set();
   const chunkImportRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/chunks\/([^"']+)["'];?/g;
-  const imports = [];
-  const missingChunks = [];
-  let match;
+  let iterations = 0;
+  const MAX_ITERATIONS = 100; // Prevent infinite loops
   
-  while ((match = chunkImportRegex.exec(content)) !== null) {
-    const [, exports, chunkFile] = match;
-    const chunkPath = join(CHUNKS_DIR, chunkFile);
-    
-    if (existsSync(chunkPath)) {
-      imports.push({
-        exports: exports.trim(),
-        chunkFile,
-        chunkPath,
-        fullMatch: match[0],
-      });
-    } else {
-      missingChunks.push({
-        chunkFile,
-        fullMatch: match[0],
-      });
+  // Recursively inline chunks until no imports remain
+  while (true) {
+    iterations++;
+    if (iterations > MAX_ITERATIONS) {
+      console.error(`[inline-chunks] ❌ ERROR: Maximum iteration limit reached for ${fileName}. Possible circular dependency.`);
+      process.exit(1);
     }
-  }
-  
-  // Fail the build if any chunk files are missing
-  if (missingChunks.length > 0) {
-    const missingList = missingChunks.map(c => c.chunkFile).join(', ');
-    console.error(`[inline-chunks] ❌ ERROR: Missing chunk file(s) referenced in ${fileName}: ${missingList}`);
-    console.error(`[inline-chunks] Chunks must exist at: ${CHUNKS_DIR}`);
-    process.exit(1);
-  }
-
-  if (imports.length === 0) {
-    console.log(`[inline-chunks] No chunks to inline in ${fileName}`);
-  } else {
-    console.log(`[inline-chunks] Inlining ${imports.length} chunk(s) into ${fileName}...`);
-
-    // Track chunk files to delete after inlining
-    const chunksToDelete = [];
+    
+    const imports = [];
+    const missingChunks = [];
+    let match;
+    
+    // Reset regex lastIndex to ensure we scan from the beginning each iteration
+    chunkImportRegex.lastIndex = 0;
+    
+    while ((match = chunkImportRegex.exec(content)) !== null) {
+      const [, exports, chunkFile] = match;
+      const chunkPath = join(CHUNKS_DIR, chunkFile);
+      
+      if (existsSync(chunkPath)) {
+        imports.push({
+          exports: exports.trim(),
+          chunkFile,
+          chunkPath,
+          fullMatch: match[0],
+        });
+      } else {
+        missingChunks.push({
+          chunkFile,
+          fullMatch: match[0],
+        });
+      }
+    }
+    
+    // Fail the build if any chunk files are missing
+    if (missingChunks.length > 0) {
+      const missingList = missingChunks.map(c => c.chunkFile).join(', ');
+      console.error(`[inline-chunks] ❌ ERROR: Missing chunk file(s) referenced in ${fileName}: ${missingList}`);
+      console.error(`[inline-chunks] Chunks must exist at: ${CHUNKS_DIR}`);
+      process.exit(1);
+    }
+    
+    // If no more imports found, we're done
+    if (imports.length === 0) {
+      if (iterations === 1) {
+        console.log(`[inline-chunks] No chunks to inline in ${fileName}`);
+      }
+      break;
+    }
+    
+    if (iterations === 1) {
+      console.log(`[inline-chunks] Inlining chunks into ${fileName}...`);
+    }
     
     // Read and inline each chunk (in reverse order to maintain position)
     for (const { exports, chunkFile, chunkPath, fullMatch } of imports.reverse()) {
@@ -79,19 +97,19 @@ function inlineChunks(filePath, fileName) {
       content = content.replace(fullMatch, () => chunkContent);
       
       // Mark chunk file for deletion after successful inlining
-      chunksToDelete.push(chunkPath);
+      chunksToDelete.add(chunkPath);
       
-      console.log(`[inline-chunks] Inlined chunk: ${chunkFile}`);
+      console.log(`[inline-chunks] Inlined chunk: ${chunkFile} (iteration ${iterations})`);
     }
-    
-    // Clean up inlined chunk files
-    for (const chunkPath of chunksToDelete) {
-      try {
-        unlinkSync(chunkPath);
-        console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
-      } catch (e) {
-        console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
-      }
+  }
+  
+  // Clean up inlined chunk files
+  for (const chunkPath of chunksToDelete) {
+    try {
+      unlinkSync(chunkPath);
+      console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
+    } catch (e) {
+      console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
     }
   }
 
