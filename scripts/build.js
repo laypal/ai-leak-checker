@@ -66,7 +66,9 @@ async function main() {
   // Post-process: Inline chunks for content and injected scripts
   log('Inlining chunks for content scripts...');
   try {
-    run('node scripts/inline-chunks.js');
+    // Use execSync directly instead of run() to allow error handling
+    // run() calls process.exit(1) on error, which prevents try-catch from working
+    execSync('node scripts/inline-chunks.js', { stdio: 'inherit', cwd: ROOT });
   } catch (e) {
     log('Warning: Chunk inlining failed (scripts may have chunks)');
   }

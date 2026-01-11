@@ -99,14 +99,18 @@ export default defineConfig(({ mode }) => ({
         }
 
         // Move popup HTML from src/popup/index.html to popup.html at root
-        // and fix script paths to be relative
+        // and fix script/styles paths to be relative
         const popupSrcPath = resolve(distDir, 'src/popup/index.html');
         const popupDestPath = resolve(distDir, 'popup.html');
         if (existsSync(popupSrcPath)) {
           let html = readFileSync(popupSrcPath, 'utf-8');
-          // Fix script paths: /popup.js -> popup.js, /chunks/ -> chunks/
+          // Fix script paths: /popup.js -> popup.js
           html = html.replace(/src="\/(popup\.js)"/g, 'src="$1"');
+          // Fix chunk paths: /chunks/... -> chunks/...
           html = html.replace(/href="\/(chunks\/[^"]+)"/g, 'href="$1"');
+          // Fix asset paths: /assets/... -> assets/... (for CSS and other assets)
+          // Handle both href (for stylesheets) and src (for other assets)
+          html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, '$1="$2"');
           writeFileSync(popupDestPath, html);
         }
 
