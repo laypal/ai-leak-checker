@@ -58,44 +58,48 @@ function inlineChunks(filePath, fileName) {
 
   if (imports.length === 0) {
     console.log(`[inline-chunks] No chunks to inline in ${fileName}`);
-    return;
-  }
+  } else {
+    console.log(`[inline-chunks] Inlining ${imports.length} chunk(s) into ${fileName}...`);
 
-  console.log(`[inline-chunks] Inlining ${imports.length} chunk(s) into ${fileName}...`);
-
-  // Track chunk files to delete after inlining
-  const chunksToDelete = [];
-  
-  // Read and inline each chunk (in reverse order to maintain position)
-  for (const { exports, chunkFile, chunkPath, fullMatch } of imports.reverse()) {
-    let chunkContent = readFileSync(chunkPath, 'utf-8');
+    // Track chunk files to delete after inlining
+    const chunksToDelete = [];
     
-    // Chunks from Vite/Rollup are typically ES modules with exports at the end
-    // Remove the export statement (usually at the end: export{a as b,c as d} or export{})
-    // Use [^}]* to match zero or more characters, handling both empty and non-empty exports
-    chunkContent = chunkContent.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
+    // Read and inline each chunk (in reverse order to maintain position)
+    for (const { exports, chunkFile, chunkPath, fullMatch } of imports.reverse()) {
+      let chunkContent = readFileSync(chunkPath, 'utf-8');
+      
+      // Chunks from Vite/Rollup are typically ES modules with exports at the end
+      // Remove the export statement (usually at the end: export{a as b,c as d} or export{})
+      // Use [^}]* to match zero or more characters, handling both empty and non-empty exports
+      chunkContent = chunkContent.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
+      
+      // Replace the import statement with the inlined chunk content
+      // Use function replacement to avoid interpreting $ as regex replacement patterns
+      // (e.g., $1, $&, $$) in the chunk content
+      content = content.replace(fullMatch, () => chunkContent);
+      
+      // Mark chunk file for deletion after successful inlining
+      chunksToDelete.push(chunkPath);
+      
+      console.log(`[inline-chunks] Inlined chunk: ${chunkFile}`);
+    }
     
-    // Replace the import statement with the inlined chunk content
-    // Use function replacement to avoid interpreting $ as regex replacement patterns
-    // (e.g., $1, $&, $$) in the chunk content
-    content = content.replace(fullMatch, () => chunkContent);
-    
-    // Mark chunk file for deletion after successful inlining
-    chunksToDelete.push(chunkPath);
-    
-    console.log(`[inline-chunks] Inlined chunk: ${chunkFile}`);
-  }
-  
-  // Clean up inlined chunk files
-  for (const chunkPath of chunksToDelete) {
-    try {
-      unlinkSync(chunkPath);
-      console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
-    } catch (e) {
-      console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
+    // Clean up inlined chunk files
+    for (const chunkPath of chunksToDelete) {
+      try {
+        unlinkSync(chunkPath);
+        console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
+      } catch (e) {
+        console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
+      }
     }
   }
 
+  // Remove any export statements from the main file before wrapping
+  // Export statements cannot appear inside function scopes (IIFE)
+  // This must happen even if there are no chunks to inline
+  content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
+  
   // Convert ES module to IIFE format only if not already wrapped
   // Don't wrap if content already starts with IIFE
   if (!content.trim().startsWith('(function')) {
