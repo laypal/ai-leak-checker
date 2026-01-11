@@ -58,7 +58,9 @@ function inlineChunks(filePath, fileName) {
     chunkContent = chunkContent.replace(/export\s*\{[^}]+\}\s*;?\s*$/m, '');
     
     // Replace the import statement with the inlined chunk content
-    content = content.replace(fullMatch, chunkContent);
+    // Use function replacement to avoid interpreting $ as regex replacement patterns
+    // (e.g., $1, $&, $$) in the chunk content
+    content = content.replace(fullMatch, () => chunkContent);
     
     console.log(`[inline-chunks] Inlined chunk: ${chunkFile}`);
   }
