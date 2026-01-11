@@ -63,6 +63,14 @@ async function main() {
   const mode = isDev ? 'development' : 'production';
   run(`npx vite build --mode ${mode}`);
 
+  // Post-process: Inline chunks for content and injected scripts
+  log('Inlining chunks for content scripts...');
+  try {
+    run('node scripts/inline-chunks.js');
+  } catch (e) {
+    log('Warning: Chunk inlining failed (scripts may have chunks)');
+  }
+
   // Copy static assets
   log('Copying static assets...');
   
