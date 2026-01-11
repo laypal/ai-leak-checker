@@ -245,8 +245,8 @@ file public/icons/*.png
 - Added GDPR section with lawful basis (legitimate interest for security)
 - Contact section includes GitHub repo URL
 - **Manual steps required**:
-  1. Add contact email address in `PRIVACY_POLICY.md` line 123 (replace placeholder)
-  2. Enable GitHub Pages in repository settings (Settings > Pages > Source: `/docs` folder)
+  1. Add contact email address in `PRIVACY_POLICY.md` line 123 (replace placeholder) ✅ COMPLETE
+  2. Enable GitHub Pages in repository settings (Settings > Pages > Source: `/docs` folder) ✅ COMPLETE
   3. Privacy policy will be accessible at: `https://laypal.github.io/ai-leak-checker/privacy/`
   4. Provide this URL in Chrome Web Store listing submission (not in manifest.json)
 
