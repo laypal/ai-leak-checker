@@ -319,7 +319,7 @@ function showWarning(
     type: MessageType.STATS_INCREMENT,
     payload: {
       field: 'actions.cancelled',
-      byType: result.summary.byType,
+      byDetector: result.summary.byType,
     },
   });
 }

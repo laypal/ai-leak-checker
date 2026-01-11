@@ -44,8 +44,6 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
   function extractFromParsed(data: unknown): string | null {
     if (!data || typeof data !== 'object') return null;
 
-    if (!(data && typeof data === 'object')) return null;
-
     const obj = data as Record<string, unknown>;
 
     // ChatGPT format: { messages: [{ content: { parts: ["text"] } }] }
