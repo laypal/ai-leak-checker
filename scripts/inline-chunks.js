@@ -26,6 +26,7 @@ function inlineChunks(filePath, fileName) {
   // Find all chunk imports: import{...}from"./chunks/file.js"
   const chunkImportRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/chunks\/([^"']+)["'];?/g;
   const imports = [];
+  const missingChunks = [];
   let match;
   
   while ((match = chunkImportRegex.exec(content)) !== null) {
@@ -39,7 +40,20 @@ function inlineChunks(filePath, fileName) {
         chunkPath,
         fullMatch: match[0],
       });
+    } else {
+      missingChunks.push({
+        chunkFile,
+        fullMatch: match[0],
+      });
     }
+  }
+  
+  // Fail the build if any chunk files are missing
+  if (missingChunks.length > 0) {
+    const missingList = missingChunks.map(c => c.chunkFile).join(', ');
+    console.error(`[inline-chunks] ❌ ERROR: Missing chunk file(s) referenced in ${fileName}: ${missingList}`);
+    console.error(`[inline-chunks] Chunks must exist at: ${CHUNKS_DIR}`);
+    process.exit(1);
   }
 
   if (imports.length === 0) {
