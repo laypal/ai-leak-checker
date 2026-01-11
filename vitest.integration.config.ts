@@ -16,6 +16,8 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    // Pass when no test files are found (common in early development)
+    passWithNoTests: true,
   },
   resolve: {
     alias: {

@@ -32,8 +32,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
-  // TypeScript configuration for test files
-  globalSetup: undefined,
+  // Global setup for extension verification
+  globalSetup: './tests/e2e/setup.ts',
   projects: [
     {
       name: 'chromium-extension',

@@ -15,7 +15,7 @@ import {
 } from '@/shared/types';
 import { scanForApiKeys, CONTEXT_BOOST_KEYWORDS, CONTEXT_REDUCE_KEYWORDS } from './patterns';
 import { scanForEmails, scanForUKPhones, scanForUKNationalInsurance, scanForUSSSN, scanForIBAN } from './pii';
-import { calculateEntropy, findHighEntropyRegions } from '@/shared/utils/entropy';
+import { findHighEntropyRegions } from '@/shared/utils/entropy';
 import { extractCreditCards } from '@/shared/utils/luhn';
 
 /**
