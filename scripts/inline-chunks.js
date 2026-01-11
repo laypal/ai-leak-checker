@@ -57,8 +57,9 @@ function inlineChunks(filePath, fileName) {
     let chunkContent = readFileSync(chunkPath, 'utf-8');
     
     // Chunks from Vite/Rollup are typically ES modules with exports at the end
-    // Remove the export statement (usually at the end: export{a as b,c as d})
-    chunkContent = chunkContent.replace(/export\s*\{[^}]+\}\s*;?\s*$/m, '');
+    // Remove the export statement (usually at the end: export{a as b,c as d} or export{})
+    // Use [^}]* to match zero or more characters, handling both empty and non-empty exports
+    chunkContent = chunkContent.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
     
     // Replace the import statement with the inlined chunk content
     // Use function replacement to avoid interpreting $ as regex replacement patterns
