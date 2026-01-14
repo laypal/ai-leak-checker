@@ -1,7 +1,7 @@
 # AI Leak Checker - Requirements Specification
 
 > **Document Purpose**: Defines functional and non-functional requirements for MVP launch.
-> **Version**: 1.0.0 | **Last Updated**: 2026-01-07
+> **Version**: 1.0.0 | **Last Updated**: 2026-01-15
 
 ---
 

@@ -1,7 +1,7 @@
 # AI Leak Checker - Task Order & Implementation Roadmap
 
 > **Document Purpose**: Detailed, ordered task breakdown with acceptance criteria for agent verification.
-> **Version**: 3.0.0 | **Last Updated**: 2026-01-08
+> **Version**: 3.0.0 | **Last Updated**: 2026-01-15
 > **Repository**: https://github.com/laypal/ai-leak-checker
 
 ---
@@ -16,7 +16,7 @@
 | Phase 3: Service Worker | ✅ Complete | 3/3 | Roadmap Phase 1 |
 | Phase 4: Popup UI | ✅ Complete | 3/3 | Roadmap Phase 1 |
 | Phase 5: E2E Testing | ✅ Complete | 4/4 | Roadmap Phase 1 |
-| Phase 6: Store Submission | ⬜ Not Started | 0/5 | Roadmap Phase 1 |
+| Phase 6: Store Submission | 🔄 Partial | 2/5 | Roadmap Phase 1 |
 | Phase 7: Hardening | ⬜ Not Started | 0/6 | Roadmap Phase 2 |
 | Phase 8: Pro Features | ⬜ Not Started | 0/5 | Roadmap Phase 3 |
 | Phase 9: Monetization | ⬜ Not Started | 0/4 | Roadmap Phase 3 |
