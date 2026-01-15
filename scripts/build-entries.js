@@ -31,6 +31,12 @@ function getBaseConfig(mode = 'production') {
       jsxFactory: 'h',
       jsxFragment: 'Fragment',
       jsxInject: `import { h, Fragment } from 'preact'`,
+      // Configure minification to prevent variable name collisions
+      // 'minifyIdentifiers' can cause collisions in complex code
+      // 'minifySyntax' and 'minifyWhitespace' are safer
+      minifyIdentifiers: false,
+      minifySyntax: true,
+      minifyWhitespace: true,
     },
     resolve: {
       alias: {
@@ -47,7 +53,10 @@ function getBaseConfig(mode = 'production') {
       outDir: 'dist',
       emptyOutDir: false, // We'll handle this manually
       sourcemap: mode === 'development' ? 'inline' : false,
-      minify: mode === 'production' ? 'esbuild' : false,
+      // Disable minification for now to prevent variable name collision issues
+      // esbuild's minifier can create duplicate variable declarations in complex code
+      // We'll minify manually or use a different minifier if needed
+      minify: false,
       target: 'es2022',
       rollupOptions: {
         treeshake: {
@@ -302,7 +311,71 @@ async function main() {
   // Copy static assets
   copyStaticAssets();
   
+  // Minify built files using terser (safer than esbuild minification)
+  if (mode === 'production') {
+    await minifyBuiltFiles();
+  }
+  
   console.log('[build-entries] ✅ Build complete!');
+}
+
+/**
+ * Minify built JavaScript files using terser
+ * This avoids variable name collision issues that esbuild minification can cause
+ */
+async function minifyBuiltFiles() {
+  console.log('[build-entries] Minifying built files with terser...');
+  
+  const filesToMinify = [
+    { name: 'background.js', isIIFE: false },
+    { name: 'content.js', isIIFE: true },
+    { name: 'injected.js', isIIFE: true },
+  ];
+  
+  for (const { name, isIIFE } of filesToMinify) {
+    const filePath = join(DIST_DIR, name);
+    if (!existsSync(filePath)) {
+      console.warn(`[build-entries] ⚠️  ${name} not found, skipping minification`);
+      continue;
+    }
+    
+    try {
+      const content = readFileSync(filePath, 'utf-8');
+      const { minify } = await import('terser');
+      const result = await minify(content, {
+        compress: {
+          passes: 1, // Single pass to reduce risk of bugs
+          unsafe: false, // Don't use unsafe optimizations
+          drop_console: false, // Keep console statements for debugging
+        },
+        mangle: {
+          safari10: true, // Fix Safari 10 issues
+          keep_classnames: false, // Allow class name mangling
+          keep_fnames: false, // Allow function name mangling
+        },
+        format: {
+          comments: false,
+        },
+      });
+      
+      // Check for errors in the result object
+      // Terser can return an error property even if it doesn't throw
+      if (result.error) {
+        throw new Error(`Terser minification error: ${result.error.message || result.error}`);
+      }
+      
+      // Ensure we have valid code output
+      if (!result.code) {
+        throw new Error('Minification returned no code output');
+      }
+      
+      writeFileSync(filePath, result.code, 'utf-8');
+      console.log(`[build-entries] ✅ Minified ${name}`);
+    } catch (error) {
+      console.error(`[build-entries] ❌ Failed to minify ${name}:`, error);
+      // Continue with other files even if one fails
+    }
+  }
 }
 
 main().catch((error) => {
