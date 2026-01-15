@@ -123,15 +123,26 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
     const outputPath = join(DIST_DIR, `${entryName}.js`);
     if (existsSync(outputPath)) {
       let content = readFileSync(outputPath, 'utf-8');
+      const originalContent = content;
       
       // Remove export statements (cannot appear in IIFE)
+      // Rollup with format: 'iife' should remove these, but we ensure they're gone
       content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
       
-      // Wrap in IIFE if not already wrapped
-      if (!content.trim().startsWith('(function')) {
+      // Wrap in IIFE if not already wrapped (Rollup with format: 'iife' already wraps it)
+      const isAlreadyWrapped = content.trim().startsWith('(function');
+      if (!isAlreadyWrapped) {
         content = `(function() {\n'use strict';\n${content}\n})();`;
+      }
+      
+      // Always write file if we made any changes (export removal or IIFE wrapping)
+      if (content !== originalContent) {
         writeFileSync(outputPath, content, 'utf-8');
-        console.log(`[build-entries] ✅ Wrapped ${entryName}.js in IIFE`);
+        if (!isAlreadyWrapped) {
+          console.log(`[build-entries] ✅ Wrapped ${entryName}.js in IIFE`);
+        } else {
+          console.log(`[build-entries] ✅ Cleaned ${entryName}.js (removed export statements)`);
+        }
       }
     }
   }

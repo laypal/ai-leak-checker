@@ -28,17 +28,27 @@ function wrapIIFE(filePath, fileName) {
   }
 
   let content = readFileSync(filePath, 'utf-8');
+  const originalContent = content;
   
   // Remove export statements (cannot appear in IIFE)
   content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
   
   // Wrap in IIFE if not already wrapped
-  if (!content.trim().startsWith('(function')) {
+  const isAlreadyWrapped = content.trim().startsWith('(function');
+  if (!isAlreadyWrapped) {
     content = `(function() {\n'use strict';\n${content}\n})();`;
+  }
+  
+  // Always write file if we made any changes (export removal or IIFE wrapping)
+  if (content !== originalContent) {
     writeFileSync(filePath, content, 'utf-8');
-    console.log(`[inline-chunks] ✅ Wrapped ${fileName} in IIFE`);
+    if (!isAlreadyWrapped) {
+      console.log(`[inline-chunks] ✅ Wrapped ${fileName} in IIFE`);
+    } else {
+      console.log(`[inline-chunks] ✅ Cleaned ${fileName} (removed export statements)`);
+    }
   } else {
-    console.log(`[inline-chunks] ${fileName} already wrapped in IIFE`);
+    console.log(`[inline-chunks] ${fileName} already correct (IIFE wrapped, no exports)`);
   }
 }
 
