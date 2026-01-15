@@ -359,12 +359,19 @@ async function minifyBuiltFiles() {
         keep_fnames: false,
       });
       
-      if (result.code) {
-        writeFileSync(filePath, result.code, 'utf-8');
-        console.log(`[build-entries] ✅ Minified ${name}`);
-      } else {
-        console.warn(`[build-entries] ⚠️  Minification returned no output for ${name}`);
+      // Check for errors in the result object
+      // Terser can return an error property even if it doesn't throw
+      if (result.error) {
+        throw new Error(`Terser minification error: ${result.error.message || result.error}`);
       }
+      
+      // Ensure we have valid code output
+      if (!result.code) {
+        throw new Error('Minification returned no code output');
+      }
+      
+      writeFileSync(filePath, result.code, 'utf-8');
+      console.log(`[build-entries] ✅ Minified ${name}`);
     } catch (error) {
       console.error(`[build-entries] ❌ Failed to minify ${name}:`, error);
       // Continue with other files even if one fails
