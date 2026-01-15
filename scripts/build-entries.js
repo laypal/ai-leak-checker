@@ -67,7 +67,10 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
   console.log(`[build-entries] Building ${entryName}...`);
   
   // Create a fresh config - don't inherit rollupOptions from baseConfig
+  // Set configFile: false to prevent Vite from loading vite.config.ts
+  // (which has manualChunks that conflicts with inlineDynamicImports)
   const config = {
+    configFile: false, // Don't load vite.config.ts to avoid conflicts
     esbuild: baseConfig.esbuild,
     resolve: baseConfig.resolve,
     build: {
@@ -97,13 +100,27 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
     // For JS/TS entries, use regular build with single string input
     // Explicitly set inlineDynamicImports: true to prevent chunks
     // This is required to ensure no chunk files are created, preventing variable collisions
+    const outputConfig = {
+      format,
+      entryFileNames: () => `${entryName}.js`, // Use entryName instead of file basename
+      inlineDynamicImports: true, // Explicitly prevent chunks from being created
+    };
+    
+    // IIFE format requires a 'name' property for the global variable assignment
+    // Without it, Rollup will issue warnings and may generate malformed IIFE bundles
+    // We use a unique name per entry to avoid conflicts
+    if (format === 'iife') {
+      // Use a camelCase name based on entry name, scoped to avoid global pollution
+      outputConfig.name = entryName === 'content' 
+        ? 'AILCContent' 
+        : entryName === 'injected' 
+        ? 'AILCInjected' 
+        : `${entryName.charAt(0).toUpperCase()}${entryName.slice(1)}`;
+    }
+    
     config.build.rollupOptions = {
       input: entryPath, // Single string input
-      output: {
-        format,
-        entryFileNames: () => `${entryName}.js`, // Use entryName instead of file basename
-        inlineDynamicImports: true, // Explicitly prevent chunks from being created
-      },
+      output: outputConfig,
       treeshake: {
         moduleSideEffects: true,
       },
