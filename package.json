@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch --mode development",
-    "build": "tsc && vite build && node scripts/inline-chunks.js",
+    "build": "tsc && node scripts/build-entries.js",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
@@ -20,6 +20,7 @@
     "test:corpus": "tsx tests/corpus/run-corpus-test.ts",
     "test:property": "cd tests/property && python -m pytest -v",
     "test:coverage": "vitest run --coverage",
+    "test:build": "vitest run tests/build/build-output.test.ts",
     "clean": "rm -rf dist node_modules/.vite",
     "prepare": "husky install"
   },
