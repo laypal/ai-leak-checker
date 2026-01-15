@@ -5,7 +5,11 @@ import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from
 /**
  * Vite configuration for AI Leak Checker Chrome Extension
  *
- * Builds multiple entry points:
+ * NOTE: Actual builds are performed via scripts/build-entries.js which builds
+ * each entry point separately to prevent code splitting and variable collisions.
+ * This config is used for development (vite dev) and as a reference.
+ *
+ * Entry points:
  * - background: Service worker
  * - content: Content script (injected into target pages)
  * - popup: Extension popup UI
@@ -50,8 +54,8 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
-        // Ensure no code splitting for content scripts (must be single file)
-        manualChunks: undefined,
+        // Note: Code splitting is handled by scripts/build-entries.js
+        // which builds each entry separately with inlineDynamicImports
       },
       // Prevent tree-shaking issues with content scripts
       treeshake: {

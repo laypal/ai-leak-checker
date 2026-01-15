@@ -1,139 +1,52 @@
 /**
- * @fileoverview Post-build script to inline chunks into content and injected scripts.
+ * @fileoverview Post-build script to wrap content and injected scripts in IIFE.
+ * 
+ * NOTE: This script is now simplified since chunks are prevented during build.
+ * It only handles IIFE wrapping for content/injected scripts (MV3 requirement).
+ * 
  * Chrome extension content scripts must be single-file IIFE bundles.
+ * Background scripts should be ES modules (no IIFE wrapping needed).
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const DIST_DIR = join(__dirname, '..', 'dist');
-const CHUNKS_DIR = join(DIST_DIR, 'chunks');
 
 /**
- * Inline chunk imports into content or injected script.
- * Recursively inlines nested chunks until no imports remain.
+ * Wrap a script file in IIFE if not already wrapped.
+ * @param {string} filePath - Path to the file to process
+ * @param {string} fileName - Name of the file (for logging)
  */
-function inlineChunks(filePath, fileName) {
+function wrapIIFE(filePath, fileName) {
   if (!existsSync(filePath)) {
     console.warn(`[inline-chunks] File not found: ${filePath}`);
     return;
   }
 
   let content = readFileSync(filePath, 'utf-8');
-  const chunksToDelete = new Set();
-  const chunkImportRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/chunks\/([^"']+)["'];?/g;
-  let iterations = 0;
-  const MAX_ITERATIONS = 100; // Prevent infinite loops
   
-  // Recursively inline chunks until no imports remain
-  while (true) {
-    iterations++;
-    if (iterations > MAX_ITERATIONS) {
-      console.error(`[inline-chunks] ❌ ERROR: Maximum iteration limit reached for ${fileName}. Possible circular dependency.`);
-      process.exit(1);
-    }
-    
-    const imports = [];
-    const missingChunks = [];
-    let match;
-    
-    // Reset regex lastIndex to ensure we scan from the beginning each iteration
-    chunkImportRegex.lastIndex = 0;
-    
-    while ((match = chunkImportRegex.exec(content)) !== null) {
-      const [, exports, chunkFile] = match;
-      const chunkPath = join(CHUNKS_DIR, chunkFile);
-      
-      if (existsSync(chunkPath)) {
-        imports.push({
-          exports: exports.trim(),
-          chunkFile,
-          chunkPath,
-          fullMatch: match[0],
-        });
-      } else {
-        missingChunks.push({
-          chunkFile,
-          fullMatch: match[0],
-        });
-      }
-    }
-    
-    // Fail the build if any chunk files are missing
-    if (missingChunks.length > 0) {
-      const missingList = missingChunks.map(c => c.chunkFile).join(', ');
-      console.error(`[inline-chunks] ❌ ERROR: Missing chunk file(s) referenced in ${fileName}: ${missingList}`);
-      console.error(`[inline-chunks] Chunks must exist at: ${CHUNKS_DIR}`);
-      process.exit(1);
-    }
-    
-    // If no more imports found, we're done
-    if (imports.length === 0) {
-      if (iterations === 1) {
-        console.log(`[inline-chunks] No chunks to inline in ${fileName}`);
-      }
-      break;
-    }
-    
-    if (iterations === 1) {
-      console.log(`[inline-chunks] Inlining chunks into ${fileName}...`);
-    }
-    
-    // Read and inline each chunk (in reverse order to maintain position)
-    for (const { exports, chunkFile, chunkPath, fullMatch } of imports.reverse()) {
-      let chunkContent = readFileSync(chunkPath, 'utf-8');
-      
-      // Chunks from Vite/Rollup are typically ES modules with exports at the end
-      // Remove the export statement (usually at the end: export{a as b,c as d} or export{})
-      // Use [^}]* to match zero or more characters, handling both empty and non-empty exports
-      chunkContent = chunkContent.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
-      
-      // Replace the import statement with the inlined chunk content
-      // Use function replacement to avoid interpreting $ as regex replacement patterns
-      // (e.g., $1, $&, $$) in the chunk content
-      content = content.replace(fullMatch, () => chunkContent);
-      
-      // Mark chunk file for deletion after successful inlining
-      chunksToDelete.add(chunkPath);
-      
-      console.log(`[inline-chunks] Inlined chunk: ${chunkFile} (iteration ${iterations})`);
-    }
-  }
-  
-  // Clean up inlined chunk files
-  for (const chunkPath of chunksToDelete) {
-    try {
-      unlinkSync(chunkPath);
-      console.log(`[inline-chunks] Deleted chunk: ${chunkPath}`);
-    } catch (e) {
-      console.warn(`[inline-chunks] Failed to delete chunk ${chunkPath}:`, e.message);
-    }
-  }
-
-  // Remove any export statements from the main file before wrapping
-  // Export statements cannot appear inside function scopes (IIFE)
-  // This must happen even if there are no chunks to inline
+  // Remove export statements (cannot appear in IIFE)
   content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
   
-  // Convert ES module to IIFE format only if not already wrapped
-  // Don't wrap if content already starts with IIFE
+  // Wrap in IIFE if not already wrapped
   if (!content.trim().startsWith('(function')) {
     content = `(function() {\n'use strict';\n${content}\n})();`;
+    writeFileSync(filePath, content, 'utf-8');
+    console.log(`[inline-chunks] ✅ Wrapped ${fileName} in IIFE`);
+  } else {
+    console.log(`[inline-chunks] ${fileName} already wrapped in IIFE`);
   }
-
-  // Write the inlined content
-  writeFileSync(filePath, content, 'utf-8');
-  console.log(`[inline-chunks] ✅ Inlined chunks into ${fileName}`);
 }
 
-// Process content.js and injected.js
+// Process content.js and injected.js (background.js doesn't need IIFE)
 const contentPath = join(DIST_DIR, 'content.js');
 const injectedPath = join(DIST_DIR, 'injected.js');
 
-inlineChunks(contentPath, 'content.js');
-inlineChunks(injectedPath, 'injected.js');
+wrapIIFE(contentPath, 'content.js');
+wrapIIFE(injectedPath, 'injected.js');
 
 console.log('[inline-chunks] ✅ Done');

@@ -11,6 +11,7 @@
 | Phase | Status | Tasks | Roadmap Alignment |
 |-------|--------|-------|-------------------|
 | Phase 0: Project Setup | ✅ Complete | 3/3 | Roadmap Phase 0 |
+| Phase 0.5: Build Refactoring | ✅ Complete | 1/1 | Technical debt |
 | Phase 1: Detection Engine | ✅ Complete | 6/6 | Roadmap Phase 1 |
 | Phase 2: DOM Interception | ✅ Complete | 5/5 | Roadmap Phase 1 |
 | Phase 3: Service Worker | ✅ Complete | 3/3 | Roadmap Phase 1 |
@@ -21,6 +22,57 @@
 | Phase 8: Pro Features | ⬜ Not Started | 0/5 | Roadmap Phase 3 |
 | Phase 9: Monetization | ⬜ Not Started | 0/4 | Roadmap Phase 3 |
 | Phase 10: Platform Expansion | ⬜ Not Started | 0/4 | Roadmap Phase 4 |
+
+---
+
+## Phase 0.5: Build Process Refactoring (Post-MVP)
+
+### Task 0.5.1: Separate Entry Point Builds
+**Estimate**: 4 hours | **Priority**: P0 | **Status**: ✅ COMPLETE
+**Requirement Refs**: Technical debt from Phase 1-4
+
+**Description**: Refactor build process to build each entry point separately using Vite's programmatic API. This prevents code splitting and chunk creation, eliminating variable name collisions that occur when minified chunks are inlined.
+
+**Deliverables**:
+- [x] New build script (`scripts/build-entries.js`) using Vite programmatic API
+- [x] Simplified `inline-chunks.js` (IIFE wrapping only, no chunk inlining)
+- [x] Updated `vite.config.ts` (removed manualChunks)
+- [x] Build output tests (`tests/build/build-output.test.ts`)
+
+**Acceptance Criteria**:
+- [x] Each entry point builds separately with `inlineDynamicImports: true` (except popup)
+- [x] No chunks created for background/content/injected scripts
+- [x] Content/injected scripts wrapped in IIFE (MV3 requirement)
+- [x] Background script remains ES module (no IIFE)
+- [x] Popup can have chunks (code splitting allowed)
+- [x] Build output tests verify syntax and MV3 compliance
+- [x] All existing tests still pass
+- [x] Extension loads correctly in Chrome
+
+**Files Modified**:
+- [x] `scripts/build-entries.js` (new) - Main build orchestration
+- [x] `scripts/inline-chunks.js` - Simplified to IIFE wrapping only
+- [x] `vite.config.ts` - Removed manualChunks, updated documentation
+- [x] `tests/build/build-output.test.ts` (new) - Build output verification
+- [x] `package.json` - Updated build script, added test:build script
+
+**Implementation Notes**:
+- Created `build-entries.js` that builds each entry point separately using Vite's `build()` API
+- Each build uses `inlineDynamicImports: true` to prevent chunks (except popup)
+- IIFE wrapping handled in build script for content/injected scripts
+- Build output tests verify syntax using `node -c`, check IIFE wrapping, and verify no chunks for background/content/injected
+- Build process now: `tsc && node scripts/build-entries.js` (no longer uses `vite build` directly)
+
+**Verification**:
+```bash
+# Build extension
+npm run build
+
+# Verify build output
+npm run test:build
+
+# Expected: All tests pass, no syntax errors, no chunks for background/content/injected
+```
 
 ---
 
