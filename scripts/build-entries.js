@@ -146,8 +146,15 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
       // Rollup with format: 'iife' should remove these, but we ensure they're gone
       content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
       
-      // Wrap in IIFE if not already wrapped (Rollup with format: 'iife' already wraps it)
-      const isAlreadyWrapped = content.trim().startsWith('(function');
+      // Wrap in IIFE if not already wrapped
+      // Check for both patterns:
+      // 1. Rollup with format: 'iife' and name: outputs "var Name = (function() {...})();"
+      // 2. Already wrapped: "(function() {...})();"
+      const trimmed = content.trim();
+      const isAlreadyWrapped = 
+        trimmed.startsWith('(function') ||
+        /^var\s+\w+\s*=\s*\(function\s*\(/.test(trimmed);
+      
       if (!isAlreadyWrapped) {
         content = `(function() {\n'use strict';\n${content}\n})();`;
       }

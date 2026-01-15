@@ -34,7 +34,14 @@ function wrapIIFE(filePath, fileName) {
   content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
   
   // Wrap in IIFE if not already wrapped
-  const isAlreadyWrapped = content.trim().startsWith('(function');
+  // Check for both patterns:
+  // 1. Rollup with format: 'iife' and name: outputs "var Name = (function() {...})();"
+  // 2. Already wrapped: "(function() {...})();"
+  const trimmed = content.trim();
+  const isAlreadyWrapped = 
+    trimmed.startsWith('(function') ||
+    /^var\s+\w+\s*=\s*\(function\s*\(/.test(trimmed);
+  
   if (!isAlreadyWrapped) {
     content = `(function() {\n'use strict';\n${content}\n})();`;
   }
