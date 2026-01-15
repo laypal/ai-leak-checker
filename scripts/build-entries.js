@@ -95,12 +95,14 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
     };
   } else {
     // For JS/TS entries, use regular build with single string input
-    // Single string input automatically prevents chunks (inlineDynamicImports: true)
+    // Explicitly set inlineDynamicImports: true to prevent chunks
+    // This is required to ensure no chunk files are created, preventing variable collisions
     config.build.rollupOptions = {
-      input: entryPath, // Single string input prevents code splitting automatically
+      input: entryPath, // Single string input
       output: {
         format,
         entryFileNames: () => `${entryName}.js`, // Use entryName instead of file basename
+        inlineDynamicImports: true, // Explicitly prevent chunks from being created
       },
       treeshake: {
         moduleSideEffects: true,
