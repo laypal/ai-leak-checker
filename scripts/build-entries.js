@@ -350,13 +350,12 @@ async function minifyBuiltFiles() {
         },
         mangle: {
           safari10: true, // Fix Safari 10 issues
+          keep_classnames: false, // Allow class name mangling
+          keep_fnames: false, // Allow function name mangling
         },
         format: {
           comments: false,
         },
-        // Don't modify IIFE wrapping
-        keep_classnames: false,
-        keep_fnames: false,
       });
       
       // Check for errors in the result object
