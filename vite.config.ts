@@ -1,13 +1,17 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 
 /**
  * Vite configuration for AI Leak Checker Chrome Extension
  *
- * NOTE: Actual builds are performed via scripts/build-entries.js which builds
+ * NOTE: Production builds are performed via scripts/build-entries.js which builds
  * each entry point separately to prevent code splitting and variable collisions.
- * This config is used for development (vite dev) and as a reference.
+ * 
+ * WARNING: Dev mode (npm run dev) uses this config directly. While we attempt to
+ * prevent chunks via manualChunks, Rollup may still create chunks for shared
+ * dependencies when building multiple entry points. For MV3 compliance testing,
+ * use production build (npm run build) which uses build-entries.js.
  *
  * Entry points:
  * - background: Service worker
@@ -54,8 +58,16 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: '[name].js',
         chunkFileNames: 'chunks/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
-        // Note: Code splitting is handled by scripts/build-entries.js
-        // which builds each entry separately with inlineDynamicImports
+        // Prevent code splitting for background/content/injected scripts (MV3 requirement)
+        // In dev mode, we must prevent chunks to match production build behavior
+        // Note: Popup can technically have chunks, but for simplicity in dev mode,
+        // we inline everything to avoid complexity and ensure MV3 compliance
+        manualChunks(id) {
+          // For dev mode builds, prevent all chunks to ensure MV3 compliance
+          // Production builds use build-entries.js which handles chunking differently
+          // Return undefined to inline all modules into their entry points
+          return undefined;
+        },
       },
       // Prevent tree-shaking issues with content scripts
       treeshake: {
@@ -66,6 +78,62 @@ export default defineConfig(({ mode }) => ({
 
   // Copy static files after build
   plugins: [
+    {
+      name: 'inline-chunks-for-mv3',
+      async closeBundle() {
+        // In dev mode, inline any chunks created for background/content/injected scripts
+        // These must be single-file bundles per MV3 requirements
+        if (mode === 'development') {
+          const distDir = resolve(__dirname, 'dist');
+          const chunksDir = resolve(distDir, 'chunks');
+          
+          // Process background, content, and injected scripts
+          const scriptsToProcess = ['background.js', 'content.js', 'injected.js'];
+          
+          for (const scriptName of scriptsToProcess) {
+            const scriptPath = resolve(distDir, scriptName);
+            if (!existsSync(scriptPath)) continue;
+            
+            let content = readFileSync(scriptPath, 'utf-8');
+            const chunkImportRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/chunks\/([^"']+)["'];?/g;
+            
+            // Find and inline chunks
+            const chunksToInline: Array<{ match: string; chunkPath: string }> = [];
+            let match;
+            while ((match = chunkImportRegex.exec(content)) !== null) {
+              const chunkFile = match[2];
+              const chunkPath = resolve(chunksDir, chunkFile);
+              if (existsSync(chunkPath)) {
+                chunksToInline.push({ match: match[0], chunkPath });
+              }
+            }
+            
+            // Inline chunks
+            for (const { match: importMatch, chunkPath } of chunksToInline.reverse()) {
+              let chunkContent = readFileSync(chunkPath, 'utf-8');
+              // Remove export statements from chunk
+              chunkContent = chunkContent.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
+              // Replace import with inlined content
+              content = content.replace(importMatch, chunkContent);
+            }
+            
+            // Write back if we inlined any chunks
+            if (chunksToInline.length > 0) {
+              writeFileSync(scriptPath, content, 'utf-8');
+              console.log(`[vite] Inlined ${chunksToInline.length} chunk(s) into ${scriptName}`);
+              // Delete chunk files
+              for (const { chunkPath } of chunksToInline) {
+                try {
+                  unlinkSync(chunkPath);
+                } catch (e) {
+                  // Ignore deletion errors
+                }
+              }
+            }
+          }
+        }
+      },
+    },
     {
       name: 'copy-manifest',
       closeBundle() {
