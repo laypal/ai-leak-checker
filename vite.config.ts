@@ -218,6 +218,31 @@ export default defineConfig(({ mode }) => ({
           // Handle both href (for stylesheets) and src (for other assets)
           html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, '$1="$2"');
           writeFileSync(popupDestPath, html);
+          
+          // Delete the original file
+          try {
+            unlinkSync(popupSrcPath);
+            
+            // Clean up empty directories (dist/src/popup/ and dist/src/ if empty)
+            const { dirname: pathDirname } = await import('path');
+            const popupDir = pathDirname(popupSrcPath);
+            const srcDir = pathDirname(popupDir);
+            
+            // Try to remove popup directory if empty
+            try {
+              rmdirSync(popupDir);
+              // Try to remove src directory if empty
+              try {
+                rmdirSync(srcDir);
+              } catch {
+                // Ignore if not empty or doesn't exist
+              }
+            } catch {
+              // Ignore if not empty or doesn't exist
+            }
+          } catch (error) {
+            console.warn(`[vite] ⚠️  Failed to delete original popup.html: ${error}`);
+          }
         }
 
         console.log('[vite] Copied manifest.json and icons to dist/');
