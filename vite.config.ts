@@ -82,19 +82,25 @@ export default defineConfig(({ mode }) => ({
       name: 'inline-chunks-for-mv3',
       async closeBundle() {
         // In dev mode, inline any chunks created for background/content/injected scripts
-        // These must be single-file bundles per MV3 requirements
+        // and wrap content/injected scripts in IIFE per MV3 requirements
         if (mode === 'development') {
           const distDir = resolve(__dirname, 'dist');
           const chunksDir = resolve(distDir, 'chunks');
           
-          // Process background, content, and injected scripts
-          const scriptsToProcess = ['background.js', 'content.js', 'injected.js'];
+          // Content and injected scripts must be IIFE bundles
+          const iifeScripts = ['content.js', 'injected.js'];
+          // Background script is ES module (no IIFE)
+          const esModuleScripts = ['background.js'];
           
-          for (const scriptName of scriptsToProcess) {
+          // Process all scripts for chunk inlining
+          const allScripts = [...iifeScripts, ...esModuleScripts];
+          
+          for (const scriptName of allScripts) {
             const scriptPath = resolve(distDir, scriptName);
             if (!existsSync(scriptPath)) continue;
             
             let content = readFileSync(scriptPath, 'utf-8');
+            const originalContent = content;
             const chunkImportRegex = /import\s*\{([^}]+)\}\s*from\s*["']\.\/chunks\/([^"']+)["'];?/g;
             
             // Find and inline chunks
@@ -117,11 +123,31 @@ export default defineConfig(({ mode }) => ({
               content = content.replace(importMatch, chunkContent);
             }
             
-            // Write back if we inlined any chunks
-            if (chunksToInline.length > 0) {
+            // For content/injected scripts, wrap in IIFE and remove export statements
+            if (iifeScripts.includes(scriptName)) {
+              // Remove export statements (cannot appear in IIFE)
+              content = content.replace(/export\s*\{[^}]*\}\s*;?\s*$/m, '');
+              
+              // Wrap in IIFE if not already wrapped
+              const isAlreadyWrapped = content.trim().startsWith('(function');
+              if (!isAlreadyWrapped) {
+                content = `(function() {\n'use strict';\n${content}\n})();`;
+              }
+            }
+            
+            // Write back if we made any changes (chunk inlining, export removal, or IIFE wrapping)
+            if (content !== originalContent) {
               writeFileSync(scriptPath, content, 'utf-8');
-              console.log(`[vite] Inlined ${chunksToInline.length} chunk(s) into ${scriptName}`);
-              // Delete chunk files
+              
+              if (chunksToInline.length > 0) {
+                console.log(`[vite] Inlined ${chunksToInline.length} chunk(s) into ${scriptName}`);
+              }
+              
+              if (iifeScripts.includes(scriptName) && !originalContent.trim().startsWith('(function')) {
+                console.log(`[vite] Wrapped ${scriptName} in IIFE`);
+              }
+              
+              // Delete chunk files after inlining
               for (const { chunkPath } of chunksToInline) {
                 try {
                   unlinkSync(chunkPath);
