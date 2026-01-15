@@ -40,7 +40,7 @@ function wrapIIFE(filePath, fileName) {
   const trimmed = content.trim();
   const isAlreadyWrapped = 
     trimmed.startsWith('(function') ||
-    /^var\s+\w+\s*=\s*\(function\s*\(/.test(trimmed);
+    /^var\s+\w+\s*=\s*\(function\s*\(\)/.test(trimmed);
   
   if (!isAlreadyWrapped) {
     content = `(function() {\n'use strict';\n${content}\n})();`;

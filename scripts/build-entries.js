@@ -153,7 +153,7 @@ async function buildEntry(entryName, entryPath, baseConfig, options = {}) {
       const trimmed = content.trim();
       const isAlreadyWrapped = 
         trimmed.startsWith('(function') ||
-        /^var\s+\w+\s*=\s*\(function\s*\(/.test(trimmed);
+        /^var\s+\w+\s*=\s*\(function\s*\(\)/.test(trimmed);
       
       if (!isAlreadyWrapped) {
         content = `(function() {\n'use strict';\n${content}\n})();`;
@@ -214,19 +214,36 @@ function copyStaticAssets() {
     console.log('[build-entries] ✅ Copied icons');
   }
   
-  // Move popup HTML from src/popup/index.html to popup.html at root
-  const popupSrcPath = join(DIST_DIR, 'src/popup/index.html');
+  // Move popup HTML to popup.html at root
+  // Vite outputs HTML entries preserving directory structure, so it may be at:
+  // - dist/src/popup/index.html (when input is src/popup/index.html)
+  // - dist/popup.html (when using entryFileNames for HTML - not supported by Rollup)
+  // We check both possible locations
+  const popupSrcPaths = [
+    join(DIST_DIR, 'src/popup/index.html'), // Vite's default behavior
+    join(DIST_DIR, 'popup.html'), // Already at root (shouldn't happen but check anyway)
+  ];
+  
   const popupDestPath = join(DIST_DIR, 'popup.html');
-  if (existsSync(popupSrcPath)) {
-    let html = readFileSync(popupSrcPath, 'utf-8');
-    // Fix script paths: /popup.js -> popup.js
-    html = html.replace(/src="\/(popup\.js)"/g, 'src="$1"');
-    // Fix chunk paths: /chunks/... -> chunks/...
-    html = html.replace(/href="\/(chunks\/[^"]+)"/g, 'href="$1"');
-    // Fix asset paths: /assets/... -> assets/...
-    html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, '$1="$2"');
-    writeFileSync(popupDestPath, html, 'utf-8');
-    console.log('[build-entries] ✅ Moved popup.html');
+  let popupSrcPath = popupSrcPaths.find(p => existsSync(p));
+  
+  if (popupSrcPath) {
+    // Only move if it's not already at the destination
+    if (popupSrcPath !== popupDestPath) {
+      let html = readFileSync(popupSrcPath, 'utf-8');
+      // Fix script paths: /popup.js -> popup.js
+      html = html.replace(/src="\/(popup\.js)"/g, 'src="$1"');
+      // Fix chunk paths: /chunks/... -> chunks/...
+      html = html.replace(/href="\/(chunks\/[^"]+)"/g, 'href="$1"');
+      // Fix asset paths: /assets/... -> assets/...
+      html = html.replace(/(href|src)="\/(assets\/[^"]+)"/g, '$1="$2"');
+      writeFileSync(popupDestPath, html, 'utf-8');
+      console.log(`[build-entries] ✅ Moved popup.html from ${popupSrcPath} to root`);
+    } else {
+      console.log('[build-entries] ✅ popup.html already at root');
+    }
+  } else {
+    console.warn('[build-entries] ⚠️  popup.html not found - popup may not work');
   }
 }
 
