@@ -107,6 +107,15 @@
         "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
       ],
       "notes": "Private IPs are usually not sensitive"
+    },
+    "urls": {
+      "description": "URLs with high-entropy path segments - not secrets",
+      "samples": [
+        "https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD",
+        "https://example.com/api/v1/users/1234567890abcdef",
+        "http://localhost:3000/docs/abc123xyz789"
+      ],
+      "notes": "URLs contain high-entropy segments (IDs, tokens) but are not secrets"
     }
   },
   "contextualFalsePositives": {

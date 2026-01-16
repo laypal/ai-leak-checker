@@ -11,6 +11,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { scan } from '../../src/shared/detectors/engine';
+import { DetectorType } from '../../src/shared/detectors/engine';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -236,6 +237,67 @@ test.describe('False Positive Corpus', () => {
         }
         // Note: Some examples may not be detected, which is fine
       });
+    });
+  });
+
+  test.describe('URLs', () => {
+    test('does not detect URLs with high-entropy path segments as secrets', () => {
+      const urls = [
+        'https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD',
+        'https://example.com/api/v1/users/1234567890abcdef',
+        'http://localhost:3000/docs/abc123xyz789',
+      ];
+      
+      urls.forEach((url) => {
+        const result = scan(url, { sensitivityLevel: 'high' });
+        // URLs should not be detected as high-entropy secrets
+        const urlFindings = result.findings.filter(f => 
+          f.type === DetectorType.HIGH_ENTROPY && url.includes(f.value)
+        );
+        expect(urlFindings).toHaveLength(0);
+      });
+    });
+
+    test('handles URLs with query parameters', () => {
+      const urls = [
+        'https://example.com/api?token=abc123xyz789&id=DEF456UVW',
+        'https://site.com/page?key=value123abc456',
+      ];
+      
+      urls.forEach((url) => {
+        const result = scan(url, { sensitivityLevel: 'high' });
+        // URL query parameters should not be detected as high-entropy secrets
+        const urlFindings = result.findings.filter(f => 
+          f.type === DetectorType.HIGH_ENTROPY && url.includes(f.value)
+        );
+        expect(urlFindings).toHaveLength(0);
+      });
+    });
+
+    test('still detects secrets when not in URLs', () => {
+      const text = 'Check this URL: https://example.com/api/v1/users/1234567890abcdef and my API key is sk_test_4eC39HqLyjWDarjtT1zdp7dc';
+      const result = scan(text, { sensitivityLevel: 'high' });
+      
+      // Should detect the API key but not the URL segment
+      const hasApiKey = result.findings.some(f => f.value.includes('sk_test'));
+      const hasUrlSegment = result.findings.some(f => 
+        f.type === DetectorType.HIGH_ENTROPY && f.value.includes('1234567890abcdef')
+      );
+      
+      expect(hasApiKey).toBe(true);
+      expect(hasUrlSegment).toBe(false);
+    });
+
+    test('handles multiple URLs in text', () => {
+      const text = 'Links: https://site1.com/path/ABC123XYZ and https://site2.com/api/DEF456UVW';
+      const result = scan(text, { sensitivityLevel: 'high' });
+      
+      // Multiple URL segments should not be detected as high-entropy secrets
+      const urlFindings = result.findings.filter(f => 
+        f.type === DetectorType.HIGH_ENTROPY && 
+        (text.includes(f.value) && (f.value.includes('ABC123XYZ') || f.value.includes('DEF456UVW')))
+      );
+      expect(urlFindings).toHaveLength(0);
     });
   });
 });
