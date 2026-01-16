@@ -129,3 +129,69 @@ describe('hasHighEntropy', () => {
     expect(hasHighEntropy(text, highThreshold)).toBe(false);
   });
 });
+
+describe('URL exclusion in entropy detection', () => {
+  it('excludes URLs with high-entropy path segments', () => {
+    const url = 'https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD';
+    const regions = findHighEntropyRegions(url, 3.5, 16);
+    
+    // URL segments should not be detected as high-entropy secrets
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes URLs with query parameters', () => {
+    const url = 'https://example.com/api/v1/users/1234567890abcdef';
+    const regions = findHighEntropyRegions(url, 3.5, 16);
+    
+    // URL path segments should not be detected
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes localhost URLs', () => {
+    const url = 'http://localhost:3000/docs/abc123xyz789def456';
+    const regions = findHighEntropyRegions(url, 3.5, 16);
+    
+    // Localhost URL segments should not be detected
+    expect(regions).toHaveLength(0);
+  });
+
+  it('still detects secrets outside of URLs', () => {
+    const text = 'Check this URL: https://example.com/api/v1/users/1234567890abcdef and my API key is sk_test_4eC39HqLyjWDarjtT1zdp7dc';
+    const regions = findHighEntropyRegions(text, 3.5, 16);
+    
+    // Should detect the API key but not the URL segment
+    const hasApiKey = regions.some(r => r.value.includes('sk_test'));
+    const hasUrlSegment = regions.some(r => r.value.includes('1234567890abcdef'));
+    
+    expect(hasApiKey).toBe(true);
+    expect(hasUrlSegment).toBe(false);
+  });
+
+  it('handles URLs with fragments', () => {
+    const url = 'https://example.com/page#section123xyz789';
+    const regions = findHighEntropyRegions(url, 3.5, 16);
+    
+    // URL fragments should not be detected
+    expect(regions).toHaveLength(0);
+  });
+
+  it('handles multiple URLs in text', () => {
+    const text = 'Links: https://site1.com/path/ABC123XYZ and https://site2.com/api/DEF456UVW';
+    const regions = findHighEntropyRegions(text, 3.5, 16);
+    
+    // Multiple URL segments should not be detected
+    expect(regions).toHaveLength(0);
+  });
+
+  it('handles URLs in mixed content', () => {
+    const text = 'Visit https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD but keep secret abc123DEF456xyz789 safe';
+    const regions = findHighEntropyRegions(text, 3.5, 16);
+    
+    // Should detect the standalone secret but not the URL segment
+    const hasUrlSegment = regions.some(r => r.value.includes('G4WB7VPPEAREHAAD'));
+    const hasStandaloneSecret = regions.some(r => r.value.includes('abc123DEF456xyz789'));
+    
+    expect(hasUrlSegment).toBe(false);
+    expect(hasStandaloneSecret).toBe(true);
+  });
+});

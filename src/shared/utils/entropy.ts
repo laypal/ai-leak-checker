@@ -78,6 +78,41 @@ export function calculateSlidingEntropy(
 }
 
 /**
+ * Check if a string segment is part of a URL.
+ * URLs contain high-entropy segments (IDs, tokens) but are not secrets.
+ * 
+ * @param text - Full text containing the segment
+ * @param start - Start index of the segment
+ * @param end - End index of the segment
+ * @returns true if the segment is part of a URL
+ */
+function isPartOfUrl(text: string, start: number, end: number): boolean {
+  // Extract surrounding context (100 chars before/after)
+  const contextStart = Math.max(0, start - 100);
+  const contextEnd = Math.min(text.length, end + 100);
+  const context = text.slice(contextStart, contextEnd);
+  
+  // URL pattern: http:// or https:// followed by domain and path
+  // Match URLs up to whitespace, quotes, angle brackets, or end of string
+  const urlPattern = /https?:\/\/[^\s<>"']+/gi;
+  const matches = Array.from(context.matchAll(urlPattern));
+  
+  // Check if our segment overlaps with any URL match
+  for (const match of matches) {
+    // Adjust match index to absolute position in original text
+    const urlStart = contextStart + match.index!;
+    const urlEnd = urlStart + match[0].length;
+    
+    // If segment overlaps with URL, it's part of a URL
+    if (start < urlEnd && end > urlStart) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Find high-entropy regions in text.
  * Merges adjacent high-entropy windows into contiguous regions.
  * 
@@ -110,6 +145,11 @@ export function findHighEntropyRegions(
     const entropy = calculateEntropy(candidate);
 
     if (entropy >= threshold && candidate.length >= minLength) {
+      // Skip if this is part of a URL
+      if (isPartOfUrl(text, match.index, match.index + candidate.length)) {
+        continue;
+      }
+      
       regions.push({
         start: match.index,
         end: match.index + candidate.length,

@@ -19,6 +19,11 @@ playwright-report/
 *.swp
 *.swo
 *~
+.cursor/
+.cursorrules
+# Claude/Cursor files (case variations)
+[Cc]laude.md
+CLAUDE.md
 
 # OS
 .DS_Store

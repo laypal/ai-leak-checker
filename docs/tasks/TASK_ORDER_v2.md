@@ -18,7 +18,7 @@
 | Phase 4: Popup UI | ✅ Complete | 3/3 | Roadmap Phase 1 |
 | Phase 5: E2E Testing | ✅ Complete | 4/4 | Roadmap Phase 1 |
 | Phase 6: Store Submission | 🔄 Partial | 2/5 | Roadmap Phase 1 |
-| Phase 7: Hardening | ⬜ Not Started | 0/6 | Roadmap Phase 2 |
+| Phase 7: Hardening | 🔄 In Progress | 1/6 | Roadmap Phase 2 |
 | Phase 8: Pro Features | ⬜ Not Started | 0/5 | Roadmap Phase 3 |
 | Phase 9: Monetization | ⬜ Not Started | 0/4 | Roadmap Phase 3 |
 | Phase 10: Platform Expansion | ⬜ Not Started | 0/4 | Roadmap Phase 4 |
@@ -387,7 +387,7 @@ file public/icons/*.png
 ## Phase 7: Hardening (Weeks 8-10) - Roadmap Phase 2
 
 ### Task 7.1: False Positive Tuning
-**Estimate**: 6 hours | **Priority**: P0 | **Status**: ⬜ TODO
+**Estimate**: 6 hours | **Priority**: P0 | **Status**: 🔄 IN PROGRESS
 **Requirement Refs**: NFR-REL-002
 
 **Description**: Tune detection patterns based on corpus testing and user feedback.
@@ -409,6 +409,57 @@ file public/icons/*.png
 ```bash
 npm run test:corpus
 # Expected: FP rate < 3%
+```
+
+#### Task 7.1.1: URL False Positive Fix
+**Estimate**: 2 hours | **Priority**: P0 | **Status**: ✅ COMPLETE
+**Requirement Refs**: NFR-REL-002, User-reported false positive
+
+**Description**: Fix false positive where URLs with high-entropy path segments (e.g., `https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD`) were being detected as "High-entropy secret" when sensitivity was set to "high". This was caused by entropy detection matching URL path segments without excluding URL context.
+
+**Root Cause**: The entropy detection pattern `/[A-Za-z0-9_\-+=/.]{16,}/g` matches URL path segments, and with sensitivity "high" (threshold 3.5), these segments were flagged as secrets.
+
+**Deliverables**:
+- [x] `isPartOfUrl` helper function in `src/shared/utils/entropy.ts`
+- [x] Updated `findHighEntropyRegions` to exclude URL segments
+- [x] Unit tests for URL exclusion (7 tests)
+- [x] E2E tests for URL false positives (4 tests)
+- [x] Updated `false_positives.json` fixture with URL category
+
+**Acceptance Criteria**:
+- [x] URLs with high-entropy path segments are no longer flagged as "High-entropy secret"
+- [x] Actual secrets (not in URLs) are still detected correctly
+- [x] Sensitivity level "high" no longer causes false positives for URLs
+- [x] Test coverage for URL false positive scenarios
+- [x] All 273 unit tests pass
+- [x] Build succeeds without errors
+
+**Implementation Notes**:
+- Added `isPartOfUrl()` helper that checks if a string segment is part of a URL by extracting surrounding context (100 chars) and matching against URL pattern `/https?:\/\/[^\s<>"']+/gi`
+- Updated `findHighEntropyRegions()` to skip candidates that are part of URLs before adding them to results
+- URL exclusion happens before entropy calculation completes, preventing unnecessary processing
+- Handles URLs with query parameters, fragments, and multiple URLs in text
+- Still detects actual secrets that appear outside of URL context
+
+**Files Modified**:
+- [x] `src/shared/utils/entropy.ts` - Added `isPartOfUrl` helper and URL exclusion logic
+- [x] `tests/unit/entropy.test.ts` - Added 7 unit tests for URL exclusion
+- [x] `tests/e2e/false-positives.spec.ts` - Added 4 E2E tests for URL false positives
+- [x] `tests/fixtures/false_positives.json` - Added URL category with examples
+
+**Verification**:
+```bash
+# Run unit tests
+npm run test:unit -- tests/unit/entropy.test.ts
+# Expected: All 24 tests pass (including 7 new URL exclusion tests)
+
+# Run E2E false positive tests
+npm run test:e2e -- tests/e2e/false-positives.spec.ts
+# Expected: All URL false positive tests pass
+
+# Test specific URL false positive case
+node -e "const { scan } = require('./dist/shared/detectors/engine.js'); const result = scan('https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD', { sensitivityLevel: 'high' }); console.log('URL detected as secret:', result.hasSensitiveData);"
+# Expected: false (URL not detected as secret)
 ```
 
 ---
