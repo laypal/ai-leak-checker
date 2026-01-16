@@ -99,33 +99,30 @@ function isPartOfUrl(text: string, start: number, end: number): boolean {
   const searchStart = Math.max(0, start - 2048);
   const textBeforeSegment = text.slice(searchStart, start + 1);
   
-  // Find all http:// or https:// occurrences before/at segment start, take the last one
+  // Find all http:// or https:// occurrences before segment start, take the last one
   // Use + (one or more) to require at least one character after scheme (valid URL requirement)
   const allMatches = Array.from(textBeforeSegment.matchAll(/https?:\/\/[^\s<>"']+/gi));
   
   if (allMatches.length > 0) {
     // Use the last match (closest to the segment)
     const lastMatch = allMatches[allMatches.length - 1];
-    if (!lastMatch || lastMatch.index === undefined) {
+    if (!lastMatch?.index) {
       // Skip if match is invalid (shouldn't happen, but TypeScript safety)
       return false;
     }
     const matchIndex = lastMatch.index;
     const urlStart = searchStart + matchIndex;
     
-    // The matched string includes the scheme, find where it ends
-    // The match already captures up to whitespace/quotes, but we need to find the actual end
-    // Search forward from where the match would naturally end (or from segment end)
-    const urlStartInText = urlStart;
-    const textFromUrlStart = text.slice(urlStartInText);
-    
-    // Find the actual URL end (whitespace, quotes, angle brackets)
+    // Match the URL pattern from urlStart in the FULL text to get complete URL including segment
+    // This ensures we capture the full URL even if it extends beyond the segment
+    const textFromUrlStart = text.slice(urlStart);
     const urlEndMatch = textFromUrlStart.match(/^[^\s<>"']+/);
     if (urlEndMatch) {
-      const urlEnd = urlStartInText + urlEndMatch[0].length;
+      const urlEnd = urlStart + urlEndMatch[0].length;
       
-      // If segment is within the URL bounds, it's part of a URL
-      if (start >= urlStartInText && end <= urlEnd) {
+      // If segment overlaps with or is within the URL bounds, it's part of a URL
+      // Use overlap check: segment starts before URL ends AND segment ends after URL starts
+      if (start < urlEnd && end > urlStart) {
         return true;
       }
     }
@@ -141,7 +138,10 @@ function isPartOfUrl(text: string, start: number, end: number): boolean {
   const matches = Array.from(context.matchAll(urlPattern));
   
   for (const match of matches) {
-    const urlStart = contextStart + match.index!;
+    if (match.index === undefined) {
+      continue;
+    }
+    const urlStart = contextStart + match.index;
     const urlEnd = urlStart + match[0].length;
     
     if (start < urlEnd && end > urlStart) {
