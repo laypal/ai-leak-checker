@@ -89,6 +89,7 @@ Coverage is enforced in CI. PRs failing these gates cannot merge:
 
 **What to Unit Test**:
 - ✅ Detection patterns (regex, entropy calculation)
+- ✅ Entropy detection with URL exclusion (URL false positive prevention)
 - ✅ Redaction logic
 - ✅ Category classification
 - ✅ Confidence scoring
@@ -102,7 +103,7 @@ Coverage is enforced in CI. PRs failing these gates cannot merge:
 tests/unit/
 ├── detectors/
 │   ├── patterns.test.ts      # Pattern matching tests
-│   ├── entropy.test.ts       # Entropy calculation
+│   ├── entropy.test.ts       # Entropy calculation + URL exclusion
 │   ├── confidence.test.ts    # Confidence scoring
 │   └── redaction.test.ts     # Masking logic
 ├── utils/
@@ -208,7 +209,7 @@ tests/e2e/
 ├── chatgpt-integration.spec.ts # ChatGPT mock page tests
 ├── claude.spec.ts            # Claude integration tests
 ├── detection-engine.spec.ts  # Detection engine E2E tests
-├── false-positives.spec.ts   # False positive validation
+├── false-positives.spec.ts   # False positive validation (includes URLs)
 └── performance.spec.ts       # Performance benchmarks
 ```
 
@@ -293,6 +294,16 @@ test.describe('ChatGPT Integration', () => {
       "name": "URLs with Query Params",
       "count": 50,
       "samples": ["https://example.com/callback?token=abc123", ...]
+    },
+    {
+      "name": "URLs with High-Entropy Path Segments",
+      "count": 3,
+      "samples": [
+        "https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD",
+        "https://example.com/api/v1/users/1234567890abcdef",
+        "http://localhost:3000/docs/abc123xyz789"
+      ],
+      "notes": "URLs contain high-entropy segments (IDs, tokens) but are not secrets. Entropy detection excludes URLs via isPartOfUrl() helper."
     },
     {
       "name": "Product Codes",

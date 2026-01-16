@@ -78,6 +78,82 @@ export function calculateSlidingEntropy(
 }
 
 /**
+ * Check if a string segment is part of a URL.
+ * URLs contain high-entropy segments (IDs, tokens) but are not secrets.
+ * 
+ * This function handles long URLs by searching backwards from the segment
+ * to find the URL start (http:// or https://), ensuring segments deep in
+ * long paths are correctly identified.
+ * 
+ * @param text - Full text containing the segment
+ * @param start - Start index of the segment
+ * @param end - End index of the segment
+ * @returns true if the segment is part of a URL
+ */
+function isPartOfUrl(text: string, start: number, end: number): boolean {
+  // Strategy: Search backwards from segment to find URL start
+  // This handles very long URLs where the context window doesn't include the scheme
+  
+  // Search backwards from segment start to find URL scheme
+  // Look back up to 2048 characters (reasonable max URL length)
+  const searchStart = Math.max(0, start - 2048);
+  const textBeforeSegment = text.slice(searchStart, start + 1);
+  
+  // Find all http:// or https:// occurrences before segment start, take the last one
+  // Use + (one or more) to require at least one character after scheme (valid URL requirement)
+  const allMatches = Array.from(textBeforeSegment.matchAll(/https?:\/\/[^\s<>"']+/gi));
+  
+  if (allMatches.length > 0) {
+    // Use the last match (closest to the segment)
+    const lastMatch = allMatches[allMatches.length - 1];
+    // Check explicitly for undefined (index 0 is valid, so can't use falsy check)
+    if (lastMatch?.index === undefined) {
+      // Skip if match is invalid (shouldn't happen, but TypeScript safety)
+      return false;
+    }
+    const matchIndex = lastMatch.index;
+    const urlStart = searchStart + matchIndex;
+    
+    // Match the URL pattern from urlStart in the FULL text to get complete URL including segment
+    // This ensures we capture the full URL even if it extends beyond the segment
+    const textFromUrlStart = text.slice(urlStart);
+    const urlEndMatch = textFromUrlStart.match(/^[^\s<>"']+/);
+    if (urlEndMatch) {
+      const urlEnd = urlStart + urlEndMatch[0].length;
+      
+      // If segment overlaps with or is within the URL bounds, it's part of a URL
+      // Use overlap check: segment starts before URL ends AND segment ends after URL starts
+      if (start < urlEnd && end > urlStart) {
+        return true;
+      }
+    }
+  }
+  
+  // Fallback: Also check for URLs in expanded context window
+  // This catches cases where URL is nearby but scheme wasn't found in backward search
+  const contextStart = Math.max(0, start - 200);
+  const contextEnd = Math.min(text.length, end + 200);
+  const context = text.slice(contextStart, contextEnd);
+  
+  const urlPattern = /https?:\/\/[^\s<>"']+/gi;
+  const matches = Array.from(context.matchAll(urlPattern));
+  
+  for (const match of matches) {
+    if (match.index === undefined) {
+      continue;
+    }
+    const urlStart = contextStart + match.index;
+    const urlEnd = urlStart + match[0].length;
+    
+    if (start < urlEnd && end > urlStart) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * Find high-entropy regions in text.
  * Merges adjacent high-entropy windows into contiguous regions.
  * 
@@ -110,6 +186,11 @@ export function findHighEntropyRegions(
     const entropy = calculateEntropy(candidate);
 
     if (entropy >= threshold && candidate.length >= minLength) {
+      // Skip if this is part of a URL
+      if (isPartOfUrl(text, match.index, match.index + candidate.length)) {
+        continue;
+      }
+      
       regions.push({
         start: match.index,
         end: match.index + candidate.length,

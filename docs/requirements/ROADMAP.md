@@ -161,15 +161,19 @@
 
 ### Milestone 2.1: False Positive Tuning
 
-| Task | Priority | Estimate |
-|------|----------|----------|
-| Build FP corpus (500+ samples) | P0 | 4h |
-| Tune entropy thresholds | P0 | 4h |
-| Add common FP allowlist | P0 | 2h |
-| Improve context analysis | P1 | 4h |
-| A/B test sensitivity levels | P2 | 8h |
+| Task | Priority | Estimate | Status |
+|------|----------|----------|--------|
+| Build FP corpus (500+ samples) | P0 | 4h | ✅ |
+| Tune entropy thresholds | P0 | 4h | ⬜ |
+| Add common FP allowlist | P0 | 2h | ⬜ |
+| Fix URL false positives | P0 | 2h | ✅ |
+| Improve context analysis | P1 | 4h | ⬜ |
+| A/B test sensitivity levels | P2 | 8h | ⬜ |
 
-**Target**: FP rate < 5%
+**Completed Work**:
+- **URL False Positive Fix**: Added `isPartOfUrl()` helper to exclude URL segments from entropy detection. Fixes false positive where URLs with high-entropy path segments (e.g., `https://kdp.amazon.com/en_US/help/topic/G4WB7VPPEAREHAAD`) were flagged as "High-entropy secret" at high sensitivity. Includes 7 unit tests and 4 E2E tests.
+
+**Target**: FP rate < 5% (currently working toward < 3%)
 
 ### Milestone 2.2: Selector Resilience
 
