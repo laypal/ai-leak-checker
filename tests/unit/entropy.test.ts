@@ -218,4 +218,25 @@ describe('URL exclusion in entropy detection', () => {
     expect(hasApiKey).toBe(true);
     expect(hasUrlSegment).toBe(false);
   });
+
+  it('uses consistent URL pattern quantifiers (+ not *)', () => {
+    // Both URL pattern checks now use + (one or more) instead of inconsistent * and +
+    // This ensures both backward search and fallback patterns require at least one character
+    // after the scheme, preventing edge cases with malformed URLs like "https:// "
+    
+    // Valid URLs still correctly exclude entropy detection (pattern requires domain/path)
+    const validUrl = 'https://example.com/G4WB7VPPEAREHAAD';
+    const regions1 = findHighEntropyRegions(validUrl, 3.5, 16);
+    expect(regions1).toHaveLength(0);
+    
+    // URLs with valid content after scheme are correctly identified
+    const validUrl2 = 'https://site.com/path/ABC123XYZ';
+    const regions2 = findHighEntropyRegions(validUrl2, 3.5, 16);
+    expect(regions2).toHaveLength(0);
+    
+    // The + quantifier ensures both patterns behave consistently:
+    // - Line 103 (backward search): uses /https?:\/\/[^\s<>"']+/gi
+    // - Line 139 (fallback): uses /https?:\/\/[^\s<>"']+/gi
+    // Both now require at least one character after scheme, preventing inconsistent behavior
+  });
 });

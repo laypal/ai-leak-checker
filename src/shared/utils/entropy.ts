@@ -100,7 +100,8 @@ function isPartOfUrl(text: string, start: number, end: number): boolean {
   const textBeforeSegment = text.slice(searchStart, start + 1);
   
   // Find all http:// or https:// occurrences before/at segment start, take the last one
-  const allMatches = Array.from(textBeforeSegment.matchAll(/https?:\/\/[^\s<>"']*/gi));
+  // Use + (one or more) to require at least one character after scheme (valid URL requirement)
+  const allMatches = Array.from(textBeforeSegment.matchAll(/https?:\/\/[^\s<>"']+/gi));
   
   if (allMatches.length > 0) {
     // Use the last match (closest to the segment)
