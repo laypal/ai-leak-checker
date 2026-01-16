@@ -106,7 +106,8 @@ function isPartOfUrl(text: string, start: number, end: number): boolean {
   if (allMatches.length > 0) {
     // Use the last match (closest to the segment)
     const lastMatch = allMatches[allMatches.length - 1];
-    if (!lastMatch?.index) {
+    // Check explicitly for undefined (index 0 is valid, so can't use falsy check)
+    if (lastMatch?.index === undefined) {
       // Skip if match is invalid (shouldn't happen, but TypeScript safety)
       return false;
     }
