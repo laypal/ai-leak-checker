@@ -194,4 +194,28 @@ describe('URL exclusion in entropy detection', () => {
     expect(hasUrlSegment).toBe(false);
     expect(hasStandaloneSecret).toBe(true);
   });
+
+  it('handles very long URLs with segments far from URL start', () => {
+    // Create a very long URL (>200 chars) with high-entropy segment at the end
+    const longPath = '/segment'.repeat(30); // ~240 chars of path
+    const url = `https://example.com${longPath}/G4WB7VPPEAREHAAD`;
+    const regions = findHighEntropyRegions(url, 3.5, 16);
+    
+    // URL segment should not be detected even though it's >100 chars from URL start
+    expect(regions).toHaveLength(0);
+  });
+
+  it('handles long URLs in mixed text content', () => {
+    // Long URL with segment >100 chars from start, followed by actual secret
+    const longPath = '/path'.repeat(25); // ~125 chars
+    const text = `Check this URL: https://site.com${longPath}/ABC123XYZ and my key: sk_test_4eC39HqLyjWDarjtT1zdp7dc`;
+    const regions = findHighEntropyRegions(text, 3.5, 16);
+    
+    // Should detect the API key but not the URL segment (even though it's far from URL start)
+    const hasApiKey = regions.some(r => r.value.includes('sk_test'));
+    const hasUrlSegment = regions.some(r => r.value.includes('ABC123XYZ'));
+    
+    expect(hasApiKey).toBe(true);
+    expect(hasUrlSegment).toBe(false);
+  });
 });

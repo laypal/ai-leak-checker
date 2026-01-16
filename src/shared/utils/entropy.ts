@@ -81,29 +81,68 @@ export function calculateSlidingEntropy(
  * Check if a string segment is part of a URL.
  * URLs contain high-entropy segments (IDs, tokens) but are not secrets.
  * 
+ * This function handles long URLs by searching backwards from the segment
+ * to find the URL start (http:// or https://), ensuring segments deep in
+ * long paths are correctly identified.
+ * 
  * @param text - Full text containing the segment
  * @param start - Start index of the segment
  * @param end - End index of the segment
  * @returns true if the segment is part of a URL
  */
 function isPartOfUrl(text: string, start: number, end: number): boolean {
-  // Extract surrounding context (100 chars before/after)
-  const contextStart = Math.max(0, start - 100);
-  const contextEnd = Math.min(text.length, end + 100);
+  // Strategy: Search backwards from segment to find URL start
+  // This handles very long URLs where the context window doesn't include the scheme
+  
+  // Search backwards from segment start to find URL scheme
+  // Look back up to 2048 characters (reasonable max URL length)
+  const searchStart = Math.max(0, start - 2048);
+  const textBeforeSegment = text.slice(searchStart, start + 1);
+  
+  // Find all http:// or https:// occurrences before/at segment start, take the last one
+  const allMatches = Array.from(textBeforeSegment.matchAll(/https?:\/\/[^\s<>"']*/gi));
+  
+  if (allMatches.length > 0) {
+    // Use the last match (closest to the segment)
+    const lastMatch = allMatches[allMatches.length - 1];
+    if (!lastMatch || lastMatch.index === undefined) {
+      // Skip if match is invalid (shouldn't happen, but TypeScript safety)
+      return false;
+    }
+    const matchIndex = lastMatch.index;
+    const urlStart = searchStart + matchIndex;
+    
+    // The matched string includes the scheme, find where it ends
+    // The match already captures up to whitespace/quotes, but we need to find the actual end
+    // Search forward from where the match would naturally end (or from segment end)
+    const urlStartInText = urlStart;
+    const textFromUrlStart = text.slice(urlStartInText);
+    
+    // Find the actual URL end (whitespace, quotes, angle brackets)
+    const urlEndMatch = textFromUrlStart.match(/^[^\s<>"']+/);
+    if (urlEndMatch) {
+      const urlEnd = urlStartInText + urlEndMatch[0].length;
+      
+      // If segment is within the URL bounds, it's part of a URL
+      if (start >= urlStartInText && end <= urlEnd) {
+        return true;
+      }
+    }
+  }
+  
+  // Fallback: Also check for URLs in expanded context window
+  // This catches cases where URL is nearby but scheme wasn't found in backward search
+  const contextStart = Math.max(0, start - 200);
+  const contextEnd = Math.min(text.length, end + 200);
   const context = text.slice(contextStart, contextEnd);
   
-  // URL pattern: http:// or https:// followed by domain and path
-  // Match URLs up to whitespace, quotes, angle brackets, or end of string
   const urlPattern = /https?:\/\/[^\s<>"']+/gi;
   const matches = Array.from(context.matchAll(urlPattern));
   
-  // Check if our segment overlaps with any URL match
   for (const match of matches) {
-    // Adjust match index to absolute position in original text
     const urlStart = contextStart + match.index!;
     const urlEnd = urlStart + match[0].length;
     
-    // If segment overlaps with URL, it's part of a URL
     if (start < urlEnd && end > urlStart) {
       return true;
     }
