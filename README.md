@@ -120,7 +120,7 @@ You type/paste sensitive data
 - ✅ Only anonymized statistics (counts) are tracked locally
 - ✅ You can export or delete your data anytime
 
-Read our full [Privacy Policy](#). <!-- TODO: Add link -->
+Read our full [Privacy Policy](PRIVACY_POLICY.md).
 
 ## Configuration
 
@@ -197,7 +197,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## Security
 
-If you discover a security vulnerability, please email [security@example.com](mailto:security@example.com) instead of opening a public issue.
+If you discover a security vulnerability, please email [aileakchecker@proton.me](mailto:aileakchecker@proton.me) instead of opening a public issue.
 
 ## License
 
