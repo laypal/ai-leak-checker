@@ -14,7 +14,7 @@ const __dirname = dirname(__filename);
 const ROOT = join(__dirname, '..');
 const ICONS_DIR = join(ROOT, 'public', 'icons');
 const SVG_SOURCE = join(ICONS_DIR, 'icon.svg');
-const SIZES = [16, 48, 128];
+const SIZES = [16, 32, 48, 128];
 
 async function generateIcons() {
   console.log('Generating PNG icons from SVG...\n');
