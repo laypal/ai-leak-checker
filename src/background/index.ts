@@ -104,10 +104,9 @@ function validateMessage(message: unknown): message is ExtensionMessage | { type
     return false;
   }
   
-  // Payload is optional for some message types, but must exist if present
-  if ('payload' in msg && msg.payload === undefined) {
-    return false;
-  }
+  // Payload can be undefined for messages that don't require it (e.g., SETTINGS_GET, STATS_GET)
+  // undefined is a valid payload value per BaseMessage<'TYPE', undefined> type definitions
+  // No need to validate payload type here - that's handled by TypeScript and message handlers
   
   return true;
 }
