@@ -40,6 +40,64 @@ let observerRetryInterval: ReturnType<typeof setInterval> | null = null;
 const attachedElements = new WeakSet<Element>();
 
 /**
+ * Check if the extension context is still valid.
+ * Returns false if the extension has been reloaded.
+ */
+function isExtensionContextValid(): boolean {
+  try {
+    // Try to access chrome.runtime.id - this will throw if context is invalidated
+    return typeof chrome.runtime.id !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safely send a message to the service worker.
+ * Handles extension context invalidation gracefully.
+ */
+function safeSendMessage(
+  message: ExtensionMessage,
+  callback?: (response?: unknown) => void
+): void {
+  if (!isExtensionContextValid()) {
+    // Extension was reloaded - silently fail
+    return;
+  }
+
+  try {
+    chrome.runtime.sendMessage(message, (response) => {
+      // Check for errors (including context invalidation)
+      if (chrome.runtime.lastError) {
+        // Context invalidated or other error - ignore
+        return;
+      }
+      if (callback) {
+        callback(response);
+      }
+    });
+  } catch (error) {
+    // Extension context invalidated - silently fail
+    // Don't log to avoid console spam during reloads
+  }
+}
+
+/**
+ * Safely get a URL for an extension resource.
+ */
+function safeGetURL(path: string): string | null {
+  if (!isExtensionContextValid()) {
+    return null;
+  }
+
+  try {
+    return chrome.runtime.getURL(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Initialize the content script.
  * Detects the current site and sets up interception.
  */
@@ -72,7 +130,12 @@ function initialize(): void {
   injectMainWorldScript();
 
   // Listen for messages from service worker
-  chrome.runtime.onMessage.addListener(handleMessage);
+  try {
+    chrome.runtime.onMessage.addListener(handleMessage);
+  } catch (error) {
+    // Extension context invalidated - can't set up listener
+    console.warn('[AI Leak Checker] Failed to set up message listener:', error);
+  }
 }
 
 /**
@@ -315,7 +378,7 @@ function showWarning(
   modal.show(result.findings);
 
   // Send stats to service worker
-  void chrome.runtime.sendMessage({
+  safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: {
       field: 'actions.cancelled',
@@ -342,7 +405,7 @@ function handleContinueWithRedaction(): void {
   }
 
   // Log the action
-  void chrome.runtime.sendMessage({
+  safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: { field: 'actions.masked' },
   });
@@ -362,7 +425,7 @@ function handleSendAnyway(): void {
   if (!pendingSubmission) return;
 
   // Log the bypass
-  void chrome.runtime.sendMessage({
+  safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: { field: 'actions.proceeded' },
   });
@@ -451,11 +514,18 @@ function notifyPasteSensitive(result: DetectionResult): void {
  */
 function injectMainWorldScript(): void {
   try {
+    const url = safeGetURL('injected.js');
+    if (!url) {
+      // Extension context invalidated - can't inject
+      return;
+    }
+
     const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('injected.js');
+    script.src = url;
     script.onload = () => script.remove();
     (document.head || document.documentElement).appendChild(script);
   } catch (error) {
+    // Extension context invalidated or other error
     console.error('[AI Leak Checker] Failed to inject main world script:', error);
   }
 }
@@ -468,18 +538,28 @@ function handleMessage(
   sender: chrome.runtime.MessageSender,
   sendResponse: (response?: unknown) => void
 ): boolean {
-  switch (message.type) {
-    case MessageType.SETTINGS_UPDATED:
-      // Reload settings
-      console.log('[AI Leak Checker] Settings updated');
-      break;
+  // Check if context is still valid before handling
+  if (!isExtensionContextValid()) {
+    return false;
+  }
 
-    case MessageType.GET_STATUS:
-      sendResponse({
-        active: !!siteConfig,
-        site: siteConfig?.name ?? window.location.hostname,
-      });
-      return true;
+  try {
+    switch (message.type) {
+      case MessageType.SETTINGS_UPDATED:
+        // Reload settings
+        console.log('[AI Leak Checker] Settings updated');
+        break;
+
+      case MessageType.GET_STATUS:
+        sendResponse({
+          active: !!siteConfig,
+          site: siteConfig?.name ?? window.location.hostname,
+        });
+        return true;
+    }
+  } catch (error) {
+    // Extension context invalidated during message handling
+    return false;
   }
 
   return false;
