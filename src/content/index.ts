@@ -70,7 +70,11 @@ function safeSendMessage(
     chrome.runtime.sendMessage(message, (response) => {
       // Check for errors (including context invalidation)
       if (chrome.runtime.lastError) {
-        // Context invalidated or other error - ignore
+        // Log error in development to help debug
+        const errorMsg = chrome.runtime.lastError.message;
+        if (errorMsg && !errorMsg.includes('Extension context invalidated')) {
+          console.warn('[AI Leak Checker] Failed to send message:', errorMsg, message);
+        }
         return;
       }
       if (callback) {
@@ -78,8 +82,11 @@ function safeSendMessage(
       }
     });
   } catch (error) {
-    // Extension context invalidated - silently fail
-    // Don't log to avoid console spam during reloads
+    // Extension context invalidated or other error
+    // Log in development mode for debugging
+    if (error instanceof Error && !error.message.includes('Extension context invalidated')) {
+      console.warn('[AI Leak Checker] Error sending message:', error.message, message);
+    }
   }
 }
 
@@ -271,7 +278,6 @@ function handlePaste(event: ClipboardEvent): void {
     const result = scan(pastedText);
     if (result.hasSensitiveData) {
       // Show warning but don't block paste - user might want to edit
-      console.warn('[AI Leak Checker] Sensitive data pasted', result.summary);
       notifyPasteSensitive(result);
     }
   }

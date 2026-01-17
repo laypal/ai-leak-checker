@@ -85,8 +85,9 @@ chrome.runtime.onMessage.addListener(
 
 /**
  * Validate message structure and type.
+ * Accepts both full BaseMessage format and simplified { type, payload } format.
  */
-function validateMessage(message: unknown): message is ExtensionMessage {
+function validateMessage(message: unknown): message is ExtensionMessage | { type: MessageType; payload: unknown } {
   if (!message || typeof message !== 'object') {
     return false;
   }
