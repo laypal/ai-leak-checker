@@ -55,9 +55,10 @@ function isExtensionContextValid(): boolean {
 /**
  * Safely send a message to the service worker.
  * Handles extension context invalidation gracefully.
+ * Accepts simplified message format (background script handles legacy format).
  */
 function safeSendMessage(
-  message: ExtensionMessage,
+  message: ExtensionMessage | { type: MessageType; payload: unknown },
   callback?: (response?: unknown) => void
 ): void {
   if (!isExtensionContextValid()) {
@@ -377,7 +378,7 @@ function showWarning(
 
   modal.show(result.findings);
 
-  // Send stats to service worker
+  // Send stats to service worker (legacy format supported by background)
   safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: {
@@ -404,7 +405,7 @@ function handleContinueWithRedaction(): void {
     }
   }
 
-  // Log the action
+  // Log the action (legacy format supported by background)
   safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: { field: 'actions.masked' },
@@ -424,7 +425,7 @@ function handleContinueWithRedaction(): void {
 function handleSendAnyway(): void {
   if (!pendingSubmission) return;
 
-  // Log the bypass
+  // Log the bypass (legacy format supported by background)
   safeSendMessage({
     type: MessageType.STATS_INCREMENT,
     payload: { field: 'actions.proceeded' },
