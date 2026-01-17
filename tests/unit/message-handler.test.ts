@@ -104,6 +104,61 @@ describe('Message Validation', () => {
       
       expect(message.type).toBe(MessageType.GET_STATUS);
     });
+
+    it('should handle STATS_INCREMENT message with simplified format', () => {
+      // Simplified format used by content script
+      const simplifiedMessage = {
+        type: MessageType.STATS_INCREMENT,
+        payload: { field: 'actions.masked' as const },
+      };
+      
+      expect(simplifiedMessage.type).toBe(MessageType.STATS_INCREMENT);
+      expect(simplifiedMessage.payload).toBeDefined();
+      expect((simplifiedMessage.payload as { field: string }).field).toBe('actions.masked');
+    });
+
+    it('should handle STATS_INCREMENT message with byDetector', () => {
+      const simplifiedMessage = {
+        type: MessageType.STATS_INCREMENT,
+        payload: {
+          field: 'actions.cancelled' as const,
+          byDetector: { api_key_openai: 1 },
+        },
+      };
+      
+      expect(simplifiedMessage.type).toBe(MessageType.STATS_INCREMENT);
+      expect((simplifiedMessage.payload as { byDetector?: Record<string, number> }).byDetector).toBeDefined();
+    });
+
+    it('should accept messages with undefined payload (popup format)', () => {
+      // Popup sends messages with explicit payload: undefined
+      const popupMessage = {
+        type: MessageType.SETTINGS_GET,
+        payload: undefined,
+        timestamp: Date.now(),
+        correlationId: 'test-123',
+        source: 'popup' as const,
+      };
+      
+      expect(popupMessage.type).toBe(MessageType.SETTINGS_GET);
+      expect(popupMessage.payload).toBeUndefined();
+      expect(popupMessage.timestamp).toBeTypeOf('number');
+      expect(popupMessage.correlationId).toBe('test-123');
+      expect(popupMessage.source).toBe('popup');
+    });
+
+    it('should accept STATS_GET message with undefined payload', () => {
+      const statsMessage = {
+        type: MessageType.STATS_GET,
+        payload: undefined,
+        timestamp: Date.now(),
+        correlationId: 'test-456',
+        source: 'popup' as const,
+      };
+      
+      expect(statsMessage.type).toBe(MessageType.STATS_GET);
+      expect(statsMessage.payload).toBeUndefined();
+    });
   });
 
   describe('Settings Update Payload Extraction', () => {
