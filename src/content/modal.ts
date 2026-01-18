@@ -29,7 +29,9 @@ export class WarningModal {
     this.callbacks = callbacks;
     this.container = document.createElement('div');
     this.container.id = 'ai-leak-checker-modal';
-    this.shadowRoot = this.container.attachShadow({ mode: 'closed' });
+    // Use 'open' mode to allow E2E tests to access shadow root
+    // Shadow DOM still provides style isolation even in 'open' mode
+    this.shadowRoot = this.container.attachShadow({ mode: 'open' });
     
     this.injectStyles();
     document.body.appendChild(this.container);
