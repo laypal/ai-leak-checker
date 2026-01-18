@@ -176,13 +176,13 @@ This guide helps you capture the required screenshots for Chrome Web Store submi
 ## Verification Checklist
 
 After capturing screenshots, verify:
-- [ ] All 5 screenshots saved to `store/screenshots/`
-- [ ] Each screenshot is PNG format
-- [ ] Dimensions are 1280x800 (or 640x400)
-- [ ] File sizes are reasonable (< 2MB each)
-- [ ] Text is readable and clear
-- [ ] UI elements are not cut off
-- [ ] Sensitive data in screenshots is fake/test data only
+- [x] All 5 screenshots saved to `store/screenshots/`
+- [x] Each screenshot is PNG format
+- [x] Dimensions are 1280x800 (or 640x400)
+- [x] File sizes are reasonable (< 2MB each)
+- [x] Text is readable and clear
+- [x] UI elements are not cut off
+- [x] Sensitive data in screenshots is fake/test data only
 
 ---
 

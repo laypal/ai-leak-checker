@@ -318,13 +318,13 @@ file public/icons/*.png
 - [ ] Extension name: "AI Leak Checker" (≤45 chars)
 - [ ] Short description (≤132 chars) includes key value prop
 - [ ] Detailed description covers: features, privacy, use cases
-- [ ] 5+ screenshots showing:
+- [x] 5+ screenshots showing:
   - [ ] Warning modal in action
   - [ ] Popup settings page
   - [ ] Mask & Continue feature
   - [ ] Detection types supported
   - [ ] Before/after redaction
-- [ ] Screenshots are 1280x800 or 640x400 PNG
+- [x] Screenshots are 1280x800 PNG
 - [ ] Small promo tile: 440x280 PNG
 - [ ] Large promo tile: 920x680 PNG (optional)
 - [ ] Category selected: Productivity or Privacy & Security
@@ -343,16 +343,16 @@ file public/icons/*.png
 **Description**: Create 30-60 second demo video for store listing.
 
 **Deliverables**:
-- [ ] Screen recording of extension in action
+- [x] Screen recording of extension in action
 - [ ] Edited video with captions
 
 **Acceptance Criteria**:
-- [ ] Video is 30-60 seconds long
-- [ ] Shows: paste API key → warning → mask → continue
-- [ ] No audio required (captions sufficient)
-- [ ] Resolution: 1280x720 minimum
-- [ ] Format: MP4 or YouTube link
-- [ ] Demonstrates value proposition clearly
+- [x] Video is 30-60 seconds long
+- [x] Shows: paste API key → warning → mask → continue
+- [x] No audio required (captions sufficient)
+- [x] Resolution: 1280x720 minimum
+- [x] Format: YouTube link
+- [x] Demonstrates value proposition clearly
 
 ---
 
@@ -366,7 +366,7 @@ file public/icons/*.png
 - [ ] Review response documentation
 
 **Acceptance Criteria**:
-- [ ] Developer account created and verified
+- [x] Developer account created and verified
 - [ ] Extension package uploaded (.zip of dist/)
 - [ ] All store listing fields completed
 - [ ] Privacy practices disclosure filled accurately
