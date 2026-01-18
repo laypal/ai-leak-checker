@@ -177,9 +177,40 @@ export async function getModalFindings(
         const maskedValue = valueEl.textContent?.trim() || '';
         const confidence = badgeEl?.textContent?.trim() || '';
 
-        // Extract type from label (e.g., "OpenAI API key" -> "api_key_openai")
-        // This is a simplified extraction - in practice, we might need a mapping
-        const type = label.toLowerCase().replace(/\s+/g, '_');
+        // Map label text to DetectorType enum value
+        // This mapping is the reverse of describeFinding() in engine.ts
+        const labelToType: Record<string, string> = {
+          'openai api key': 'api_key_openai',
+          'aws credentials': 'api_key_aws',
+          'github token': 'api_key_github',
+          'stripe api key': 'api_key_stripe',
+          'slack token': 'api_key_slack',
+          'google api key': 'api_key_google',
+          'anthropic api key': 'api_key_anthropic',
+          'sendgrid api key': 'api_key_sendgrid',
+          'twilio credentials': 'api_key_twilio',
+          'mailchimp api key': 'api_key_mailchimp',
+          'heroku api key': 'api_key_heroku',
+          'npm access token': 'api_key_npm',
+          'pypi api token': 'api_key_pypi',
+          'docker hub token': 'api_key_docker',
+          'supabase api key': 'api_key_supabase',
+          'firebase api key': 'api_key_firebase',
+          'api key': 'api_key_generic',
+          'private key': 'private_key',
+          'password': 'password',
+          'credit card number': 'credit_card',
+          'email address': 'email',
+          'uk phone number': 'phone_uk',
+          'uk national insurance number': 'uk_ni_number',
+          'us social security number': 'us_ssn',
+          'bank account (iban)': 'iban',
+          'high-entropy secret': 'high_entropy',
+        };
+
+        // Extract type from label using mapping, fallback to snake_case if not found
+        const normalizedLabel = label.toLowerCase();
+        const type = labelToType[normalizedLabel] || normalizedLabel.replace(/\s+/g, '_');
 
         findings.push({ type, label, confidence, maskedValue });
       }
