@@ -24,17 +24,22 @@ export class WarningModal {
   private shadowRoot: ShadowRoot;
   private callbacks: WarningModalCallbacks;
   private isVisible = false;
+  // Store current findings for test API (sanitized data only)
+  private currentFindings: Finding[] = [];
 
   constructor(callbacks: WarningModalCallbacks) {
     this.callbacks = callbacks;
     this.container = document.createElement('div');
     this.container.id = 'ai-leak-checker-modal';
-    // Use 'open' mode to allow E2E tests to access shadow root
-    // Shadow DOM still provides style isolation even in 'open' mode
-    this.shadowRoot = this.container.attachShadow({ mode: 'open' });
+    // Use 'closed' mode for security - prevents webpage JS from accessing shadow root
+    // E2E tests use test-only API exposed on window instead
+    this.shadowRoot = this.container.attachShadow({ mode: 'closed' });
     
     this.injectStyles();
     document.body.appendChild(this.container);
+    
+    // Expose test-only API for E2E tests (only in test environments)
+    this.exposeTestAPI();
   }
 
   /**
@@ -42,6 +47,9 @@ export class WarningModal {
    */
   show(findings: Finding[]): void {
     if (this.isVisible) return;
+
+    // Store findings for test API (only masked/sanitized data)
+    this.currentFindings = findings;
 
     const content = this.renderContent(findings);
     this.shadowRoot.innerHTML = this.getStyles() + content;
@@ -431,10 +439,53 @@ export class WarningModal {
   }
 
   /**
+   * Expose test-only API for E2E tests.
+   * Only available in test environments to avoid exposing sensitive data.
+   */
+  private exposeTestAPI(): void {
+    // Check if we're in a test environment (Playwright sets this)
+    const isTestEnv = typeof window !== 'undefined' && 
+                     (window.navigator?.webdriver === true || 
+                      window.location.href.includes('localhost') ||
+                      window.location.href.includes('127.0.0.1'));
+
+    if (!isTestEnv) {
+      return;
+    }
+
+    // Expose sanitized test API on window (only in test environments)
+    // This API provides the same data visible in the modal UI (masked values)
+    // Note: Shadow root remains 'closed' - never exposed directly for security
+    const testAPI = {
+      getFindings: (): Array<{ type: string; label: string; confidence: string; maskedValue: string }> => {
+        return this.currentFindings.map((finding) => ({
+          type: finding.type,
+          label: describeFinding(finding),
+          confidence: finding.confidence >= 0.8 ? 'High' : finding.confidence >= 0.6 ? 'Medium' : 'Low',
+          maskedValue: mask(finding.value, finding.type),
+        }));
+      },
+      clickButton: (buttonClass: 'cancel-btn' | 'redact-btn' | 'send-btn'): void => {
+        const button = this.shadowRoot.querySelector(`.${buttonClass}`) as HTMLButtonElement;
+        if (button) {
+          button.click();
+        }
+      },
+    };
+
+    // Store on window for E2E tests to access
+    (window as unknown as { __aiLeakCheckerTestAPI?: typeof testAPI }).__aiLeakCheckerTestAPI = testAPI;
+  }
+
+  /**
    * Destroy the modal.
    */
   destroy(): void {
     this.hide();
     this.container.remove();
+    // Clean up test API
+    if (typeof window !== 'undefined') {
+      delete (window as unknown as { __aiLeakCheckerTestAPI?: unknown }).__aiLeakCheckerTestAPI;
+    }
   }
 }

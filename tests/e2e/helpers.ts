@@ -127,104 +127,34 @@ export async function isModalVisible(page: Page): Promise<boolean> {
 
 /**
  * Click modal button by class name.
+ * Uses test-only API exposed by modal (only available in test environments).
  */
 export async function clickModalButton(
   page: Page,
   buttonClass: 'cancel-btn' | 'redact-btn' | 'send-btn'
 ): Promise<void> {
-  // Modal buttons are in shadow DOM, so we need to use evaluate
   await page.evaluate((className) => {
-    const modal = document.querySelector('#ai-leak-checker-modal');
-    if (!modal) throw new Error('Modal not found');
-    
-    const shadowRoot = (modal as HTMLElement).shadowRoot;
-    if (!shadowRoot) throw new Error('Shadow root not found');
-    
-    const button = shadowRoot.querySelector(`.${className}`) as HTMLButtonElement;
-    if (!button) throw new Error(`Button ${className} not found`);
-    
-    button.click();
+    const testAPI = (window as unknown as { __aiLeakCheckerTestAPI?: { clickButton: (className: string) => void } }).__aiLeakCheckerTestAPI;
+    if (!testAPI) {
+      throw new Error('Test API not found - modal may not be initialized or not in test environment');
+    }
+    testAPI.clickButton(className as 'cancel-btn' | 'redact-btn' | 'send-btn');
   }, buttonClass);
 }
 
 /**
- * Extract all findings from modal shadow DOM.
+ * Extract all findings from modal.
+ * Uses test-only API exposed by modal (only available in test environments).
  * Returns structured data for assertions.
  */
 export async function getModalFindings(
   page: Page
 ): Promise<Array<{ type: string; label: string; confidence: string; maskedValue: string }>> {
   return await page.evaluate(() => {
-    const modal = document.querySelector('#ai-leak-checker-modal');
-    if (!modal) return [];
-
-    const shadowRoot = (modal as HTMLElement).shadowRoot;
-    if (!shadowRoot) return [];
-
-    const findingsList = shadowRoot.querySelector('.findings-list');
-    if (!findingsList) return [];
-
-    const items = findingsList.querySelectorAll('li.finding-item');
-    const findings: Array<{ type: string; label: string; confidence: string; maskedValue: string }> = [];
-
-    items.forEach((item) => {
-      const typeEl = item.querySelector('.finding-type');
-      const valueEl = item.querySelector('.finding-value');
-      const badgeEl = item.querySelector('.confidence-badge');
-
-      if (typeEl && valueEl) {
-        // Extract label text excluding the confidence badge
-        // The badge is a child span of finding-type, so textContent includes both
-        // Solution: clone element, remove badge, then extract textContent
-        const typeElClone = typeEl.cloneNode(true) as HTMLElement;
-        const badgeClone = typeElClone.querySelector('.confidence-badge');
-        if (badgeClone) {
-          badgeClone.remove();
-        }
-        const label = typeElClone.textContent?.trim() || '';
-        
-        const maskedValue = valueEl.textContent?.trim() || '';
-        const confidence = badgeEl?.textContent?.trim() || '';
-
-        // Map label text to DetectorType enum value
-        // This mapping is the reverse of describeFinding() in engine.ts
-        const labelToType: Record<string, string> = {
-          'openai api key': 'api_key_openai',
-          'aws credentials': 'api_key_aws',
-          'github token': 'api_key_github',
-          'stripe api key': 'api_key_stripe',
-          'slack token': 'api_key_slack',
-          'google api key': 'api_key_google',
-          'anthropic api key': 'api_key_anthropic',
-          'sendgrid api key': 'api_key_sendgrid',
-          'twilio credentials': 'api_key_twilio',
-          'mailchimp api key': 'api_key_mailchimp',
-          'heroku api key': 'api_key_heroku',
-          'npm access token': 'api_key_npm',
-          'pypi api token': 'api_key_pypi',
-          'docker hub token': 'api_key_docker',
-          'supabase api key': 'api_key_supabase',
-          'firebase api key': 'api_key_firebase',
-          'api key': 'api_key_generic',
-          'private key': 'private_key',
-          'password': 'password',
-          'credit card number': 'credit_card',
-          'email address': 'email',
-          'uk phone number': 'phone_uk',
-          'uk national insurance number': 'uk_ni_number',
-          'us social security number': 'us_ssn',
-          'bank account (iban)': 'iban',
-          'high-entropy secret': 'high_entropy',
-        };
-
-        // Extract type from label using mapping, fallback to snake_case if not found
-        const normalizedLabel = label.toLowerCase();
-        const type = labelToType[normalizedLabel] || normalizedLabel.replace(/\s+/g, '_');
-
-        findings.push({ type, label, confidence, maskedValue });
-      }
-    });
-
-    return findings;
+    const testAPI = (window as unknown as { __aiLeakCheckerTestAPI?: { getFindings: () => Array<{ type: string; label: string; confidence: string; maskedValue: string }> } }).__aiLeakCheckerTestAPI;
+    if (!testAPI) {
+      return [];
+    }
+    return testAPI.getFindings();
   });
 }
