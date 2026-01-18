@@ -7,18 +7,14 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestPageHTML, waitForModal, isModalVisible, clickModalButton } from './helpers';
+import { setupTestPage, waitForModal, isModalVisible, clickModalButton } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 
 test.describe('ChatGPT Integration', () => {
   test.beforeEach(async ({ page }) => {
-    // Create a mock ChatGPT-like page
-    const html = createTestPageHTML('chat.openai.com');
-    await page.setContent(html);
-    
-    // Wait for page to be ready
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    // Use route interception to serve test HTML on matching URL
+    // This ensures content scripts inject (URL must match manifest pattern)
+    await setupTestPage(page, 'chat.openai.com');
   });
 
   test('warns on API key paste', async ({ page, context }) => {

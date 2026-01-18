@@ -78,6 +78,39 @@ export function createTestPageHTML(hostname: string = 'chat.openai.com'): string
 }
 
 /**
+ * Set up a page with test HTML using route interception.
+ * This ensures the URL matches manifest content script patterns,
+ * allowing the extension to inject content scripts.
+ * 
+ * @param page Playwright page instance
+ * @param hostname Hostname to use for the URL (must match manifest pattern)
+ * @param html HTML content to serve
+ */
+export async function setupTestPage(
+  page: Page,
+  hostname: string = 'chat.openai.com',
+  html?: string
+): Promise<void> {
+  const testHTML = html || createTestPageHTML(hostname);
+  
+  // Intercept requests to matching URL and serve test HTML
+  // This ensures the URL matches the manifest pattern so content scripts inject
+  await page.route(`https://${hostname}/**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: testHTML,
+    });
+  });
+  
+  // Navigate to a URL that matches the manifest pattern
+  // The route interceptor will serve our test HTML
+  await page.goto(`https://${hostname}/test`);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(500);
+}
+
+/**
  * Wait for the extension to initialize on a page.
  */
 export async function waitForExtensionInit(page: Page, timeout = 5000): Promise<void> {

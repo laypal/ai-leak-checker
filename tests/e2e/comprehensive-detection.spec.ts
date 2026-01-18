@@ -3,15 +3,14 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestPageHTML, isModalVisible, getModalFindings } from './helpers';
+import { setupTestPage, isModalVisible, getModalFindings } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 
 test.describe('Comprehensive Detection', () => {
   test.beforeEach(async ({ page }) => {
-    const html = createTestPageHTML('chat.openai.com');
-    await page.setContent(html);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    // Use route interception to serve test HTML on matching URL
+    // This ensures content scripts inject (URL must match manifest pattern)
+    await setupTestPage(page, 'chat.openai.com');
   });
 
   test('detects and displays all detector types in modal', async ({ page, context }) => {

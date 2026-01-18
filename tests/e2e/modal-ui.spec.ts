@@ -3,15 +3,14 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestPageHTML, isModalVisible, getModalFindings } from './helpers';
+import { setupTestPage, isModalVisible, getModalFindings } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 
 test.describe('Modal UI Verification', () => {
   test.beforeEach(async ({ page }) => {
-    const html = createTestPageHTML('chat.openai.com');
-    await page.setContent(html);
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    // Use route interception to serve test HTML on matching URL
+    // This ensures content scripts inject (URL must match manifest pattern)
+    await setupTestPage(page, 'chat.openai.com');
   });
 
   test('modal displays all findings with correct formatting', async ({ page, context }) => {
