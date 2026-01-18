@@ -443,11 +443,16 @@ export class WarningModal {
    * Only available in test environments to avoid exposing sensitive data.
    */
   private exposeTestAPI(): void {
-    // Check if we're in a test environment (Playwright sets this)
+    // Check if we're in a test environment (Playwright/Selenium automation)
+    // Playwright sets navigator.webdriver when automating (may be true or truthy)
+    // page.setContent() results in about:blank URL (indicates test environment)
+    // Tests may run on localhost/127.0.0.1
     const isTestEnv = typeof window !== 'undefined' && 
-                     (window.navigator?.webdriver === true || 
+                     (Boolean(window.navigator?.webdriver) || // Playwright/Selenium sets this
                       window.location.href.includes('localhost') ||
-                      window.location.href.includes('127.0.0.1'));
+                      window.location.href.includes('127.0.0.1') ||
+                      window.location.href === 'about:blank' || // Playwright setContent() indicator
+                      window.location.href.startsWith('about:')); // Covers about:blank variants
 
     if (!isTestEnv) {
       return;
