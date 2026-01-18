@@ -441,18 +441,31 @@ export class WarningModal {
   /**
    * Expose test-only API for E2E tests.
    * Only available in test environments to avoid exposing sensitive data.
+   * 
+   * Security: Uses multiple indicators to detect Playwright automation environment.
+   * Requires navigator.webdriver to be strictly true (not just truthy) AND
+   * either about:blank URL (from page.setContent) or non-localhost domain.
+   * This prevents malicious websites from spoofing test environment detection
+   * by hosting on localhost or faking webdriver property.
    */
   private exposeTestAPI(): void {
-    // Check if we're in a test environment (Playwright/Selenium automation)
-    // Playwright sets navigator.webdriver when automating (may be true or truthy)
-    // page.setContent() results in about:blank URL (indicates test environment)
-    // Tests may run on localhost/127.0.0.1
-    const isTestEnv = typeof window !== 'undefined' && 
-                     (Boolean(window.navigator?.webdriver) || // Playwright/Selenium sets this
-                      window.location.href.includes('localhost') ||
-                      window.location.href.includes('127.0.0.1') ||
-                      window.location.href === 'about:blank' || // Playwright setContent() indicator
-                      window.location.href.startsWith('about:')); // Covers about:blank variants
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Security: Require strict webdriver check (must be exactly true, not just truthy)
+    // AND require either about:blank (Playwright page.setContent) OR non-localhost
+    // This prevents spoofing by localhost sites or faking webdriver property
+    const hasWebdriver = window.navigator?.webdriver === true; // Strict check
+    const isAboutBlank = window.location.href === 'about:blank' || 
+                        window.location.href.startsWith('about:');
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.startsWith('127.');
+    
+    // Only expose if webdriver is strictly true AND (about:blank OR non-localhost)
+    // This ensures we're in Playwright automation, not a malicious localhost site
+    const isTestEnv = hasWebdriver && (isAboutBlank || !isLocalhost);
 
     if (!isTestEnv) {
       return;

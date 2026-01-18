@@ -502,11 +502,13 @@ function triggerSubmit(): void {
   // Set flag to prevent our listeners from intercepting this submission
   isProgrammaticSubmit = true;
 
-  // Helper to reset flag with consistent delay
+  // Helper to reset flag after sufficient delay to allow async submission to complete
+  // Use 500ms delay to ensure async click handlers and form submissions complete
+  // before we allow normal event interception to resume
   const resetFlag = (): void => {
     setTimeout(() => {
       isProgrammaticSubmit = false;
-    }, 100);
+    }, 500);
   };
 
   try {
@@ -515,7 +517,7 @@ function triggerSubmit(): void {
       const button = document.querySelector(selector);
       if (button instanceof HTMLButtonElement && !button.disabled) {
         button.click();
-        // Reset flag after a short delay to allow the click to process
+        // Reset flag after sufficient delay to allow async submission to complete
         resetFlag();
         return;
       }
@@ -533,7 +535,7 @@ function triggerSubmit(): void {
           bubbles: true,
         });
         input.dispatchEvent(enterEvent);
-        // Reset flag after a short delay to allow the event to process
+        // Reset flag after sufficient delay to allow async event processing to complete
         resetFlag();
         return;
       }
