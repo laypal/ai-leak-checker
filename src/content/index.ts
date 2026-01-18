@@ -39,6 +39,9 @@ let observerRetryInterval: ReturnType<typeof setInterval> | null = null;
 /** Track attached listeners to avoid duplicates */
 const attachedElements = new WeakSet<Element>();
 
+/** Flag to temporarily disable scanning during programmatic submission */
+let isProgrammaticSubmit = false;
+
 /**
  * Check if the extension context is still valid.
  * Returns false if the extension has been reloaded.
@@ -247,6 +250,11 @@ function attachSubmitListener(element: HTMLElement): void {
  * Handle keydown events (primarily Enter key).
  */
 function handleKeyDown(event: KeyboardEvent): void {
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  if (isProgrammaticSubmit) {
+    return;
+  }
+
   // Only intercept Enter without Shift (Shift+Enter is newline)
   if (event.key !== 'Enter' || event.shiftKey) {
     return;
@@ -287,6 +295,11 @@ function handlePaste(event: ClipboardEvent): void {
  * Handle submit button click.
  */
 function handleSubmitClick(event: MouseEvent): void {
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  if (isProgrammaticSubmit) {
+    return;
+  }
+
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
@@ -303,6 +316,11 @@ function handleSubmitClick(event: MouseEvent): void {
  * Handle form submit.
  */
 function handleFormSubmit(event: SubmitEvent): void {
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  if (isProgrammaticSubmit) {
+    return;
+  }
+
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
@@ -476,34 +494,55 @@ function setInputText(element: HTMLElement, text: string): void {
 
 /**
  * Trigger submit action.
+ * Sets a flag to prevent re-triggering the modal during programmatic submission.
  */
 function triggerSubmit(): void {
   if (!siteConfig) return;
 
-  // Find and click submit button
-  for (const selector of siteConfig.submitSelectors) {
-    const button = document.querySelector(selector);
-    if (button instanceof HTMLButtonElement && !button.disabled) {
-      button.click();
-      return;
+  // Set flag to prevent our listeners from intercepting this submission
+  isProgrammaticSubmit = true;
+
+  try {
+    // Find and click submit button
+    for (const selector of siteConfig.submitSelectors) {
+      const button = document.querySelector(selector);
+      if (button instanceof HTMLButtonElement && !button.disabled) {
+        button.click();
+        // Reset flag after a short delay to allow the click to process
+        setTimeout(() => {
+          isProgrammaticSubmit = false;
+        }, 100);
+        return;
+      }
     }
+
+    // Fallback: simulate Enter key
+    for (const selector of siteConfig.inputSelectors) {
+      const input = document.querySelector(selector);
+      if (input && input instanceof HTMLElement) {
+        const enterEvent = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+        });
+        input.dispatchEvent(enterEvent);
+        // Reset flag after a short delay to allow the event to process
+        setTimeout(() => {
+          isProgrammaticSubmit = false;
+        }, 100);
+        return;
+      }
+    }
+  } catch (error) {
+    // Reset flag on error
+    isProgrammaticSubmit = false;
+    throw error;
   }
 
-  // Fallback: simulate Enter key
-  for (const selector of siteConfig.inputSelectors) {
-    const input = document.querySelector(selector);
-    if (input && input instanceof HTMLElement) {
-      const enterEvent = new KeyboardEvent('keydown', {
-        key: 'Enter',
-        code: 'Enter',
-        keyCode: 13,
-        which: 13,
-        bubbles: true,
-      });
-      input.dispatchEvent(enterEvent);
-      return;
-    }
-  }
+  // Reset flag if no submit method was found
+  isProgrammaticSubmit = false;
 }
 
 /**
