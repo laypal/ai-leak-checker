@@ -471,6 +471,12 @@ export class WarningModal {
           button.click();
         }
       },
+      hasScrollableBody: (): boolean => {
+        const body = this.shadowRoot.querySelector('.body');
+        if (!body) return false;
+        const style = window.getComputedStyle(body);
+        return style.overflowY === 'auto' || style.overflowY === 'scroll';
+      },
     };
 
     // Store on window for E2E tests to access

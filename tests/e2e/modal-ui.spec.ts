@@ -82,14 +82,11 @@ IBAN: GB82WEST12345698765432`;
       
       if (modalVisible) {
         const hasScroll = await page.evaluate(() => {
-          const modal = document.querySelector('#ai-leak-checker-modal');
-          if (!modal) return false;
-          const shadowRoot = (modal as HTMLElement).shadowRoot;
-          if (!shadowRoot) return false;
-          const body = shadowRoot.querySelector('.body');
-          if (!body) return false;
-          const style = window.getComputedStyle(body);
-          return style.overflowY === 'auto' || style.overflowY === 'scroll';
+          const testAPI = (window as unknown as { __aiLeakCheckerTestAPI?: { hasScrollableBody: () => boolean } }).__aiLeakCheckerTestAPI;
+          if (!testAPI) {
+            return false;
+          }
+          return testAPI.hasScrollableBody();
         });
         
         expect(hasScroll).toBe(true);
