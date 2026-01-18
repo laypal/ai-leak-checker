@@ -502,6 +502,13 @@ function triggerSubmit(): void {
   // Set flag to prevent our listeners from intercepting this submission
   isProgrammaticSubmit = true;
 
+  // Helper to reset flag with consistent delay
+  const resetFlag = (): void => {
+    setTimeout(() => {
+      isProgrammaticSubmit = false;
+    }, 100);
+  };
+
   try {
     // Find and click submit button
     for (const selector of siteConfig.submitSelectors) {
@@ -509,9 +516,7 @@ function triggerSubmit(): void {
       if (button instanceof HTMLButtonElement && !button.disabled) {
         button.click();
         // Reset flag after a short delay to allow the click to process
-        setTimeout(() => {
-          isProgrammaticSubmit = false;
-        }, 100);
+        resetFlag();
         return;
       }
     }
@@ -529,20 +534,19 @@ function triggerSubmit(): void {
         });
         input.dispatchEvent(enterEvent);
         // Reset flag after a short delay to allow the event to process
-        setTimeout(() => {
-          isProgrammaticSubmit = false;
-        }, 100);
+        resetFlag();
         return;
       }
     }
+
+    // No submit method found - reset flag immediately (synchronous fallback)
+    // This is safe because no submission occurred, so no async event processing needed
+    isProgrammaticSubmit = false;
   } catch (error) {
-    // Reset flag on error
+    // Reset flag on error - use immediate reset to ensure cleanup
     isProgrammaticSubmit = false;
     throw error;
   }
-
-  // Reset flag if no submit method was found
-  isProgrammaticSubmit = false;
 }
 
 /**
