@@ -250,8 +250,15 @@ function attachSubmitListener(element: HTMLElement): void {
  * Handle keydown events (primarily Enter key).
  */
 function handleKeyDown(event: KeyboardEvent): void {
+  // If user starts typing after programmatic submit, reset flag immediately
+  // This prevents the flag from blocking legitimate user input after submission
+  if (isProgrammaticSubmit && event.key !== 'Enter') {
+    isProgrammaticSubmit = false;
+  }
+
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
-  if (isProgrammaticSubmit) {
+  // Only applies to Enter key - other keys reset the flag above
+  if (isProgrammaticSubmit && event.key === 'Enter') {
     return;
   }
 
@@ -278,6 +285,12 @@ function handleKeyDown(event: KeyboardEvent): void {
  * Handle paste events.
  */
 function handlePaste(event: ClipboardEvent): void {
+  // If user pastes after programmatic submit, reset flag immediately
+  // This prevents the flag from blocking legitimate user input after submission
+  if (isProgrammaticSubmit) {
+    isProgrammaticSubmit = false;
+  }
+
   const pastedText = event.clipboardData?.getData('text');
   if (!pastedText) return;
 
