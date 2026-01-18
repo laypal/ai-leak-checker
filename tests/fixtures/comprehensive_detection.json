@@ -11,14 +11,14 @@
       "api_key_slack": "xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx",
       "api_key_google": "AIzaSyA1234567890abcdefghijklmnopqrstuv",
       "api_key_anthropic": "sk-ant-api03-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI1234567890abcdefghijklmnopqrstuvwxyz",
-      "api_key_sendgrid": "SG.abcdefghijklmnopqrstuv.ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
-      "api_key_twilio": "SK1234567890abcdef1234567890abcdef",
+      "api_key_sendgrid": "SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "api_key_twilio": "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "api_key_mailchimp": "TEST_MAILCHIMP_FAKE_KEY_123456-us1",
       "api_key_heroku": "12345678-1234-1234-1234-1234567890ab",
       "api_key_npm": "npm_abcdefghijklmnopqrstuvwxyz1234567890",
       "api_key_pypi": "pypi-abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz",
       "api_key_docker": "dckr_pat_abcdefghijklmnopqrstuvwxyz1234567890",
-      "api_key_supabase": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTY3ODkwNTYwMCwiZXhwIjoxOTk0MjY1NjAwLCJyb2xlIjoiYW5vbiIsImFwcF9tZXRhZGF0YSI6eyJmb28iOiJiYXIifX0.abcdefghijklmnopqrstuvwxyz1234567890",
+      "api_key_supabase": "eyJ0ZXN0IjoiZmFrZV9zdXBhYmFzZV9qd3QifQ.eyJ0ZXN0IjoiZmFrZV9wYXlsb2FkX25vdF9yZWFsX3N1cGFiYXNlX2tleSJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       "api_key_firebase": "AIzaSyB-C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4",
       "api_key_generic": "xK9mP2qR5tY8wZ3bN6cF0gH7jK1lM4nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI"
     },
@@ -42,6 +42,6 @@
   },
   "comprehensive_prompt": {
     "description": "A single prompt containing all 25 detector types for comprehensive testing",
-    "text": "OpenAI: sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI AWS: AKIAIOSFODNN7EXAMPLE GitHub: ghp_abcdefghijklmnopqrstuvwxyz1234567890 Stripe: sk_live_TEST_FAKE_KEY_FOR_TESTING_ONLY_12345 Slack: xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx Google: AIzaSyA1234567890abcdefghijklmnopqrstuv Anthropic: sk-ant-api03-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI1234567890abcdefghijklmnopqrstuvwxyz SendGrid: SG.abcdefghijklmnopqrstuv.ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 Twilio: SK1234567890abcdef1234567890abcdef Mailchimp: TEST_MAILCHIMP_FAKE_KEY_123456-us1 Heroku: 12345678-1234-1234-1234-1234567890ab NPM: npm_abcdefghijklmnopqrstuvwxyz1234567890 PyPI: pypi-abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz Docker: dckr_pat_abcdefghijklmnopqrstuvwxyz1234567890 Supabase: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTY3ODkwNTYwMCwiZXhwIjoxOTk0MjY1NjAwLCJyb2xlIjoiYW5vbiIsImFwcF9tZXRhZGF0YSI6eyJmb28iOiJiYXIifX0.abcdefghijklmnopqrstuvwxyz1234567890 Firebase: AIzaSyB-C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4 Private Key: -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n-----END RSA PRIVATE KEY----- Password: password=MySecret123! Email: user@example.com Phone: 07911123456 NI: AB123456C SSN: 234-56-7890 Card: 4532015112830366 IBAN: GB82WEST12345698765432"
+    "text": "OpenAI: sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI AWS: AKIAIOSFODNN7EXAMPLE GitHub: ghp_abcdefghijklmnopqrstuvwxyz1234567890 Stripe: sk_live_TEST_FAKE_KEY_FOR_TESTING_ONLY_12345 Slack: xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx Google: AIzaSyA1234567890abcdefghijklmnopqrstuv Anthropic: sk-ant-api03-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI1234567890abcdefghijklmnopqrstuvwxyz SendGrid: SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Twilio: SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Mailchimp: TEST_MAILCHIMP_FAKE_KEY_123456-us1 Heroku: 12345678-1234-1234-1234-1234567890ab NPM: npm_abcdefghijklmnopqrstuvwxyz1234567890 PyPI: pypi-abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz Docker: dckr_pat_abcdefghijklmnopqrstuvwxyz1234567890 Supabase: eyJ0ZXN0IjoiZmFrZV9zdXBhYmFzZV9qd3QifQ.eyJ0ZXN0IjoiZmFrZV9wYXlsb2FkX25vdF9yZWFsX3N1cGFiYXNlX2tleSJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Firebase: AIzaSyB-C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4 Private Key: -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n-----END RSA PRIVATE KEY----- Password: password=MySecret123! Email: user@example.com Phone: 07911123456 NI: AB123456C SSN: 234-56-7890 Card: 4532015112830366 IBAN: GB82WEST12345698765432"
   }
 }
