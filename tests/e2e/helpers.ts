@@ -173,7 +173,16 @@ export async function getModalFindings(
       const badgeEl = item.querySelector('.confidence-badge');
 
       if (typeEl && valueEl) {
-        const label = typeEl.textContent?.trim() || '';
+        // Extract label text excluding the confidence badge
+        // The badge is a child span of finding-type, so textContent includes both
+        // Solution: clone element, remove badge, then extract textContent
+        const typeElClone = typeEl.cloneNode(true) as HTMLElement;
+        const badgeClone = typeElClone.querySelector('.confidence-badge');
+        if (badgeClone) {
+          badgeClone.remove();
+        }
+        const label = typeElClone.textContent?.trim() || '';
+        
         const maskedValue = valueEl.textContent?.trim() || '';
         const confidence = badgeEl?.textContent?.trim() || '';
 
