@@ -82,6 +82,14 @@ AI Leak Checker is a browser extension that prevents accidental data leaks to AI
 | FR-CFG-004 | Strict mode toggle | P1 | Block (no override) vs Warn (allow override) |
 | FR-CFG-005 | Remote selector updates | P2 | Fetch selector config from CDN (opt-in) |
 
+### 2.6 Testing Requirements (FR-TEST)
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|----|-------------|----------|---------------------|
+| FR-TEST-001 | Comprehensive multi-detection test coverage | P0 | Unit and E2E tests verify all 25 detector types work together correctly |
+| FR-TEST-002 | Modal UI verification for multiple findings | P0 | E2E tests verify modal displays multiple findings correctly (formatting, scrolling, display) |
+| FR-TEST-003 | Multi-finding button behavior tests | P0 | E2E tests verify "Send Anyway" and "Mask & Continue" work correctly with multiple findings |
+
 ---
 
 ## 3. Non-Functional Requirements

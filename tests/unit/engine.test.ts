@@ -532,4 +532,5 @@ describe('integration scenarios', () => {
       expect(result.findings.some(f => f.type === DetectorType.EMAIL)).toBe(true);
     });
   });
+
 });

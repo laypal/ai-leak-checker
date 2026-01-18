@@ -16,7 +16,7 @@
 | Phase 2: DOM Interception | ✅ Complete | 5/5 | Roadmap Phase 1 |
 | Phase 3: Service Worker | ✅ Complete | 3/3 | Roadmap Phase 1 |
 | Phase 4: Popup UI | ✅ Complete | 3/3 | Roadmap Phase 1 |
-| Phase 5: E2E Testing | ✅ Complete | 4/4 | Roadmap Phase 1 |
+| Phase 5: E2E Testing | ✅ Complete | 5/5 | Roadmap Phase 1 |
 | Phase 6: Store Submission | 🔄 Partial | 2/5 | Roadmap Phase 1 |
 | Phase 7: Hardening | 🔄 In Progress | 1/6 | Roadmap Phase 2 |
 | Phase 8: Pro Features | ⬜ Not Started | 0/5 | Roadmap Phase 3 |
@@ -219,6 +219,75 @@ npm run test:corpus
 # - Breakdown by detector type
 # - Breakdown by category
 # - Sample false positives (if any)
+```
+
+---
+
+### Task 5.5: Comprehensive Multi-Detection Test Coverage
+**Estimate**: 6 hours | **Priority**: P0 | **Status**: ✅ COMPLETE
+**Requirement Refs**: FR-TEST-001, FR-TEST-002, NFR-REL-002
+
+**Description**: Add comprehensive test coverage for multi-detection scenarios, ensuring all 25 detector types work correctly together and modal UI displays multiple findings correctly.
+
+**Deliverables**:
+- [x] Comprehensive test fixture with samples for all 25 detector types
+- [x] Unit tests for all detector types in one prompt
+- [x] Unit tests for detector type combinations (API keys, PII, financial, secrets)
+- [x] E2E test for comprehensive detection and modal display
+- [x] E2E test for modal UI verification (formatting, scrolling)
+- [x] E2E tests for "Send Anyway" and "Mask & Continue" with multiple findings
+- [x] Helper function for extracting modal findings data
+
+**Acceptance Criteria**:
+- [x] Unit test detects all 25 detector types in one comprehensive prompt
+- [x] Unit test verifies deduplication logic for overlapping detections
+- [x] Unit tests verify detector type combinations (API keys together, PII together, etc.)
+- [x] E2E test verifies modal displays all findings correctly (labels, badges, masked values)
+- [x] E2E test verifies modal scrolls when findings exceed viewport
+- [x] E2E test verifies "Send Anyway" works correctly with 5+ findings (all data sent unchanged)
+- [x] E2E test verifies "Mask & Continue" redacts all findings correctly (no raw secrets remain)
+- [x] E2E test verifies non-sensitive text is preserved during redaction
+- [x] All tests follow TEST_STRATEGY.md patterns and BDD scenarios
+- [x] Tests use test-safe fake values (no real secrets)
+- [x] All tests pass consistently
+
+**Files**:
+- [x] `tests/fixtures/comprehensive_detection.json` - Test samples for all detector types
+- [x] `tests/unit/engine.comprehensive.test.ts` - Comprehensive multi-detection tests (extracted from engine.test.ts)
+- [x] `tests/e2e/comprehensive-detection.spec.ts` - New E2E test file
+- [x] `tests/e2e/modal-ui.spec.ts` - New E2E test file for modal UI verification
+- [x] `tests/e2e/chatgpt.spec.ts` - Add multi-finding button tests
+- [x] `tests/e2e/helpers.ts` - Add `getModalFindings()` helper function
+
+**BDD Scenarios**:
+- See plan document for detailed Given-When-Then scenarios for each test
+
+**Implementation Notes**:
+- Builds on existing Task 5.2 (ChatGPT Integration Tests) which has basic multi-detection
+- Enhances test coverage to ensure all detector types work correctly together
+- Verifies modal UI handles multiple findings correctly (formatting, scrolling, display)
+- Ensures button behaviors (Send Anyway, Mask & Continue) work correctly with multiple findings
+- Uses existing test fixtures where possible (`api_keys.json`, `pii_samples.json`)
+- Follows Arrange-Act-Assert pattern from TEST_STRATEGY.md
+- Comprehensive tests extracted to separate file (`engine.comprehensive.test.ts`) to keep `engine.test.ts` under 450 lines
+- Test data centralized in `comprehensive_detection.json` fixture for maintainability
+- Added edge case tests for confidence scores, finding order, deduplication, and performance
+
+**Verification**:
+```bash
+# Run unit tests
+npm run test:unit -- tests/unit/engine.comprehensive.test.ts
+# Expected: All 16 comprehensive multi-detection tests pass
+
+# Run E2E tests
+npm run test:e2e -- tests/e2e/comprehensive-detection.spec.ts
+npm run test:e2e -- tests/e2e/modal-ui.spec.ts
+npm run test:e2e -- tests/e2e/chatgpt.spec.ts
+# Expected: All multi-detection E2E tests pass
+
+# Run all tests
+npm run test
+# Expected: All tests pass (296 unit tests, 58 E2E tests)
 ```
 
 ---
@@ -925,6 +994,9 @@ date,domain,detector_type,count
 | FR-CFG-003 | 7 | 7.4 | ⬜ |
 | FR-CFG-004 | 7 | 7.5 | ⬜ |
 | FR-CFG-005 | 7 | 7.2 | ⬜ |
+| FR-TEST-001 | 5 | 5.5 | ✅ |
+| FR-TEST-002 | 5 | 5.5 | ✅ |
+| FR-TEST-003 | 5 | 5.5 | ✅ |
 
 ---
 

@@ -146,3 +146,45 @@ export async function clickModalButton(
     button.click();
   }, buttonClass);
 }
+
+/**
+ * Extract all findings from modal shadow DOM.
+ * Returns structured data for assertions.
+ */
+export async function getModalFindings(
+  page: Page
+): Promise<Array<{ type: string; label: string; confidence: string; maskedValue: string }>> {
+  return await page.evaluate(() => {
+    const modal = document.querySelector('#ai-leak-checker-modal');
+    if (!modal) return [];
+
+    const shadowRoot = (modal as HTMLElement).shadowRoot;
+    if (!shadowRoot) return [];
+
+    const findingsList = shadowRoot.querySelector('.findings-list');
+    if (!findingsList) return [];
+
+    const items = findingsList.querySelectorAll('li.finding-item');
+    const findings: Array<{ type: string; label: string; confidence: string; maskedValue: string }> = [];
+
+    items.forEach((item) => {
+      const typeEl = item.querySelector('.finding-type');
+      const valueEl = item.querySelector('.finding-value');
+      const badgeEl = item.querySelector('.confidence-badge');
+
+      if (typeEl && valueEl) {
+        const label = typeEl.textContent?.trim() || '';
+        const maskedValue = valueEl.textContent?.trim() || '';
+        const confidence = badgeEl?.textContent?.trim() || '';
+
+        // Extract type from label (e.g., "OpenAI API key" -> "api_key_openai")
+        // This is a simplified extraction - in practice, we might need a mapping
+        const type = label.toLowerCase().replace(/\s+/g, '_');
+
+        findings.push({ type, label, confidence, maskedValue });
+      }
+    });
+
+    return findings;
+  });
+}
