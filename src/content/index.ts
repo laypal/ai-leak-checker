@@ -258,7 +258,11 @@ function handleKeyDown(event: KeyboardEvent): void {
 
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
   // Only applies to Enter key - other keys reset the flag above
-  if (isProgrammaticSubmit && event.key === 'Enter') {
+  // However, if the event is marked as synthesized (from triggerSubmit fallback),
+  // we should skip scanning but allow the event to proceed to trigger submission
+  const isSynthesizedEvent = (event as KeyboardEvent & { __aiLeakCheckerSynthesized?: boolean }).__aiLeakCheckerSynthesized === true;
+  
+  if (isProgrammaticSubmit && event.key === 'Enter' && !isSynthesizedEvent) {
     return;
   }
 
@@ -269,6 +273,14 @@ function handleKeyDown(event: KeyboardEvent): void {
 
   const target = event.target;
   if (!target || !(target instanceof HTMLElement)) return;
+  
+  // Skip scanning for synthesized events (from triggerSubmit fallback)
+  // These events are dispatched after user action (Mask & Continue or Send Anyway),
+  // so we trust the user's decision and just trigger submission
+  if (isSynthesizedEvent) {
+    return; // Allow event to proceed without scanning
+  }
+  
   const text = getInputText(target);
 
   if (text && shouldScan(text)) {
@@ -537,10 +549,9 @@ function triggerSubmit(): void {
     }
 
     // Fallback: simulate Enter key
-    // Reset flag BEFORE dispatching so the synthesized event can be processed
-    // The flag was set to prevent re-triggering modal, but we need the synthesized
-    // event to trigger normal submission flow (text is already redacted or modal dismissed)
-    isProgrammaticSubmit = false;
+    // Mark the event as synthesized so handleKeyDown can skip scanning
+    // but still allow the event to proceed and trigger submission
+    // This prevents infinite loops when "Send Anyway" is clicked (text still has sensitive data)
     for (const selector of siteConfig.inputSelectors) {
       const input = document.querySelector(selector);
       if (input && input instanceof HTMLElement) {
@@ -551,6 +562,8 @@ function triggerSubmit(): void {
           which: 13,
           bubbles: true,
         });
+        // Mark as synthesized event - handleKeyDown will skip scanning but allow event to proceed
+        (enterEvent as KeyboardEvent & { __aiLeakCheckerSynthesized?: boolean }).__aiLeakCheckerSynthesized = true;
         input.dispatchEvent(enterEvent);
         // Reset flag after sufficient delay to allow async event processing to complete
         resetFlag();
