@@ -62,7 +62,7 @@ export function createTestPageHTML(hostname: string = 'chat.openai.com'): string
     }
   </style>
 </head>
-<body>
+<body data-ai-leak-checker-test="true">
   <h1>AI Chat Test Page</h1>
   <form id="chat-form">
     <textarea
@@ -75,6 +75,39 @@ export function createTestPageHTML(hostname: string = 'chat.openai.com'): string
 </body>
 </html>
   `;
+}
+
+/**
+ * Set up a page with test HTML using route interception.
+ * This ensures the URL matches manifest content script patterns,
+ * allowing the extension to inject content scripts.
+ * 
+ * @param page Playwright page instance
+ * @param hostname Hostname to use for the URL (must match manifest pattern)
+ * @param html HTML content to serve
+ */
+export async function setupTestPage(
+  page: Page,
+  hostname: string = 'chat.openai.com',
+  html?: string
+): Promise<void> {
+  const testHTML = html || createTestPageHTML(hostname);
+  
+  // Intercept requests to matching URL and serve test HTML
+  // This ensures the URL matches the manifest pattern so content scripts inject
+  await page.route(`https://${hostname}/**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: testHTML,
+    });
+  });
+  
+  // Navigate to a URL that matches the manifest pattern
+  // The route interceptor will serve our test HTML
+  await page.goto(`https://${hostname}/test`);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(500);
 }
 
 /**
@@ -127,22 +160,34 @@ export async function isModalVisible(page: Page): Promise<boolean> {
 
 /**
  * Click modal button by class name.
+ * Uses test-only API exposed by modal (only available in test environments).
  */
 export async function clickModalButton(
   page: Page,
   buttonClass: 'cancel-btn' | 'redact-btn' | 'send-btn'
 ): Promise<void> {
-  // Modal buttons are in shadow DOM, so we need to use evaluate
   await page.evaluate((className) => {
-    const modal = document.querySelector('#ai-leak-checker-modal');
-    if (!modal) throw new Error('Modal not found');
-    
-    const shadowRoot = (modal as HTMLElement).shadowRoot;
-    if (!shadowRoot) throw new Error('Shadow root not found');
-    
-    const button = shadowRoot.querySelector(`.${className}`) as HTMLButtonElement;
-    if (!button) throw new Error(`Button ${className} not found`);
-    
-    button.click();
+    const testAPI = (window as unknown as { __aiLeakCheckerTestAPI?: { clickButton: (className: string) => void } }).__aiLeakCheckerTestAPI;
+    if (!testAPI) {
+      throw new Error('Test API not found - modal may not be initialized or not in test environment');
+    }
+    testAPI.clickButton(className as 'cancel-btn' | 'redact-btn' | 'send-btn');
   }, buttonClass);
+}
+
+/**
+ * Extract all findings from modal.
+ * Uses test-only API exposed by modal (only available in test environments).
+ * Returns structured data for assertions.
+ */
+export async function getModalFindings(
+  page: Page
+): Promise<Array<{ type: string; label: string; confidence: string; maskedValue: string }>> {
+  return await page.evaluate(() => {
+    const testAPI = (window as unknown as { __aiLeakCheckerTestAPI?: { getFindings: () => Array<{ type: string; label: string; confidence: string; maskedValue: string }> } }).__aiLeakCheckerTestAPI;
+    if (!testAPI) {
+      return [];
+    }
+    return testAPI.getFindings();
+  });
 }

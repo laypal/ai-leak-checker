@@ -7,18 +7,14 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { createTestPageHTML, waitForModal, isModalVisible, clickModalButton } from './helpers';
+import { setupTestPage, waitForModal, isModalVisible, clickModalButton } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 
 test.describe('ChatGPT Integration', () => {
   test.beforeEach(async ({ page }) => {
-    // Create a mock ChatGPT-like page
-    const html = createTestPageHTML('chat.openai.com');
-    await page.setContent(html);
-    
-    // Wait for page to be ready
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    // Use route interception to serve test HTML on matching URL
+    // This ensures content scripts inject (URL must match manifest pattern)
+    await setupTestPage(page, 'chat.openai.com');
   });
 
   test('warns on API key paste', async ({ page, context }) => {
@@ -254,6 +250,68 @@ email is john.doe@example.com, and card is 4532015112830366.`;
     }
     
     // Verify textarea is accessible
+    await expect(textarea).toBeVisible();
+  });
+
+  test('send anyway with multiple findings sends all data unchanged', async ({ page, context }) => {
+    const textarea = page.locator('#prompt-textarea');
+    const text = `API Key: sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI
+Email: user@example.com
+Card: 4532015112830366
+Phone: 07911123456
+NI: AB123456C`;
+    
+    await textarea.fill(text);
+    await textarea.press('Enter');
+    await page.waitForTimeout(1000);
+    
+    const helper = new ExtensionHelper(context);
+    const isLoaded = await helper.isLoaded();
+    
+    if (isLoaded) {
+      const modalVisible = await isModalVisible(page).catch(() => false);
+      
+      if (modalVisible) {
+        const originalValue = await textarea.inputValue();
+        await clickModalButton(page, 'send-btn').catch(() => {});
+        await page.waitForTimeout(500);
+        
+        const currentValue = await textarea.inputValue();
+        expect(currentValue).toBe(originalValue);
+      }
+    }
+    
+    await expect(textarea).toBeVisible();
+  });
+
+  test('mask & continue with multiple findings redacts all correctly', async ({ page, context }) => {
+    const textarea = page.locator('#prompt-textarea');
+    const text = `API Key: sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI
+Email: user@example.com
+Card: 4532015112830366`;
+    
+    await textarea.fill(text);
+    await textarea.press('Enter');
+    await page.waitForTimeout(1000);
+    
+    const helper = new ExtensionHelper(context);
+    const isLoaded = await helper.isLoaded();
+    
+    if (isLoaded) {
+      const modalVisible = await isModalVisible(page).catch(() => false);
+      
+      if (modalVisible) {
+        await clickModalButton(page, 'redact-btn').catch(() => {});
+        await page.waitForTimeout(500);
+        
+        const currentValue = await textarea.inputValue();
+        expect(currentValue).toContain('[REDACTED');
+        expect(currentValue).not.toContain('sk-proj-');
+        expect(currentValue).not.toContain('user@example.com');
+        expect(currentValue).not.toContain('4532015112830366');
+      }
+    }
+    
     await expect(textarea).toBeVisible();
   });
 });

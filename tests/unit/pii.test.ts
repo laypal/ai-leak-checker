@@ -303,12 +303,19 @@ describe('scanForUKNationalInsurance', () => {
 
   describe('test/example filtering', () => {
     it('filters known example NI numbers', () => {
-      const examples = ['QQ123456A', 'AB123456C', 'AA000000A'];
+      // Only filter obvious placeholders and HMRC examples
+      const examples = ['QQ123456A', 'AA000000A'];
       
       for (const example of examples) {
         const findings = scanForUKNationalInsurance(example);
         expect(findings).toHaveLength(0);
       }
+      
+      // AB123456C is a valid test sample format and should be detected
+      const testSample = 'AB123456C';
+      const findings = scanForUKNationalInsurance(testSample);
+      expect(findings).toHaveLength(1);
+      expect(findings[0]?.type).toBe(DetectorType.UK_NI_NUMBER);
     });
   });
 });

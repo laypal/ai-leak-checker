@@ -1,0 +1,47 @@
+﻿{
+  "$schema": "./fixtures.schema.json",
+  "description": "Comprehensive test samples for all 25 detector types",
+  "version": "1.0.0",
+  "samples": {
+    "api_keys": {
+      "api_key_openai": "sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI",
+      "api_key_aws": "AKIAIOSFODNN7EXAMPLE",
+      "api_key_github": "ghp_abcdefghijklmnopqrstuvwxyz1234567890",
+      "api_key_stripe": "sk_live_TEST_FAKE_KEY_FOR_TESTING_ONLY_12345",
+      "api_key_slack": "xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx",
+      "api_key_google": "AIzaSyA1234567890abcdefghijklmnopqrstuv",
+      "api_key_anthropic": "sk-ant-api03-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI1234567890abcdefghijklmnopqrstuvwxyz",
+      "api_key_sendgrid": "SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "api_key_twilio": "SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "api_key_mailchimp": "TEST_MAILCHIMP_FAKE_KEY_123456-us1",
+      "api_key_heroku": "12345678-1234-1234-1234-1234567890ab",
+      "api_key_npm": "npm_abcdefghijklmnopqrstuvwxyz1234567890",
+      "api_key_pypi": "pypi-abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz",
+      "api_key_docker": "dckr_pat_abcdefghijklmnopqrstuvwxyz1234567890",
+      "api_key_supabase": "eyJ0ZXN0IjoiZmFrZV9zdXBhYmFzZV9qd3QifQ.eyJ0ZXN0IjoiZmFrZV9wYXlsb2FkX25vdF9yZWFsX3N1cGFiYXNlX2tleSJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "api_key_firebase": "AIzaSyB-C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4",
+      "api_key_generic": "xK9mP2qR5tY8wZ3bN6cF0gH7jK1lM4nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI"
+    },
+    "secrets": {
+      "private_key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n-----END RSA PRIVATE KEY-----",
+      "password": "password=MySecret123!"
+    },
+    "financial": {
+      "credit_card": "4532015112830366",
+      "iban": "GB82WEST12345698765432"
+    },
+    "pii": {
+      "email": "user@example.com",
+      "phone_uk": "07911123456",
+      "uk_ni_number": "AB123456C",
+      "us_ssn": "234-56-7890"
+    },
+    "generic": {
+      "high_entropy": "xK9mP2qR5tY8wZ3bN6cF0gH7jK1lM4nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI9jK2lM5nO8pQ1rS4tU7vW0xY3zA6bC9dE2fG5hI8jK1lM4nO7pQ0rS3tU6vW9xY2zA5bC8dE1fG4hI7jK0lM3nO6pQ9rS2tU5vW8xY1zA4bC7dE0fG3hI6jK9lM2nO5pQ8rS1tU4vW7xY0zA3bC6dE9fG2hI5jK8lM1nO4pQ7rS0tU3vW6xY9zA2bC5dE8fG1hI4jK7lM0nO3pQ6rS9tU2vW5xY8zA1bC4dE7fG0hI3jK6lM9nO2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hI2jK5lM8nO1pQ4rS7tU0vW3xY6zA9bC2dE5fG8hI1jK4lM7nO0pQ3rS6tU9vW2xY5zA8bC1dE4fG7hI0jK3lM6nO9pQ2rS5tU8vW1xY4zA7bC0dE3fG6hI"
+    }
+  },
+  "comprehensive_prompt": {
+    "description": "A single prompt containing all 25 detector types for comprehensive testing",
+    "text": "OpenAI: sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI AWS: AKIAIOSFODNN7EXAMPLE GitHub: ghp_abcdefghijklmnopqrstuvwxyz1234567890 Stripe: sk_live_TEST_FAKE_KEY_FOR_TESTING_ONLY_12345 Slack: xoxb-123456789012-1234567890123-abcdefghijklmnopqrstuvwx Google: AIzaSyA1234567890abcdefghijklmnopqrstuv Anthropic: sk-ant-api03-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI1234567890abcdefghijklmnopqrstuvwxyz SendGrid: SG.xxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Twilio: SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Mailchimp: TEST_MAILCHIMP_FAKE_KEY_123456-us1 Heroku: 12345678-1234-1234-1234-1234567890ab NPM: npm_abcdefghijklmnopqrstuvwxyz1234567890 PyPI: pypi-abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz Docker: dckr_pat_abcdefghijklmnopqrstuvwxyz1234567890 Supabase: eyJ0ZXN0IjoiZmFrZV9zdXBhYmFzZV9qd3QifQ.eyJ0ZXN0IjoiZmFrZV9wYXlsb2FkX25vdF9yZWFsX3N1cGFiYXNlX2tleSJ9.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Firebase: AIzaSyB-C1D2E3F4G5H6I7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X2Y3Z4 Private Key: -----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEAwJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n-----END RSA PRIVATE KEY----- Password: password=MySecret123! Email: user@example.com Phone: 07911123456 NI: AB123456C SSN: 234-56-7890 Card: 4532015112830366 IBAN: GB82WEST12345698765432"
+  }
+}

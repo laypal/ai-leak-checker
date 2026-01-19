@@ -257,9 +257,9 @@ This extension complies with:
 
 ## Contact
 
-**Security Issues**: security@[your-domain].com  
-**General Inquiries**: support@[your-domain].com  
-**Privacy Questions**: privacy@[your-domain].com
+**Security Issues**: aileakchecker@proton.me  
+**General Inquiries**: aileakchecker@proton.me  
+**Privacy Questions**: aileakchecker@proton.me
 
 ---
 

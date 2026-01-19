@@ -53,7 +53,7 @@ function createClaudeTestPageHTML(): string {
     }
   </style>
 </head>
-<body>
+<body data-ai-leak-checker-test="true">
   <h1>Claude Test Page</h1>
   <div class="composer">
     <div 

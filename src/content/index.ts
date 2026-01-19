@@ -39,6 +39,9 @@ let observerRetryInterval: ReturnType<typeof setInterval> | null = null;
 /** Track attached listeners to avoid duplicates */
 const attachedElements = new WeakSet<Element>();
 
+/** Flag to temporarily disable scanning during programmatic submission */
+let isProgrammaticSubmit = false;
+
 /**
  * Check if the extension context is still valid.
  * Returns false if the extension has been reloaded.
@@ -247,6 +250,22 @@ function attachSubmitListener(element: HTMLElement): void {
  * Handle keydown events (primarily Enter key).
  */
 function handleKeyDown(event: KeyboardEvent): void {
+  // If user starts typing after programmatic submit, reset flag immediately
+  // This prevents the flag from blocking legitimate user input after submission
+  if (isProgrammaticSubmit && event.key !== 'Enter') {
+    isProgrammaticSubmit = false;
+  }
+
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  // Only applies to Enter key - other keys reset the flag above
+  // However, if the event is marked as synthesized (from triggerSubmit fallback),
+  // we should skip scanning but allow the event to proceed to trigger submission
+  const isSynthesizedEvent = (event as KeyboardEvent & { __aiLeakCheckerSynthesized?: boolean }).__aiLeakCheckerSynthesized === true;
+  
+  if (isProgrammaticSubmit && event.key === 'Enter' && !isSynthesizedEvent) {
+    return;
+  }
+
   // Only intercept Enter without Shift (Shift+Enter is newline)
   if (event.key !== 'Enter' || event.shiftKey) {
     return;
@@ -254,6 +273,14 @@ function handleKeyDown(event: KeyboardEvent): void {
 
   const target = event.target;
   if (!target || !(target instanceof HTMLElement)) return;
+  
+  // Skip scanning for synthesized events (from triggerSubmit fallback)
+  // These events are dispatched after user action (Mask & Continue or Send Anyway),
+  // so we trust the user's decision and just trigger submission
+  if (isSynthesizedEvent) {
+    return; // Allow event to proceed without scanning
+  }
+  
   const text = getInputText(target);
 
   if (text && shouldScan(text)) {
@@ -270,6 +297,12 @@ function handleKeyDown(event: KeyboardEvent): void {
  * Handle paste events.
  */
 function handlePaste(event: ClipboardEvent): void {
+  // If user pastes after programmatic submit, reset flag immediately
+  // This prevents the flag from blocking legitimate user input after submission
+  if (isProgrammaticSubmit) {
+    isProgrammaticSubmit = false;
+  }
+
   const pastedText = event.clipboardData?.getData('text');
   if (!pastedText) return;
 
@@ -287,6 +320,11 @@ function handlePaste(event: ClipboardEvent): void {
  * Handle submit button click.
  */
 function handleSubmitClick(event: MouseEvent): void {
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  if (isProgrammaticSubmit) {
+    return;
+  }
+
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
@@ -303,6 +341,11 @@ function handleSubmitClick(event: MouseEvent): void {
  * Handle form submit.
  */
 function handleFormSubmit(event: SubmitEvent): void {
+  // Skip if this is a programmatic submit (to avoid re-triggering modal)
+  if (isProgrammaticSubmit) {
+    return;
+  }
+
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
@@ -476,33 +519,65 @@ function setInputText(element: HTMLElement, text: string): void {
 
 /**
  * Trigger submit action.
+ * Sets a flag to prevent re-triggering the modal during programmatic submission.
  */
 function triggerSubmit(): void {
   if (!siteConfig) return;
 
-  // Find and click submit button
-  for (const selector of siteConfig.submitSelectors) {
-    const button = document.querySelector(selector);
-    if (button instanceof HTMLButtonElement && !button.disabled) {
-      button.click();
-      return;
-    }
-  }
+  // Set flag to prevent our listeners from intercepting this submission
+  isProgrammaticSubmit = true;
 
-  // Fallback: simulate Enter key
-  for (const selector of siteConfig.inputSelectors) {
-    const input = document.querySelector(selector);
-    if (input && input instanceof HTMLElement) {
-      const enterEvent = new KeyboardEvent('keydown', {
-        key: 'Enter',
-        code: 'Enter',
-        keyCode: 13,
-        which: 13,
-        bubbles: true,
-      });
-      input.dispatchEvent(enterEvent);
-      return;
+  // Helper to reset flag after sufficient delay to allow async submission to complete
+  // Use 500ms delay to ensure async click handlers and form submissions complete
+  // before we allow normal event interception to resume
+  const resetFlag = (): void => {
+    setTimeout(() => {
+      isProgrammaticSubmit = false;
+    }, 500);
+  };
+
+  try {
+    // Find and click submit button
+    for (const selector of siteConfig.submitSelectors) {
+      const button = document.querySelector(selector);
+      if (button instanceof HTMLButtonElement && !button.disabled) {
+        button.click();
+        // Reset flag after sufficient delay to allow async submission to complete
+        resetFlag();
+        return;
+      }
     }
+
+    // Fallback: simulate Enter key
+    // Mark the event as synthesized so handleKeyDown can skip scanning
+    // but still allow the event to proceed and trigger submission
+    // This prevents infinite loops when "Send Anyway" is clicked (text still has sensitive data)
+    for (const selector of siteConfig.inputSelectors) {
+      const input = document.querySelector(selector);
+      if (input && input instanceof HTMLElement) {
+        const enterEvent = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+        });
+        // Mark as synthesized event - handleKeyDown will skip scanning but allow event to proceed
+        (enterEvent as KeyboardEvent & { __aiLeakCheckerSynthesized?: boolean }).__aiLeakCheckerSynthesized = true;
+        input.dispatchEvent(enterEvent);
+        // Reset flag after sufficient delay to allow async event processing to complete
+        resetFlag();
+        return;
+      }
+    }
+
+    // No submit method found - reset flag immediately (synchronous fallback)
+    // This is safe because no submission occurred, so no async event processing needed
+    isProgrammaticSubmit = false;
+  } catch (error) {
+    // Reset flag on error - use immediate reset to ensure cleanup
+    isProgrammaticSubmit = false;
+    throw error;
   }
 }
 

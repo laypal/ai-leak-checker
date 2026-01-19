@@ -19,11 +19,14 @@ playwright-report/
 *.swp
 *.swo
 *~
-.cursor/
+# Cursor IDE files - ignore everything in .cursor/ except rules (which are critical workspace rules)
+# Note: Order matters - negation patterns must come after the ignore pattern
+.cursor/*
+!.cursor/
+!.cursor/rules/
+!.cursor/rules/*.mdc
 .cursorrules
-# Claude/Cursor files (case variations)
-[Cc]laude.md
-CLAUDE.md
+# Note: CLAUDE.md is intentionally tracked - it's a critical context document for AI agents
 
 # OS
 .DS_Store
