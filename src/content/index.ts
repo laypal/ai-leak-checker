@@ -537,6 +537,10 @@ function triggerSubmit(): void {
     }
 
     // Fallback: simulate Enter key
+    // Reset flag BEFORE dispatching so the synthesized event can be processed
+    // The flag was set to prevent re-triggering modal, but we need the synthesized
+    // event to trigger normal submission flow (text is already redacted or modal dismissed)
+    isProgrammaticSubmit = false;
     for (const selector of siteConfig.inputSelectors) {
       const input = document.querySelector(selector);
       if (input && input instanceof HTMLElement) {
