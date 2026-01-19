@@ -256,9 +256,9 @@ function isExampleNINumber(ni: string): boolean {
   const normalized = ni.replace(/\s/g, '').toUpperCase();
 
   // Common example NI numbers used in documentation
+  // Note: AB123456C is a valid test sample format, so we only filter obvious placeholders
   const examples = [
     'QQ123456A', // HMRC example
-    'AB123456C', // Common placeholder
     'AA000000A', // Obvious placeholder
   ];
 
