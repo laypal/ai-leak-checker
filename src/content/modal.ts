@@ -444,9 +444,11 @@ export class WarningModal {
    * 
    * Security: Uses multiple indicators to detect Playwright automation environment.
    * Requires navigator.webdriver to be strictly true (not just truthy) AND
-   * either about:blank URL (from page.setContent) or non-localhost domain.
-   * This prevents malicious websites from spoofing test environment detection
-   * by hosting on localhost or faking webdriver property.
+   * either about:blank URL (from page.setContent) OR explicit test marker in HTML.
+   * 
+   * The test marker (data-ai-leak-checker-test="true") must be present in the HTML,
+   * which prevents attackers using Playwright on real websites from accessing the API.
+   * Real websites won't have this marker, so even with webdriver=true, the API won't be exposed.
    */
   private exposeTestAPI(): void {
     if (typeof window === 'undefined') {
@@ -454,18 +456,22 @@ export class WarningModal {
     }
 
     // Security: Require strict webdriver check (must be exactly true, not just truthy)
-    // AND require either about:blank (Playwright page.setContent) OR non-localhost
-    // This prevents spoofing by localhost sites or faking webdriver property
     const hasWebdriver = window.navigator?.webdriver === true; // Strict check
+    
+    // Check for about:blank (Playwright page.setContent scenario)
     const isAboutBlank = window.location.href === 'about:blank' || 
                         window.location.href.startsWith('about:');
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname.startsWith('127.');
     
-    // Only expose if webdriver is strictly true AND (about:blank OR non-localhost)
-    // This ensures we're in Playwright automation, not a malicious localhost site
-    const isTestEnv = hasWebdriver && (isAboutBlank || !isLocalhost);
+    // Check for explicit test marker in HTML (added by E2E test helpers)
+    // This marker is only present in test HTML, not on real websites
+    const hasTestMarker = document.body?.dataset?.aiLeakCheckerTest === 'true' ||
+                         document.documentElement?.dataset?.aiLeakCheckerTest === 'true';
+    
+    // Only expose if webdriver is strictly true AND (about:blank OR test marker present)
+    // This ensures we're in Playwright automation with test HTML, not a real website
+    // Even if an attacker uses Playwright to visit real sites, they can't access the API
+    // because real websites won't have the test marker
+    const isTestEnv = hasWebdriver && (isAboutBlank || hasTestMarker);
 
     if (!isTestEnv) {
       return;

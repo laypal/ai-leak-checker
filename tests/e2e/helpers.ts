@@ -62,7 +62,7 @@ export function createTestPageHTML(hostname: string = 'chat.openai.com'): string
     }
   </style>
 </head>
-<body>
+<body data-ai-leak-checker-test="true">
   <h1>AI Chat Test Page</h1>
   <form id="chat-form">
     <textarea
