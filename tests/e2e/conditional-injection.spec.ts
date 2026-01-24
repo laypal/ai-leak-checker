@@ -9,9 +9,12 @@ import { DEFAULT_SETTINGS } from '@/shared/types';
 
 /**
  * Test timeout constant: fallback delay + buffer for health check.
- * Uses the system's fallbackDelayMs (default 32000ms) plus a small buffer.
+ * Uses test override if available (TEST_FALLBACK_DELAY_MS env var) or system default.
  */
-const FALLBACK_DELAY_WITH_BUFFER_MS = DEFAULT_SETTINGS.fallbackDelayMs + 2000;
+const TEST_FALLBACK_DELAY_MS = process.env.TEST_FALLBACK_DELAY_MS
+  ? Number(process.env.TEST_FALLBACK_DELAY_MS)
+  : DEFAULT_SETTINGS.fallbackDelayMs;
+const FALLBACK_DELAY_WITH_BUFFER_MS = TEST_FALLBACK_DELAY_MS + 2000;
 
 /**
  * Create a mock AI page with optional selectors.

@@ -31,10 +31,14 @@ const mockSiteConfig: SiteConfig = {
 
 /**
  * Simulate scheduleConditionalFallback function logic for testing.
+ * NOTE: This is a test-only simulation. The real implementation in src/content/index.ts
+ * accepts delayMs as a parameter and uses scoped handlers. This test version
+ * simulates the behavioral logic for unit testing purposes.
  */
 function scheduleConditionalFallback(
   siteConfig: SiteConfig | null,
-  checkSelectorHealth: (config: SiteConfig) => SelectorHealthResult
+  checkSelectorHealth: (config: SiteConfig) => SelectorHealthResult,
+  delayMs: number = FALLBACK_HEALTH_CHECK_DELAY_MS
 ): void {
   if (!siteConfig) return;
 
@@ -53,7 +57,7 @@ function scheduleConditionalFallback(
       // Health check failed - fail safe, skip injection
       console.error('[AI Leak Checker] Health check failed:', error);
     }
-  }, FALLBACK_HEALTH_CHECK_DELAY_MS);
+  }, delayMs);
 }
 
 describe('Conditional Fallback Injection', () => {
@@ -184,26 +188,32 @@ describe('Conditional Fallback Injection', () => {
     it('handleKeyDown should skip when fallbackActive is true', () => {
       fallbackActive = true;
       
-      // Simulate event handler check
+      // Simulate the actual guard pattern from handleKeyDown
+      // In real code: if (fallbackActive) { return; }
       const shouldProcess = !fallbackActive;
       
       expect(shouldProcess).toBe(false);
+      // This test documents the guard pattern - actual behavior is tested in E2E
     });
 
     it('handleSubmitClick should skip when fallbackActive is true', () => {
       fallbackActive = true;
       
+      // Simulate the actual guard pattern from handleSubmitClick
       const shouldProcess = !fallbackActive;
       
       expect(shouldProcess).toBe(false);
+      // This test documents the guard pattern - actual behavior is tested in E2E
     });
 
     it('handleFormSubmit should skip when fallbackActive is true', () => {
       fallbackActive = true;
       
+      // Simulate the actual guard pattern from handleFormSubmit
       const shouldProcess = !fallbackActive;
       
       expect(shouldProcess).toBe(false);
+      // This test documents the guard pattern - actual behavior is tested in E2E
     });
   });
 });

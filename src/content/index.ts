@@ -18,6 +18,7 @@ import {
   checkSelectorHealth,
   type Settings,
   DEFAULT_SETTINGS,
+  MAX_FALLBACK_DELAY_MS,
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
@@ -149,10 +150,15 @@ async function initialize(): Promise<void> {
     const result = await chrome.storage.local.get('settings');
     if (result.settings && typeof result.settings === 'object') {
       const settings = result.settings as Settings;
-      fallbackDelayMs = Math.max(
-        settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs,
-        30000  // Minimum 30s to avoid race condition
-      );
+      const rawValue = settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs;
+      // Coerce to number and validate
+      const numericValue = Number(rawValue);
+      if (!Number.isFinite(numericValue) || isNaN(numericValue)) {
+        fallbackDelayMs = DEFAULT_SETTINGS.fallbackDelayMs;
+      } else {
+      // Clamp between minimum (30000) and maximum (120000)
+      fallbackDelayMs = Math.min(Math.max(numericValue, 30000), MAX_FALLBACK_DELAY_MS);
+      }
     }
   } catch (error) {
     console.warn('[AI Leak Checker] Failed to load settings, using default delay:', error);
@@ -229,23 +235,14 @@ function scheduleConditionalFallback(delayMs: number): void {
       const health = checkSelectorHealth(siteConfig);
       
       if (!health.inputFound || !health.submitFound) {
-        console.log(
-          '[AI Leak Checker] DOM interception incomplete after %dms ' +
-          '(inputFound: %s, submitFound: %s), activating fetch/XHR fallback',
-          delayMs,
-          health.inputFound,
-          health.submitFound
-        );
-        
-        fallbackActive = true;
-        injectMainWorldScript();
-        notifyFallbackActive();
+        // Attempt injection and only mark as active if successful
+        const injected = injectMainWorldScript();
+        if (injected) {
+          fallbackActive = true;
+          notifyFallbackActive();
+        }
       } else {
-        console.log(
-          '[AI Leak Checker] DOM interception working (selector: %s), ' +
-          'fetch/XHR fallback not needed',
-          health.workingSelector
-        );
+        // DOM interception working - no fallback needed
       }
     } catch (error) {
       // Health check failed - fail safe, skip injection
@@ -686,22 +683,25 @@ function notifyPasteSensitive(result: DetectionResult): void {
 
 /**
  * Inject script into main world for fetch patching.
+ * @returns true if script element was successfully created and appended, false otherwise
  */
-function injectMainWorldScript(): void {
+function injectMainWorldScript(): boolean {
   try {
     const url = safeGetURL('injected.js');
     if (!url) {
       // Extension context invalidated - can't inject
-      return;
+      return false;
     }
 
     const script = document.createElement('script');
     script.src = url;
     script.onload = () => script.remove();
     (document.head || document.documentElement).appendChild(script);
+    return true;
   } catch (error) {
     // Extension context invalidated or other error
     console.error('[AI Leak Checker] Failed to inject main world script:', error);
+    return false;
   }
 }
 

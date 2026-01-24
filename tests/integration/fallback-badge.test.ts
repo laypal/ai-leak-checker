@@ -34,6 +34,42 @@ beforeEach(() => {
   } as any;
 });
 
+/**
+ * Helper function to simulate SET_FALLBACK_BADGE handler logic.
+ */
+async function simulateSetFallbackBadge(
+  message: ExtensionMessage,
+  sender: chrome.runtime.MessageSender
+): Promise<void> {
+  if (message.type !== MessageType.SET_FALLBACK_BADGE) {
+    return;
+  }
+
+  const payload = message.payload as { active: boolean };
+  const tabId = sender.tab?.id;
+
+  if (!tabId) {
+    return;
+  }
+
+  if (payload.active === true) {
+    await chrome.action.setBadgeText({ text: '⚠', tabId });
+    await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
+  } else if (payload.active === false) {
+    // Simulate updateBadgeForTab logic
+    const stats = await chrome.storage.local.get('stats');
+    const blocked = stats.stats?.actions?.cancelled || 0;
+
+    if (blocked > 0) {
+      const text = blocked > 99 ? '99+' : blocked.toString();
+      await chrome.action.setBadgeText({ text, tabId });
+      await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
+    } else {
+      await chrome.action.setBadgeText({ text: '', tabId });
+    }
+  }
+}
+
 describe('Fallback Badge Integration', () => {
   beforeEach(() => {
     actionMock.setBadgeText.mockClear();
@@ -54,16 +90,7 @@ describe('Fallback Badge Integration', () => {
       tab: { id: mockTabId },
     } as chrome.runtime.MessageSender;
 
-    // Simulate background script handler
-    if (message.type === MessageType.SET_FALLBACK_BADGE) {
-      const payload = message.payload as { active: boolean };
-      const tabId = sender.tab?.id;
-      
-      if (tabId && payload.active) {
-        await chrome.action.setBadgeText({ text: '⚠', tabId });
-        await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
-      }
-    }
+    await simulateSetFallbackBadge(message, sender);
 
     expect(actionMock.setBadgeText).toHaveBeenCalledWith({ text: '⚠', tabId: mockTabId });
     expect(actionMock.setBadgeBackgroundColor).toHaveBeenCalledWith({
@@ -86,25 +113,7 @@ describe('Fallback Badge Integration', () => {
       tab: { id: mockTabId },
     } as chrome.runtime.MessageSender;
 
-    // Simulate background script handler
-    if (message.type === MessageType.SET_FALLBACK_BADGE) {
-      const payload = message.payload as { active: boolean };
-      const tabId = sender.tab?.id;
-      
-      if (tabId && !payload.active) {
-        // Simulate updateBadgeForTab
-        const stats = await chrome.storage.local.get('stats');
-        const blocked = stats.stats?.actions?.cancelled || 0;
-        
-        if (blocked > 0) {
-          const text = blocked > 99 ? '99+' : blocked.toString();
-          await chrome.action.setBadgeText({ text, tabId });
-          await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
-        } else {
-          await chrome.action.setBadgeText({ text: '', tabId });
-        }
-      }
-    }
+    await simulateSetFallbackBadge(message, sender);
 
     expect(actionMock.setBadgeText).toHaveBeenCalledWith({ text: '', tabId: mockTabId });
   });
@@ -129,25 +138,7 @@ describe('Fallback Badge Integration', () => {
       tab: { id: mockTabId },
     } as chrome.runtime.MessageSender;
 
-    // Simulate background script handler (updateBadgeForTab logic)
-    if (message.type === MessageType.SET_FALLBACK_BADGE) {
-      const payload = message.payload as { active: boolean };
-      const tabId = sender.tab?.id;
-      
-      if (tabId && !payload.active) {
-        // Simulate updateBadgeForTab
-        const stats = await chrome.storage.local.get('stats');
-        const blocked = stats.stats?.actions?.cancelled || 0;
-        
-        if (blocked > 0) {
-          const text = blocked > 99 ? '99+' : blocked.toString();
-          await chrome.action.setBadgeText({ text, tabId });
-          await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
-        } else {
-          await chrome.action.setBadgeText({ text: '', tabId });
-        }
-      }
-    }
+    await simulateSetFallbackBadge(message, sender);
 
     expect(actionMock.setBadgeText).toHaveBeenCalledWith({ text: '5', tabId: mockTabId });
     expect(actionMock.setBadgeBackgroundColor).toHaveBeenCalledWith({

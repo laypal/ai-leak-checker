@@ -24,7 +24,7 @@
 - `https://chatgpt.com/*`
 - `https://claude.ai/*`
 
-**Web accessible resources** [source: public/manifest.json#L43-L52]:
+**Web-accessible resources** [source: public/manifest.json#L43-L52]:
 - `injected.js` (matches same 3 hosts)
 
 ### A.2 MVP Host Validation
@@ -47,7 +47,7 @@
 **ARCHITECTURE.md** [source: docs/architecture/ARCHITECTURE.md#L375-L377]:
 - Lists 2 hosts: `chat.openai.com`, `claude.ai` (example only, not exhaustive) ✅ **NO CONFLICT**
 
-**Summary**: Documentation is consistent. `chatgpt.com` is the only non-essential host.
+**Summary**: Documentation is consistent. Both `chat.openai.com` and `chatgpt.com` must remain until OpenAI completes their domain transition, as both are actively used during the migration period. Monitor the transition and remove `chat.openai.com` only when it is safe to do so.
 
 ---
 
@@ -92,13 +92,7 @@ All network activity is interception-only (fetch/XHR patching in main world). No
 
 ### C.1 Script Injection Analysis
 
-**Injection point** [source: src/content/index.ts#L140-L141]:
-```typescript
-// Inject main world script for fetch patching
-injectMainWorldScript();
-```
-
-**Injection function** [source: src/content/index.ts#L597-L613]:
+**Injection function** [source: src/content/index.ts#L690-L706]:
 ```typescript
 function injectMainWorldScript(): void {
   try {
@@ -116,9 +110,9 @@ function injectMainWorldScript(): void {
 }
 ```
 
-**Conditional logic**: ❌ **NONE FOUND**
+**Conditional logic**: ✅ **IMPLEMENTED**
 
-The injection is called unconditionally in `initialize()` [source: src/content/index.ts#L115-L150]. There is no check for selector failure before injection.
+The injection is called conditionally via `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255], which checks selector health after a grace period using `checkSelectorHealth()` and only calls `injectMainWorldScript()` if selectors fail. The conditional flow is implemented in `initialize()` [source: src/content/index.ts#L161-L162] and `attemptInterception()` logic via `scheduleConditionalFallback()`.
 
 ### C.2 Fallback Patching Behavior
 
@@ -128,28 +122,26 @@ The injection is called unconditionally in `initialize()` [source: src/content/i
 - Pattern: Try selectors first, fall back to patching if selectors fail
 
 **Actual behavior**:
-- DOM interception (primary) is always attempted [source: src/content/index.ts#L155-L187]
-- Fetch/XHR patching (fallback) is **always injected** [source: src/content/index.ts#L140-L141]
-- Both run simultaneously, not as a fallback chain
+- DOM interception (primary) is always attempted [source: src/content/index.ts#L176-L207]
+- Fetch/XHR patching (fallback) is **conditionally injected** via `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255]
+- Injection only occurs after grace period when `checkSelectorHealth()` indicates selectors failed
+- Conditional logic implemented in `initialize()` [source: src/content/index.ts#L161-L162] and `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255]
 
-**Gap**: The documented fallback pattern from ARCHITECTURE.md ADR-001 is not implemented. The code shows an example `attemptInterception()` function that checks selectors before injecting, but this pattern is not used in the actual `initialize()` function.
+**Implementation**: ✅ **MATCHES DOCUMENTATION**
 
-**Expected behavior** (per store requirements):
-- Fetch patching should be **disabled by default**
-- Only enabled when selectors fail
-- Check selector health after grace period, then conditionally inject
+The fallback pattern from ARCHITECTURE.md ADR-001 is implemented. `scheduleConditionalFallback()` checks selector health after the grace period (via `fallbackDelayMs` setting, default 32s) and only calls `injectMainWorldScript()` if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false.
 
 ### C.3 Store Risk Assessment
 
 | Risk Factor | Status | Evidence |
 |-------------|--------|----------|
-| Always-on main world patching | ❌ **HIGH RISK** | [source: src/content/index.ts#L140-L141] |
-| Conditional fallback logic | ❌ **MISSING** | No selector health check before injection |
-| Patching scope | ⚠️ **BROAD** | Patches `window.fetch` and `window.XMLHttpRequest` globally |
+| Always-on main world patching | ✅ **RESOLVED** | Conditional injection via `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255] |
+| Conditional fallback logic | ✅ **IMPLEMENTED** | Selector health check via `checkSelectorHealth()` before injection [source: src/content/index.ts#L229] |
+| Patching scope | ⚠️ **BROAD** | Patches `window.fetch` and `window.XMLHttpRequest` globally (only when selectors fail) |
 
-**Status**: ❌ **FAIL** - Always-on main world patching is a high store risk.
+**Status**: ✅ **PASS** - Main world patching is conditional and only enabled as fallback when DOM interception fails.
 
-**Rationale**: Chrome Web Store reviewers flag extensions that patch native APIs (fetch/XHR) in the main world without clear user benefit or opt-in. The current implementation patches these APIs on every page load, regardless of whether DOM interception is working.
+**Rationale**: Fetch/XHR patching is disabled by default and only enabled after a grace period (32s default) when selector health check indicates DOM interception is not working. This matches the documented fallback pattern and store requirements.
 
 ---
 
@@ -203,8 +195,8 @@ constructor(callbacks: WarningModalCallbacks) {
 | **B.1** | Network calls (fetch/XHR) | ✅ PASS | Interception only, no transmission |
 | **B.2** | Analytics/telemetry | ✅ PASS | None found |
 | **B.3** | Remote config | ✅ PASS | Not implemented (bundled only) |
-| **C.1** | Main world injection | ❌ **FAIL** | Always-on, not conditional |
-| **C.2** | Fallback patching logic | ❌ **FAIL** | No selector health check |
+| **C.1** | Main world injection | ✅ **PASS** | Conditional via `scheduleConditionalFallback()` |
+| **C.2** | Fallback patching logic | ✅ **PASS** | Selector health check implemented |
 | **D.1** | Shadow DOM modal | ✅ PASS | Modal uses closed shadow root |
 | **D.2** | Shadow root traversal | ✅ PASS | Not used (document.querySelector only) |
 
@@ -264,7 +256,7 @@ constructor(callbacks: WarningModalCallbacks) {
 - ChatGPT: Uses standard textarea or contenteditable elements - no Shadow DOM for inputs
 - Claude: Uses ProseMirror with contenteditable - no Shadow DOM for inputs
 
-**Reasoning**: Neither ChatGPT nor Claude currently use Shadow DOM for their input elements. Adding Shadow DOM support would significantly increase complexity (recursive traversal, multiple roots). This is a known limitation that should be documented in MVP release notes. Can be addressed in Phase 7 if platforms adopt Shadow DOM.
+**Reasoning**: Neither ChatGPT nor Claude currently use Shadow DOM for their input elements. Adding Shadow DOM support would significantly increase complexity (recursive traversal, multiple roots). This is a known limitation that should be documented in MVP release notes. This limitation can be addressed in Phase 7 if platforms adopt Shadow DOM.
 
 **Recommendation**: Document as known limitation. Add to Phase 7 backlog (Task 7.2 Selector Health Monitoring could include Shadow DOM detection). Monitor platform changes.
 
@@ -388,10 +380,10 @@ function initialize(): void {
 
 ## Summary
 
-**Audit Status**: ❌ **BLOCKER FOUND** - Main world patching must be conditional before store submission.
+**Audit Status**: ✅ **PASS** - All store blockers resolved. Main world patching is conditional.
 
-**Critical Finding**: The documented fallback pattern from ARCHITECTURE.md ADR-001 is not implemented. The extension currently patches `window.fetch` and `window.XMLHttpRequest` on every page load, regardless of whether DOM interception is working. This is a high store risk that must be fixed.
+**Critical Finding**: ✅ **RESOLVED** - The documented fallback pattern from ARCHITECTURE.md ADR-001 is now implemented. The extension conditionally patches `window.fetch` and `window.XMLHttpRequest` only after selector health check indicates DOM interception has failed, matching the documented behavior.
 
-**The only true store blocker is the always-on main world patching.** This should be fixed before Chrome Web Store submission by implementing the conditional fallback logic described in ARCHITECTURE.md ADR-001.
+**Store blocker status**: ✅ **RESOLVED** - Main world patching is now conditional and only enabled as a fallback when DOM interception fails, as required by Chrome Web Store policies.
 
 **All other findings are either acceptable for MVP (Shadow DOM limitation) or resolved (chatgpt.com domain, selector failure handling, injected script blocking).**

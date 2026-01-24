@@ -185,13 +185,19 @@ async function handleMessage(
         return { error: 'Invalid payload: payload.active must be a boolean' };
       }
       
-      if (payload.active === true) {
-        // Show warning badge for this specific tab
-        await chrome.action.setBadgeText({ text: '⚠', tabId });
-        await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
-      } else if (payload.active === false) {
-        // Clear fallback badge, restore normal badge for this tab
-        await updateBadgeForTab(tabId);
+      try {
+        if (payload.active === true) {
+          // Show warning badge for this specific tab
+          await chrome.action.setBadgeText({ text: '⚠', tabId });
+          await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
+        } else if (payload.active === false) {
+          // Clear fallback badge, restore normal badge for this tab
+          await updateBadgeForTab(tabId);
+        }
+      } catch (error) {
+        // Tab may have closed - log and continue
+        console.warn('[AI Leak Checker] Failed to update fallback badge:', error);
+        // Still return success to avoid hanging the message sender
       }
       return { success: true };
     }
@@ -375,15 +381,20 @@ async function updateBadge(): Promise<void> {
  * Used when clearing fallback badge to restore normal state.
  */
 async function updateBadgeForTab(tabId: number): Promise<void> {
-  const stats = await getStats();
-  const blocked = stats.actions.cancelled;
+  try {
+    const stats = await getStats();
+    const blocked = stats.actions.cancelled;
 
-  if (blocked > 0) {
-    const text = blocked > 99 ? '99+' : blocked.toString();
-    await chrome.action.setBadgeText({ text, tabId });
-    await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
-  } else {
-    await chrome.action.setBadgeText({ text: '', tabId });
+    if (blocked > 0) {
+      const text = blocked > 99 ? '99+' : blocked.toString();
+      await chrome.action.setBadgeText({ text, tabId });
+      await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
+    } else {
+      await chrome.action.setBadgeText({ text: '', tabId });
+    }
+  } catch (error) {
+    // Tab may have closed - log and continue
+    console.warn('[AI Leak Checker] Failed to update badge for tab:', error);
   }
 }
 

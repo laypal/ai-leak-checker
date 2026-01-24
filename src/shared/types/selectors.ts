@@ -281,12 +281,14 @@ function isButtonClickable(element: Element): boolean {
     return false;
   }
 
-  if (element.hasAttribute('disabled')) {
-    return false;
-  }
-
+  // For HTMLButtonElement, use the disabled property
   if (element instanceof HTMLButtonElement) {
     if (element.disabled) {
+      return false;
+    }
+  } else {
+    // For other HTMLElements, check the disabled attribute
+    if (element.hasAttribute('disabled')) {
       return false;
     }
   }

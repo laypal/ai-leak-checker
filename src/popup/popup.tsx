@@ -133,6 +133,9 @@ function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings'>('stats');
+  const [fallbackDelaySeconds, setFallbackDelaySeconds] = useState<number>(
+    Math.floor((DEFAULT_SETTINGS.fallbackDelayMs ?? 32000) / 1000)
+  );
 
   // Load settings and stats on mount
   useEffect(() => {
@@ -160,7 +163,12 @@ function App() {
       ]);
       const [settingsRes, statsRes] = results as [unknown, unknown];
       if (settingsRes && typeof settingsRes === 'object' && !('error' in settingsRes)) {
-        setSettings(settingsRes as Settings);
+        const loadedSettings = settingsRes as Settings;
+        setSettings(loadedSettings);
+        // Update local state for fallback delay input
+        setFallbackDelaySeconds(
+          Math.floor((loadedSettings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000)
+        );
       }
       if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
         setStats(statsRes as Stats);
@@ -369,10 +377,11 @@ function App() {
                 type="number"
                 min="30"
                 max="120"
-                value={Math.floor((settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000)}
+                value={fallbackDelaySeconds}
                 onChange={(e) => {
                   const seconds = parseInt(e.currentTarget.value, 10) || 30;
                   const clampedSeconds = Math.max(30, Math.min(120, seconds));
+                  setFallbackDelaySeconds(clampedSeconds);
                   void updateSetting('fallbackDelayMs', clampedSeconds * 1000);
                 }}
                 style={{

@@ -119,6 +119,7 @@ export {
   CURRENT_SCHEMA_VERSION,
   STORAGE_KEYS,
   statsToCSV,
+  MAX_FALLBACK_DELAY_MS,
 } from './storage';
 
 // Export STORAGE_SCHEMA_VERSION as alias for CURRENT_SCHEMA_VERSION

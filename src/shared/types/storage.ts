@@ -63,6 +63,11 @@ export interface Settings {
 }
 
 /**
+ * Maximum allowed fallback delay in milliseconds.
+ */
+export const MAX_FALLBACK_DELAY_MS = 120000;
+
+/**
  * Default settings for new installations.
  */
 export const DEFAULT_SETTINGS: Settings = {

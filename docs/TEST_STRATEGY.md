@@ -466,11 +466,13 @@ jobs:
 | Gate | Threshold | Blocks Merge |
 |------|-----------|--------------|
 | Unit test pass rate | 100% | Yes |
-| E2E test pass rate | 100% | Yes |
+| E2E test pass rate | 100% | No (advisory) |
 | Line coverage | 85% | Yes |
 | FP corpus rate | < 5% | Yes |
 | Lint errors | 0 | Yes |
 | TypeScript errors | 0 | Yes |
+
+**Note**: E2E tests run as an advisory quality gate that does not block merges but is reported as a quality metric. Failures are surfaced via status checks but do not prevent PR merges.
 
 ---
 
@@ -637,7 +639,8 @@ E2E tests run in separate GitHub Actions job (`e2e`) that:
 - Runs after unit/integration tests pass (`needs: test`)
 - Has 15-minute timeout to accommodate 32s waits
 - Uploads test reports and videos on failure
-- Does not block main CI pipeline
+- Does not block main CI pipeline (advisory quality gate)
+- Failures are reported as status checks but do not prevent PR merges
 
 ### 11.5 Test Timing
 

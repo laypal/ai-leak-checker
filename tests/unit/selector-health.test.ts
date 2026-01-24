@@ -238,5 +238,19 @@ describe('Selector Health Validation', () => {
       expect(result.submitFound).toBe(true);
       expect(result.containerFound).toBe(true);
     });
+
+    it('should reject element with opacity: 0', () => {
+      document.body.innerHTML = `
+        <div id="test-container">
+          <textarea id="test-input" style="opacity: 0;">Fully transparent</textarea>
+          <button id="test-submit" type="submit">Submit</button>
+        </div>
+      `;
+
+      const result = checkSelectorHealth(mockSiteConfig);
+      expect(result.inputFound).toBe(false);
+      expect(result.submitFound).toBe(true);
+      expect(result.containerFound).toBe(true);
+    });
   });
 });

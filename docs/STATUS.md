@@ -1,7 +1,7 @@
 # AI Leak Checker - Current Project Status
 
 > **Document Purpose**: High-level status summary and blockers for store submission.
-> **Version**: 1.0.0 | **Last Updated**: 2026-01-15
+> **Version**: 1.0.0 | **Last Updated**: January 24, 2026
 > **Repository**: https://github.com/laypal/ai-leak-checker
 
 ---
@@ -260,10 +260,10 @@ The extension does not currently traverse Shadow DOM roots for detection. If AI 
 
 ### Fallback Mode
 
-When DOM selectors fail (after 30-second retry), the extension falls back to fetch/XHR interception. A warning badge (⚠) appears on the extension icon for affected tabs.
+When DOM selectors fail (after 32-second retry window), the extension falls back to fetch/XHR interception. A warning badge (⚠) appears on the extension icon for affected tabs.
 
 **Behavior**:
-- Health check runs after 30-second retry window ends
+- Health check runs after 32-second retry window ends (per `fallbackDelayMs` setting, default 32000ms)
 - If selectors not found, fetch/XHR patching is injected as fallback
 - DOM event handlers are disabled when fallback is active (prevents dual execution)
 - Tab-specific badge indicates fallback status

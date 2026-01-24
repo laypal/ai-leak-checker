@@ -227,7 +227,8 @@ export type ExtensionMessage =
   | UserActionMaskMessage
   | UserActionProceedMessage
   | UserActionCancelMessage
-  | StatusMessage;
+  | StatusMessage
+  | SetFallbackBadgeMessage;
 
 // =============================================================================
 // Response Types
