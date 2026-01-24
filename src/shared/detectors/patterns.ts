@@ -336,8 +336,11 @@ export function scanForApiKeys(
       const captureGroup = match[1];
       const useCapture = patternDef.type === DetectorType.PASSWORD && captureGroup !== undefined;
       const value = useCapture ? captureGroup : match[0];
+      // Note: Regex capture groups are always contained within the full match (match[0]),
+      // so indexOf should never return -1. However, we add a defensive fallback.
+      const captureIndex = useCapture ? match[0].indexOf(captureGroup) : -1;
       const matchStart = useCapture
-        ? match.index + Math.max(0, match[0].indexOf(captureGroup))
+        ? match.index + (captureIndex >= 0 ? captureIndex : 0)
         : match.index;
       const key = `${patternDef.type}:${match.index}:${value}`;
 

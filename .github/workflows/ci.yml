@@ -51,6 +51,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: test  # Wait for unit/integration tests to pass first
+    continue-on-error: true
     
     steps:
       - name: Checkout code

@@ -143,8 +143,9 @@ function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings'>('stats');
-  const [fallbackDelaySeconds, setFallbackDelaySeconds] = useState<number>(
-    Math.floor(DEFAULT_SETTINGS.fallbackDelayMs / 1000)
+  // Local state for raw input value (unclamped) to allow free typing
+  const [rawFallbackDelayInput, setRawFallbackDelayInput] = useState<string>(
+    String(Math.floor(DEFAULT_SETTINGS.fallbackDelayMs / 1000))
   );
 
   // Load settings and stats on mount
@@ -176,9 +177,8 @@ function App() {
         const loadedSettings = settingsRes as Settings;
         setSettings(loadedSettings);
         // Update local state for fallback delay input
-        setFallbackDelaySeconds(
-          Math.floor((loadedSettings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000)
-        );
+        const loadedSeconds = Math.floor((loadedSettings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000);
+        setRawFallbackDelayInput(String(loadedSeconds));
       }
       if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
         setStats(statsRes as Stats);
@@ -387,13 +387,19 @@ function App() {
                 type="number"
                 min={MIN_FALLBACK_DELAY_MS / 1000}
                 max={MAX_FALLBACK_DELAY_MS / 1000}
-                value={fallbackDelaySeconds}
+                value={rawFallbackDelayInput}
                 onChange={(e) => {
+                  // Update raw input value without clamping to allow free typing
+                  setRawFallbackDelayInput(e.currentTarget.value);
+                }}
+                onBlur={(e) => {
+                  // On blur, clamp and persist the value
                   const minSeconds = MIN_FALLBACK_DELAY_MS / 1000;
                   const maxSeconds = MAX_FALLBACK_DELAY_MS / 1000;
-                  const seconds = parseInt(e.currentTarget.value, 10) || minSeconds;
+                  const parsed = parseInt(e.currentTarget.value, 10);
+                  const seconds = isNaN(parsed) ? minSeconds : parsed;
                   const clampedSeconds = Math.max(minSeconds, Math.min(maxSeconds, seconds));
-                  setFallbackDelaySeconds(clampedSeconds);
+                  setRawFallbackDelayInput(String(clampedSeconds));
                   void updateSetting('fallbackDelayMs', clampedSeconds * 1000);
                 }}
                 style={{

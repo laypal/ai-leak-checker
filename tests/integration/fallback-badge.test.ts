@@ -160,17 +160,10 @@ describe('Fallback Badge Integration', () => {
       tab: undefined, // No tab ID
     } as chrome.runtime.MessageSender;
 
-    // Simulate background script handler
-    let error: string | null = null;
-    if (message.type === MessageType.SET_FALLBACK_BADGE) {
-      const tabId = sender.tab?.id;
-      
-      if (!tabId) {
-        error = 'No tab ID available';
-      }
-    }
+    // Use helper - it should handle missing tabId gracefully
+    await simulateSetFallbackBadge(message, sender);
 
-    expect(error).toBe('No tab ID available');
+    // Verify no badge operations were called when tabId is missing
     expect(actionMock.setBadgeText).not.toHaveBeenCalled();
   });
 
@@ -188,15 +181,8 @@ describe('Fallback Badge Integration', () => {
       tab: { id: mockTabId },
     } as chrome.runtime.MessageSender;
 
-    if (message.type === MessageType.SET_FALLBACK_BADGE) {
-      const payload = message.payload as { active: boolean };
-      const tabId = sender.tab?.id;
-      
-      if (tabId && payload.active) {
-        await chrome.action.setBadgeText({ text: '⚠', tabId });
-        await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
-      }
-    }
+    // Use helper instead of duplicating logic
+    await simulateSetFallbackBadge(message, sender);
 
     // Verify warning color (yellow/orange) is used, not red
     expect(actionMock.setBadgeBackgroundColor).toHaveBeenCalledWith({

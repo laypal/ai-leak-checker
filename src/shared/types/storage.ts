@@ -64,8 +64,9 @@ export interface Settings {
 
 /**
  * Minimum allowed fallback delay in milliseconds.
+ * Must exceed retry window (30000ms) to avoid race conditions.
  */
-export const MIN_FALLBACK_DELAY_MS = 30000;
+export const MIN_FALLBACK_DELAY_MS = 31000;
 
 /**
  * Maximum allowed fallback delay in milliseconds.

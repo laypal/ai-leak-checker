@@ -266,69 +266,23 @@ constructor(callbacks: WarningModalCallbacks) {
 
 ## Store Blocker Risks
 
-### ❌ **CRITICAL**: Always-On Main World Patching
+### ✅ **RESOLVED**: Always-On Main World Patching
 
-**Issue**: `injected.js` patches `window.fetch` and `window.XMLHttpRequest` on every page load, regardless of selector health.
+**Status**: ✅ **RESOLVED** - Conditional injection implemented via `scheduleConditionalFallback()`.
 
-**Evidence**:
-- From `src/content/index.ts` (lines 115-150): `injectMainWorldScript()` is called unconditionally in `initialize()`
-- Per ARCHITECTURE.md ADR-001 (lines 72-108), the documented design is:
-  - Primary: DOM event listeners
-  - Fallback: Main World fetch patching (only when DOM fails)
-- But the actual implementation runs both simultaneously
+**Resolution**: The extension now conditionally injects the main world script only after a grace period (default 32s) when `checkSelectorHealth()` indicates DOM interception has failed. This matches the documented fallback pattern from ARCHITECTURE.md ADR-001.
 
-**Implementation Gap**: The documented fallback pattern from ARCHITECTURE.md shows:
+**Implementation**: 
+- Conditional logic implemented in `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255]
+- Health check runs after grace period (configurable via `fallbackDelayMs` setting)
+- Injection only occurs if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false
+- Matches documented behavior: Primary DOM interception, fallback fetch/XHR patching only when needed
 
-```typescript
-const attemptInterception = async (site: SiteConfig): Promise<boolean> => {
-  // Try primary selectors
-  for (const selector of site.inputSelectors) {
-    const element = document.querySelector(selector);
-    if (element) {
-      attachListeners(element);
-      return true;
-    }
-  }
-  
-  // Fall back to fetch patching
-  if (site.apiEndpoints.length > 0) {
-    injectFetchPatcher(site.apiEndpoints);
-    return true;
-  }
-  // ...
-};
-```
-
-This documented fallback pattern is not implemented - instead, both are always active.
-
-**Store Impact**: HIGH - Reviewers may reject for:
-- Unnecessary API patching when DOM interception works
-- Chrome reviewers flag extensions that patch native APIs without clear justification
-- Potential performance impact
-- Security concerns (main world access)
-
-**Required Fix**: Make patching conditional:
-1. Check selector health after grace period (per `configs/selectors.json#L91`: `gracePeriodMs: 5000`)
-2. Only inject if selectors fail (use `checkSelectorHealth()` from `src/shared/types/selectors.ts#L207-L253`)
-3. Document fallback behavior
-
-**Implementation Pattern**:
-
-```typescript
-function initialize(): void {
-  // ...
-  setupInterception();
-  
-  // Check if DOM interception succeeded before injecting fallback
-  setTimeout(() => {
-    if (!siteConfig) return;
-    const health = checkSelectorHealth(siteConfig);
-    if (!health.inputFound || !health.submitFound) {
-      injectMainWorldScript();  // Only inject if DOM failed
-    }
-  }, siteConfig.fallbackBehavior?.gracePeriodMs ?? 5000);
-}
-```
+**Remediation Notes** (for reference):
+- Previously, `injectMainWorldScript()` was called unconditionally
+- Fixed by implementing `scheduleConditionalFallback()` which checks selector health before injection
+- Uses `checkSelectorHealth()` from `src/shared/types/selectors.ts#L207-L253`
+- Grace period configurable via `fallbackDelayMs` setting (default 32000ms)
 
 ### ⚠️ **MEDIUM**: Third Host Permission
 
@@ -349,7 +303,7 @@ function initialize(): void {
 
 | Priority | Action | Effort | Blocker? | Status |
 |----------|--------|--------|----------|--------|
-| **P0** | Make fetch patching conditional | 2-3h | ❌ **YES** | **CRITICAL** |
+| **P0** | Make fetch patching conditional | 2-3h | ❌ **YES** | **RESOLVED** |
 | **P1** | Add visual indicator for selector failure | 1-2h | ⚠️ UX issue | Recommended |
 | **P2** | Document Shadow DOM limitation | 30m | No | Recommended |
 | **P2** | Document `chatgpt.com` justification for store | 30m | No | Recommended |

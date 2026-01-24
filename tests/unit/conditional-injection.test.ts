@@ -87,7 +87,7 @@ describe('Conditional Fallback Injection', () => {
   });
 
   describe('scheduleConditionalFallback', () => {
-    it('should NOT inject when both selectors found', async () => {
+    it('should NOT inject when both selectors found', () => {
       mockCheckSelectorHealth.mockReturnValue({
         site: 'Test Site',
         inputFound: true,
@@ -108,7 +108,7 @@ describe('Conditional Fallback Injection', () => {
       expect(notifyFallbackActiveCalled).toBe(false);
     });
 
-    it('should inject when input selector missing', async () => {
+    it('should inject when input selector missing', () => {
       mockCheckSelectorHealth.mockReturnValue({
         site: 'Test Site',
         inputFound: false,
@@ -128,7 +128,7 @@ describe('Conditional Fallback Injection', () => {
       expect(notifyFallbackActiveCalled).toBe(true);
     });
 
-    it('should inject when submit selector missing', async () => {
+    it('should inject when submit selector missing', () => {
       mockCheckSelectorHealth.mockReturnValue({
         site: 'Test Site',
         inputFound: true,
@@ -148,7 +148,7 @@ describe('Conditional Fallback Injection', () => {
       expect(notifyFallbackActiveCalled).toBe(true);
     });
 
-    it('should skip if siteConfig is null', async () => {
+    it('should skip if siteConfig is null', () => {
       scheduleConditionalFallback(null, mockCheckSelectorHealth);
       
       vi.advanceTimersByTime(FALLBACK_HEALTH_CHECK_DELAY_MS);
@@ -158,7 +158,7 @@ describe('Conditional Fallback Injection', () => {
       expect(injectMainWorldScriptCalled).toBe(false);
     });
 
-    it('should handle checkSelectorHealth errors gracefully', async () => {
+    it('should handle checkSelectorHealth errors gracefully', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
       mockCheckSelectorHealth.mockImplementation(() => {
@@ -177,7 +177,7 @@ describe('Conditional Fallback Injection', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should wait FALLBACK_HEALTH_CHECK_DELAY_MS before checking', async () => {
+    it('should wait FALLBACK_HEALTH_CHECK_DELAY_MS before checking', () => {
       mockCheckSelectorHealth.mockReturnValue({
         site: 'Test Site',
         inputFound: true,

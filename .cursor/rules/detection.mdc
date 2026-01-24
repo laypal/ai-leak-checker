@@ -17,8 +17,10 @@ alwaysApply: false
 // ❌ Too broad - matches UUIDs, hashes
 const BAD_PATTERN = /[a-zA-Z0-9]{32}/;
 
-// ✅ Better - requires specific prefix
-const OPENAI_KEY = /sk-[a-zA-Z0-9]{48}/;
+// ✅ Better - requires specific prefix with word boundaries
+// Matches sk-, sk-proj-, or sk-admin- prefixes with alphanumeric/_/- chars
+// Runtime validation requires token body length >= 20
+const OPENAI_KEY = /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g;
 
 // ✅ Best - prefix + entropy check
 function isLikelyApiKey(match: string): boolean {
@@ -65,11 +67,15 @@ const ENTROPY_THRESHOLDS = {
 
 ```typescript
 const API_KEY_PATTERNS = {
-  // OpenAI: no length validation per official guidance (keys are opaque strings)
-  openai: /sk-(?:proj-|admin-)?[a-zA-Z0-9_-]+/,
-  aws_access: /(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}/,
-  github: /gh[pousr]_[a-zA-Z0-9]{36,}/,
-  stripe: /[sr]k_(?:live|test)_[a-zA-Z0-9]{24,}/,
+  // OpenAI: word boundaries, optional proj-/admin- prefixes, alphanumeric/_/-
+  // Runtime validation requires token body length >= 20
+  openai: /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g,
+  // AWS Access Key: word boundaries, specific prefixes, uppercase alphanumeric
+  aws_access: /\b(A3T[A-Z0-9]|AKIA|ABIA|ACCA|AGPA|AIDA|AIPA|ANPA|ANVA|APKA|AROA|ASCA|ASIA)[A-Z0-9]{16}\b/g,
+  // GitHub: word boundaries, specific prefixes, alphanumeric
+  github: /\b(ghp_|gho_|ghu_|ghs_|github_pat_)[A-Za-z0-9_-]{36,}\b/g,
+  // Stripe: word boundaries, sk_/pk_/rk_ prefixes, test/live environment, alphanumeric
+  stripe: /\b(sk|pk|rk)_(test|live)_[A-Za-z0-9]{24,}\b/g,
 };
 ```
 

@@ -58,7 +58,7 @@ OpenAI is currently transitioning between `chat.openai.com` and `chatgpt.com`. B
 ## Main World Script Injection
 
 **Why required**:
-- Fallback mechanism when DOM selectors fail (after 30-second retry window)
+- Fallback mechanism when DOM selectors fail (after 32-second retry window)
 - Intercepts `window.fetch` and `XMLHttpRequest` to catch programmatic submissions
 - Only activated when DOM interception fails (conditional, not always-on)
 
@@ -78,7 +78,7 @@ OpenAI is currently transitioning between `chat.openai.com` and `chatgpt.com`. B
 
 ### Conditional Fallback Injection
 
-**Decision**: Fetch/XHR patching is only injected when DOM selectors fail (after 30-second grace period).
+**Decision**: Fetch/XHR patching is only injected when DOM selectors fail (after 32-second grace period).
 
 **Rationale**:
 - Minimizes main world script injection (store review concern)
@@ -120,6 +120,6 @@ See [PRIVACY_POLICY.md](../PRIVACY_POLICY.md) for complete privacy documentation
 
 ## Open Source
 
-The extension is open source: [ai-leak-checker](https://github.com/laypal/ai-leak-checker)
+The extension is open source: [ai-leak-checker](<https://github.com/laypal/ai-leak-checker>)
 
 All code is auditable and verifiable.

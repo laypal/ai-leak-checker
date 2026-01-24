@@ -19,7 +19,7 @@ npm run test         # Run all tests
 npm run test:unit    # Unit tests only
 npm run test:e2e     # Playwright E2E
 npm run test:coverage # Coverage report
-npm run test:watch   # Watch mode
+npm run test:unit:watch   # Watch mode
 
 # Quality
 npm run lint         # ESLint

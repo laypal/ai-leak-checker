@@ -207,7 +207,7 @@ export class ExtensionHelper {
     const startTime = Date.now();
     const pollInterval = 100; // Check every 100ms
     const retryGetExtensionIdInterval = 1000; // Retry getExtensionId every 1000ms
-    let lastGetExtensionIdAttempt = 0;
+    let lastGetExtensionIdAttempt = startTime; // Initialize to startTime to respect retry interval
 
     // Try to get extension ID once (this may open pages/navigate)
     try {
@@ -216,6 +216,8 @@ export class ExtensionHelper {
       return true;
     } catch {
       // First attempt failed, continue to polling
+      // Update lastGetExtensionIdAttempt so first loop iteration respects retry interval
+      lastGetExtensionIdAttempt = Date.now();
     }
     
     while (Date.now() - startTime < timeoutMs) {

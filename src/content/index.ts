@@ -225,22 +225,32 @@ function setupInterception(): void {
  * @param delayMs - Milliseconds to wait before performing the health check and potential injection
  */
 function scheduleConditionalFallback(delayMs: number): void {
-  if (!siteConfig) return;
+  // Capture current siteConfig to avoid race conditions if it changes
+  const currentConfig = siteConfig;
+  if (!currentConfig) return;
 
   setTimeout(() => {
+    // Re-check that config still exists (may have been cleared)
     if (!siteConfig) return;
 
     try {
-      const health = checkSelectorHealth(siteConfig);
+      // Use captured config for health check to ensure consistency
+      const health = checkSelectorHealth(currentConfig);
       
       if (!health.inputFound || !health.submitFound) {
         // Attempt injection and only mark as active if successful
-        void injectMainWorldScript().then((injected) => {
-          if (injected) {
-            fallbackActive = true;
-            notifyFallbackActive();
-          }
-        });
+        // Handle promise errors to prevent uncaught rejections
+        injectMainWorldScript()
+          .then((injected) => {
+            if (injected) {
+              fallbackActive = true;
+              notifyFallbackActive();
+            }
+          })
+          .catch((error) => {
+            // Injection failed - log but don't mark as active
+            console.error('[AI Leak Checker] Main world script injection failed:', error);
+          });
       } else {
         // DOM interception working - no fallback needed
       }
