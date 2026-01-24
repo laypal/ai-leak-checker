@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { SiteConfig, SelectorHealthResult } from '@/shared/types';
+import { MIN_FALLBACK_DELAY_MS } from '@/shared/types';
 
 // Mock the checkSelectorHealth function
 const mockCheckSelectorHealth = vi.fn<[SiteConfig], SelectorHealthResult>();
@@ -13,8 +14,8 @@ let fallbackActive = false;
 let injectMainWorldScriptCalled = false;
 let notifyFallbackActiveCalled = false;
 
-// Mock constants
-const FALLBACK_HEALTH_CHECK_DELAY_MS = 30000;
+// Use the actual constant from the codebase to ensure test aligns with production bounds
+const FALLBACK_HEALTH_CHECK_DELAY_MS = MIN_FALLBACK_DELAY_MS;
 
 // Mock site config
 const mockSiteConfig: SiteConfig = {

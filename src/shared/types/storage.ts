@@ -56,7 +56,7 @@ export interface Settings {
    * Must exceed retry window (30000ms) to avoid race conditions.
    * 
    * @default 32000
-   * @minimum 30000
+   * @minimum 31000
    * @maximum 120000
    */
   fallbackDelayMs: number;

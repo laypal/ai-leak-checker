@@ -272,7 +272,7 @@ constructor(callbacks: WarningModalCallbacks) {
 
 **Resolution**: The extension now conditionally injects the main world script only after a grace period (default 32s) when `checkSelectorHealth()` indicates DOM interception has failed. This matches the documented fallback pattern from ARCHITECTURE.md ADR-001.
 
-**Implementation**: 
+**Implementation**:
 - Conditional logic implemented in `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255]
 - Health check runs after grace period (configurable via `fallbackDelayMs` setting)
 - Injection only occurs if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false

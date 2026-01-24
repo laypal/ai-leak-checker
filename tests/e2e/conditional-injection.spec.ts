@@ -112,11 +112,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check using polling instead of fixed timeout
-    await page.waitForFunction(
-      () => (window as any).__aiLeakCheckerInjected !== true,
-      { timeout: FALLBACK_DELAY_WITH_BUFFER_MS }
-    );
+    // Wait for health check period (full delay) before checking injection status
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify injected.js was NOT loaded
     const isInjected = await page.evaluate(() => {
