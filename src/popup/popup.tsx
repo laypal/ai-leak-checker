@@ -129,6 +129,14 @@ const styles = {
   },
 };
 
+/**
+ * Render the extension popup UI for AI Leak Checker.
+ *
+ * Manages local settings and statistics state, fetches and persists data via chrome.runtime messages,
+ * and provides interactive controls for viewing statistics, adjusting detection settings, and resetting data.
+ *
+ * @returns The Preact component tree for the popup UI.
+ */
 function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
