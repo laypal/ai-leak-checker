@@ -71,6 +71,8 @@ export type {
   SelectorUpdateMessage,
   SelectorHealthPayload,
   SelectorHealthMessage,
+  SetFallbackBadgePayload,
+  SetFallbackBadgeMessage,
   ExtensionReadyMessage,
   ContentScriptLoadedPayload,
   ContentScriptLoadedMessage,
@@ -113,8 +115,8 @@ export type {
 export {
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
-  CURRENT_SCHEMA_VERSION,
   DEFAULT_STORAGE,
+  CURRENT_SCHEMA_VERSION,
   STORAGE_KEYS,
   statsToCSV,
 } from './storage';

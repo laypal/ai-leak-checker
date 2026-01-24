@@ -47,6 +47,8 @@ export const MessageType = {
   USER_ACTION_CANCEL: 'USER_ACTION_CANCEL',
   // Status (deprecated, use EXTENSION_READY)
   GET_STATUS: 'GET_STATUS',
+  // Fallback Status
+  SET_FALLBACK_BADGE: 'SET_FALLBACK_BADGE',
 } as const;
 
 /**
@@ -152,6 +154,17 @@ export interface SelectorHealthPayload {
 }
 
 export type SelectorHealthMessage = BaseMessage<'SELECTOR_HEALTH', SelectorHealthPayload>;
+
+// =============================================================================
+// Fallback Status Messages
+// =============================================================================
+
+/** Payload for SET_FALLBACK_BADGE message */
+export interface SetFallbackBadgePayload {
+  active: boolean;
+}
+
+export type SetFallbackBadgeMessage = BaseMessage<'SET_FALLBACK_BADGE', SetFallbackBadgePayload>;
 
 // =============================================================================
 // Lifecycle Messages

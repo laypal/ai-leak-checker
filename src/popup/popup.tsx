@@ -361,6 +361,36 @@ function App() {
             </select>
           </div>
 
+          {/* Fallback Delay */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Fallback Activation Delay</div>
+            <div style={{ marginBottom: '8px' }}>
+              <input
+                type="number"
+                min="30"
+                max="120"
+                value={Math.floor(settings.fallbackDelayMs / 1000)}
+                onChange={(e) => {
+                  const seconds = parseInt(e.currentTarget.value) || 30;
+                  const clampedSeconds = Math.max(30, Math.min(120, seconds));
+                  void updateSetting('fallbackDelayMs', clampedSeconds * 1000);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  background: '#ffffff',
+                }}
+              />
+              <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+                Time to wait (seconds) before activating fetch/XHR fallback when DOM selectors fail.
+                Minimum 30 seconds to avoid race conditions.
+              </div>
+            </div>
+          </div>
+
           {/* Detectors */}
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Enabled Detectors</div>

@@ -246,4 +246,28 @@ npm run build       ✅ Builds successfully
 
 ---
 
+## Known Limitations
+
+### Shadow DOM Detection
+
+The extension does not currently traverse Shadow DOM roots for detection. If AI platforms move their input fields into Shadow DOM, detection will fail silently.
+
+**Current Status**: 
+- ChatGPT: Uses standard textarea/contenteditable (no Shadow DOM) ✅
+- Claude: Uses ProseMirror with contenteditable (no Shadow DOM) ✅
+
+**Future Work**: Shadow DOM traversal will be added in Phase 7 if platforms adopt it.
+
+### Fallback Mode
+
+When DOM selectors fail (after 30-second retry), the extension falls back to fetch/XHR interception. A warning badge (⚠) appears on the extension icon for affected tabs.
+
+**Behavior**:
+- Health check runs after 30-second retry window ends
+- If selectors not found, fetch/XHR patching is injected as fallback
+- DOM event handlers are disabled when fallback is active (prevents dual execution)
+- Tab-specific badge indicates fallback status
+
+---
+
 *Last updated: January 15, 2026*

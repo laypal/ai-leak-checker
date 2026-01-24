@@ -15,6 +15,9 @@ import {
   type ExtensionMessage,
   MessageType,
   getSiteConfig,
+  checkSelectorHealth,
+  type Settings,
+  DEFAULT_SETTINGS,
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
@@ -41,6 +44,9 @@ const attachedElements = new WeakSet<Element>();
 
 /** Flag to temporarily disable scanning during programmatic submission */
 let isProgrammaticSubmit = false;
+
+/** Flag indicating fallback fetch/XHR patching is active */
+let fallbackActive = false;
 
 /**
  * Check if the extension context is still valid.
@@ -112,7 +118,7 @@ function safeGetURL(path: string): string | null {
  * Initialize the content script.
  * Detects the current site and sets up interception.
  */
-function initialize(): void {
+async function initialize(): Promise<void> {
   const hostname = window.location.hostname;
   
   // Find matching site configuration
@@ -137,8 +143,23 @@ function initialize(): void {
   // Set up interception
   setupInterception();
 
-  // Inject main world script for fetch patching
-  injectMainWorldScript();
+  // Load settings for fallback delay
+  let fallbackDelayMs = 30000; // Default
+  try {
+    const result = await chrome.storage.local.get('settings');
+    if (result.settings && typeof result.settings === 'object') {
+      const settings = result.settings as Settings;
+      fallbackDelayMs = Math.max(
+        settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs,
+        30000  // Minimum 30s to avoid race condition
+      );
+    }
+  } catch (error) {
+    console.warn('[AI Leak Checker] Failed to load settings, using default delay:', error);
+  }
+
+  // Check selector health after grace period, then conditionally inject fallback
+  scheduleConditionalFallback(fallbackDelayMs);
 
   // Listen for messages from service worker
   try {
@@ -184,6 +205,63 @@ function setupInterception(): void {
       observerRetryInterval = null;
     }
   }, 30000);
+}
+
+/**
+ * Schedule conditional fallback injection after retry window ends.
+ * 
+ * DESIGN DECISION: Check at 30 seconds (after retry window ends) to avoid
+ * race condition where selectors appear between health check and retry completion.
+ * 
+ * The 30-second delay matches setupInterception() retry window [line 180-186].
+ * JSON config fallbackBehavior.gracePeriodMs (5000) is NOT used because:
+ * 1. It's at root level of configs/selectors.json, not in SiteConfig interface
+ * 2. 5 seconds is insufficient for slow-loading SPAs
+ * 3. Would cause race condition with 30-second retry window
+ */
+function scheduleConditionalFallback(delayMs: number): void {
+  if (!siteConfig) return;
+
+  setTimeout(() => {
+    if (!siteConfig) return;
+
+    try {
+      const health = checkSelectorHealth(siteConfig);
+      
+      if (!health.inputFound || !health.submitFound) {
+        console.log(
+          '[AI Leak Checker] DOM interception incomplete after %dms ' +
+          '(inputFound: %s, submitFound: %s), activating fetch/XHR fallback',
+          delayMs,
+          health.inputFound,
+          health.submitFound
+        );
+        
+        fallbackActive = true;
+        injectMainWorldScript();
+        notifyFallbackActive();
+      } else {
+        console.log(
+          '[AI Leak Checker] DOM interception working (selector: %s), ' +
+          'fetch/XHR fallback not needed',
+          health.workingSelector
+        );
+      }
+    } catch (error) {
+      // Health check failed - fail safe, skip injection
+      console.error('[AI Leak Checker] Health check failed:', error);
+    }
+  }, delayMs);
+}
+
+/**
+ * Notify background script that fallback is active (for badge update).
+ */
+function notifyFallbackActive(): void {
+  safeSendMessage({
+    type: MessageType.SET_FALLBACK_BADGE,
+    payload: { active: true },
+  });
 }
 
 /**
@@ -250,6 +328,11 @@ function attachSubmitListener(element: HTMLElement): void {
  * Handle keydown events (primarily Enter key).
  */
 function handleKeyDown(event: KeyboardEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // If user starts typing after programmatic submit, reset flag immediately
   // This prevents the flag from blocking legitimate user input after submission
   if (isProgrammaticSubmit && event.key !== 'Enter') {
@@ -320,6 +403,11 @@ function handlePaste(event: ClipboardEvent): void {
  * Handle submit button click.
  */
 function handleSubmitClick(event: MouseEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
   if (isProgrammaticSubmit) {
     return;
@@ -341,6 +429,11 @@ function handleSubmitClick(event: MouseEvent): void {
  * Handle form submit.
  */
 function handleFormSubmit(event: SubmitEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
   if (isProgrammaticSubmit) {
     return;
@@ -649,7 +742,9 @@ function handleMessage(
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
+  document.addEventListener('DOMContentLoaded', () => {
+    void initialize();
+  });
 } else {
-  initialize();
+  void initialize();
 }

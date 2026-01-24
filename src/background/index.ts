@@ -168,6 +168,25 @@ async function handleMessage(
       }
     }
 
+    case MessageType.SET_FALLBACK_BADGE: {
+      const payload = message.payload as { active: boolean };
+      const tabId = _sender.tab?.id;
+      
+      if (!tabId) {
+        return { error: 'No tab ID available' };
+      }
+      
+      if (payload.active) {
+        // Show warning badge for this specific tab
+        await chrome.action.setBadgeText({ text: '⚠', tabId });
+        await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
+      } else {
+        // Clear fallback badge, restore normal badge for this tab
+        await updateBadgeForTab(tabId);
+      }
+      return { success: true };
+    }
+
     default:
       console.warn('[AI Leak Checker] Unknown message type:', message.type);
       return { error: 'Unknown message type' };
@@ -339,6 +358,23 @@ async function updateBadge(): Promise<void> {
     await chrome.action.setBadgeBackgroundColor({ color: '#dc3545' });
   } else {
     await chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+/**
+ * Update badge for a specific tab.
+ * Used when clearing fallback badge to restore normal state.
+ */
+async function updateBadgeForTab(tabId: number): Promise<void> {
+  const stats = await getStats();
+  const blocked = stats.actions.cancelled;
+
+  if (blocked > 0) {
+    const text = blocked > 99 ? '99+' : blocked.toString();
+    await chrome.action.setBadgeText({ text, tabId });
+    await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
+  } else {
+    await chrome.action.setBadgeText({ text: '', tabId });
   }
 }
 
