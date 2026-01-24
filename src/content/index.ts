@@ -117,8 +117,9 @@ function safeGetURL(path: string): string | null {
 }
 
 /**
- * Initialize the content script.
- * Detects the current site and sets up interception.
+ * Prepare the content script for the current page: detect the site, create the warning modal, attach interception listeners, load fallback delay settings, schedule a conditional fallback check, and register the runtime message listener.
+ *
+ * This function sets module-level state such as `siteConfig` and `modal`. If no matching site configuration is found, initialization stops early. When settings are available in storage, the fallback delay is coerced to a number and clamped between configured minimum and maximum values before scheduling the fallback health check.
  */
 async function initialize(): Promise<void> {
   const hostname = window.location.hostname;
@@ -178,7 +179,9 @@ async function initialize(): Promise<void> {
 }
 
 /**
- * Set up DOM event interception.
+ * Initialize DOM interception by attaching listeners and scaffolding dynamic reattachment.
+ *
+ * Attaches input/submit/form listeners for the current site, observes the document body for added nodes to re-run attachment when new elements appear, and periodically retries attaching listeners every 2 seconds for up to 30 seconds to cover slow-loading or SPA-rendered elements.
  */
 function setupInterception(): void {
   if (!siteConfig) return;
@@ -215,16 +218,11 @@ function setupInterception(): void {
 }
 
 /**
- * Schedule conditional fallback injection after retry window ends.
- * 
- * DESIGN DECISION: Check at 30 seconds (after retry window ends) to avoid
- * race condition where selectors appear between health check and retry completion.
- * 
- * The 30-second delay matches setupInterception() retry window [line 180-186].
- * JSON config fallbackBehavior.gracePeriodMs (5000) is NOT used because:
- * 1. It's at root level of configs/selectors.json, not in SiteConfig interface
- * 2. 5 seconds is insufficient for slow-loading SPAs
- * 3. Would cause race condition with 30-second retry window
+ * After a delay, checks whether configured input/submit selectors are present and injects the main-world fallback script if selectors are unhealthy.
+ *
+ * If injection succeeds, marks the fallback active and notifies the background script. If no site configuration exists or selectors are healthy, no action is taken. Errors during the health check or injection are caught and logged.
+ *
+ * @param delayMs - Milliseconds to wait before performing the health check and potential injection
  */
 function scheduleConditionalFallback(delayMs: number): void {
   if (!siteConfig) return;
@@ -253,7 +251,7 @@ function scheduleConditionalFallback(delayMs: number): void {
 }
 
 /**
- * Notify background script that fallback is active (for badge update).
+ * Inform the background script that the fallback mechanism is active so the extension badge can update.
  */
 function notifyFallbackActive(): void {
   safeSendMessage({
@@ -323,7 +321,11 @@ function attachSubmitListener(element: HTMLElement): void {
 }
 
 /**
- * Handle keydown events (primarily Enter key).
+ * Intercepts Enter key presses on input elements to scan the input text for sensitive data and display a warning modal when sensitive content is found.
+ *
+ * This handler skips interception when a main-world fallback patch is active, ignores non-Enter keys and Shift+Enter (newline), and treats synthesized or programmatic submissions as trusted. If scanning detects sensitive data, the handler prevents the default submission, stops propagation, and shows the warning modal.
+ *
+ * @param event - The keyboard event originating from the focused input element
  */
 function handleKeyDown(event: KeyboardEvent): void {
   // Skip if fallback patching is handling interception
@@ -398,7 +400,9 @@ function handlePaste(event: ClipboardEvent): void {
 }
 
 /**
- * Handle submit button click.
+ * Intercepts a submit-button click, scans current input for sensitive data, and shows the warning modal when findings are detected.
+ *
+ * @param event - The original click event from the submit button; this event will be prevented and propagation stopped if sensitive data is found.
  */
 function handleSubmitClick(event: MouseEvent): void {
   // Skip if fallback patching is handling interception
@@ -424,7 +428,13 @@ function handleSubmitClick(event: MouseEvent): void {
 }
 
 /**
- * Handle form submit.
+ * Intercepts a form submit event and blocks submission when user input contains sensitive data.
+ *
+ * If a fallback patch is active or the submission was initiated programmatically, the event is ignored.
+ * Otherwise the current input text is scanned and, if sensitive data is detected, the submit is prevented
+ * and the warning modal is shown to the user.
+ *
+ * @param event - The form `SubmitEvent` that may be prevented when sensitive data is found
  */
 function handleFormSubmit(event: SubmitEvent): void {
   // Skip if fallback patching is handling interception
@@ -683,8 +693,9 @@ function notifyPasteSensitive(result: DetectionResult): void {
 }
 
 /**
- * Inject script into main world for fetch patching.
- * @returns true if script element was successfully created and appended, false otherwise
+ * Injects the extension's "injected.js" into the page's main world to enable fetch/XHR patching.
+ *
+ * @returns `true` if the script element was created and appended to the document, `false` otherwise.
  */
 function injectMainWorldScript(): boolean {
   try {

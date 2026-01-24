@@ -112,7 +112,16 @@ function validateMessage(message: unknown): message is ExtensionMessage | { type
 }
 
 /**
- * Process incoming messages.
+ * Handle and dispatch incoming extension messages to the corresponding background operations.
+ *
+ * Processes a validated message, performs the requested action (settings/stats operations,
+ * status query, or badge updates), and returns the operation-specific response object.
+ *
+ * @param message - The incoming message object (expected to include a `type` and optional `payload`)
+ * @returns The response for the processed message: settings or stats objects, a status object,
+ *          `{ success: true }` / `{ success: false, error: string }` for badge operations, or
+ *          `{ error: string }` for invalid or unknown messages
+ * @throws Error - If `MessageType.STATS_INCREMENT` is received with an invalid payload
  */
 async function handleMessage(
   message: unknown,
@@ -361,7 +370,10 @@ async function resetStats(): Promise<Stats> {
 }
 
 /**
- * Update the extension badge.
+ * Update the extension action badge to reflect the number of cancelled actions.
+ *
+ * If `actions.cancelled` is greater than 0, sets the badge text to that count (capped at "99+")
+ * and sets the badge background color to `#dc3545`. If the count is 0, clears the badge text.
  */
 async function updateBadge(): Promise<void> {
   const stats = await getStats();
@@ -377,8 +389,11 @@ async function updateBadge(): Promise<void> {
 }
 
 /**
- * Update badge for a specific tab.
- * Used when clearing fallback badge to restore normal state.
+ * Restore the action badge for a specific tab based on current stats.
+ *
+ * Sets the badge text to the number of cancelled actions (capped at "99+") and the badge background to red when the count is greater than zero; clears the badge text when the count is zero. Handles tab lifecycle errors gracefully.
+ *
+ * @param tabId - The ID of the tab whose badge should be updated
  */
 async function updateBadgeForTab(tabId: number): Promise<void> {
   try {

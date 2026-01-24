@@ -201,7 +201,10 @@ export interface SelectorHealthResult {
 }
 
 /**
- * Check if element is actually visible and usable.
+ * Determine whether a DOM element is visible and usable for interaction.
+ *
+ * @param element - The DOM element to evaluate; non-HTMLElement values are treated as not usable.
+ * @returns `true` if the element appears visible and usable for interaction, `false` otherwise.
  */
 function isElementUsable(element: Element): boolean {
   if (!(element instanceof HTMLElement)) {
@@ -240,7 +243,12 @@ function isElementUsable(element: Element): boolean {
 }
 
 /**
- * Check if input element is editable.
+ * Determines whether a DOM element can be edited by a user.
+ *
+ * Treats elements with `readonly` or `disabled` attributes as non-editable. For elements with a `contenteditable` attribute, only the literal value `"false"` is considered non-editable; an empty value, `"true"`, or a bare `contenteditable` attribute are considered editable. For `<input>` and `<textarea>`, the element's `disabled` and `readOnly` properties are also checked.
+ *
+ * @param element - The DOM element to test for editability
+ * @returns `true` if the element is editable by a user, `false` otherwise
  */
 function isInputEditable(element: Element): boolean {
   if (!(element instanceof HTMLElement)) {
@@ -274,7 +282,12 @@ function isInputEditable(element: Element): boolean {
 }
 
 /**
- * Check if button is clickable.
+ * Determines whether an Element can be treated as a clickable button in the page.
+ *
+ * For HTMLButtonElement this checks the `disabled` property; for other HTMLElements this checks for a `disabled` attribute. Non-HTMLElement values are considered not clickable.
+ *
+ * @param element - Candidate element to evaluate
+ * @returns `true` if `element` is an HTMLElement and not disabled as described, `false` otherwise.
  */
 function isButtonClickable(element: Element): boolean {
   if (!(element instanceof HTMLElement)) {
@@ -297,8 +310,10 @@ function isButtonClickable(element: Element): boolean {
 }
 
 /**
- * Check if selectors are working on the current page.
- * Returns health status for monitoring.
+ * Assess whether the configured selectors for a site locate usable input, submit, and container elements on the current page.
+ *
+ * @param siteConfig - Site configuration containing the selectors and metadata to validate
+ * @returns A SelectorHealthResult with `site`, `inputFound`, `submitFound`, `containerFound`, `workingSelector` (the input selector that succeeded or `null`), and `testedAt` timestamp
  */
 export function checkSelectorHealth(
   siteConfig: SiteConfig
