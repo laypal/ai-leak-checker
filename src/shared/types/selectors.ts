@@ -214,7 +214,7 @@ function isElementUsable(element: Element): boolean {
   // Check computed styles
   try {
     const style = window.getComputedStyle(element);
-    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+    if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
       return false;
     }
   } catch {
@@ -230,7 +230,7 @@ function isElementUsable(element: Element): boolean {
     // This prevents false positives in test environments
     if (rect.width === 0 && rect.height === 0) {
       const style = window.getComputedStyle(element);
-      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
         return false;
       }
       // In test environments, zero size might be normal, so allow it
@@ -255,12 +255,27 @@ function isInputEditable(element: Element): boolean {
     return false;
   }
 
-  // Check readonly/disabled attributes
+  // For form controls (input/textarea), check disabled and readOnly properties
+  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
+    if (element.disabled || element.readOnly) {
+      return false;
+    }
+    // Form controls are editable if not disabled/readonly
+    return true;
+  }
+
+  // Check readonly/disabled attributes first (applies to all elements)
   if (element.hasAttribute('readonly') || element.hasAttribute('disabled')) {
     return false;
   }
 
-  // For contenteditable, check contenteditable attribute
+  // For other elements, prefer isContentEditable property to respect inheritance and computed states
+  // Fall back to attribute check for test environments (jsdom) where property may not be set correctly
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  // Fallback: Check contenteditable attribute for test environments
   // Per HTML5 spec: empty string, "true", or bare attribute = editable
   // Only "false" means non-editable
   if (element.hasAttribute('contenteditable')) {
@@ -269,16 +284,11 @@ function isInputEditable(element: Element): boolean {
       return false;
     }
     // Empty string, "true", or bare attribute all mean editable
+    return true;
   }
 
-  // For textarea/input, check disabled property
-  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
-    if (element.disabled || element.readOnly) {
-      return false;
-    }
-  }
-
-  return true;
+  // Element is not editable
+  return false;
 }
 
 /**

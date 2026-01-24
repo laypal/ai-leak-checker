@@ -12,6 +12,8 @@ import {
   DETECTOR_LABELS,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
+  MIN_FALLBACK_DELAY_MS,
+  MAX_FALLBACK_DELAY_MS,
 } from '@/shared/types';
 
 // Styles
@@ -383,12 +385,14 @@ function App() {
             <div style={{ marginBottom: '8px' }}>
               <input
                 type="number"
-                min="30"
-                max="120"
+                min={MIN_FALLBACK_DELAY_MS / 1000}
+                max={MAX_FALLBACK_DELAY_MS / 1000}
                 value={fallbackDelaySeconds}
                 onChange={(e) => {
-                  const seconds = parseInt(e.currentTarget.value, 10) || 30;
-                  const clampedSeconds = Math.max(30, Math.min(120, seconds));
+                  const minSeconds = MIN_FALLBACK_DELAY_MS / 1000;
+                  const maxSeconds = MAX_FALLBACK_DELAY_MS / 1000;
+                  const seconds = parseInt(e.currentTarget.value, 10) || minSeconds;
+                  const clampedSeconds = Math.max(minSeconds, Math.min(maxSeconds, seconds));
                   setFallbackDelaySeconds(clampedSeconds);
                   void updateSetting('fallbackDelayMs', clampedSeconds * 1000);
                 }}
@@ -403,7 +407,7 @@ function App() {
               />
               <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
                 Time to wait (seconds) before activating fetch/XHR fallback when DOM selectors fail.
-                Minimum 30 seconds to avoid race conditions.
+                Minimum {MIN_FALLBACK_DELAY_MS / 1000} seconds to avoid race conditions.
               </div>
             </div>
           </div>

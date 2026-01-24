@@ -252,7 +252,7 @@ npm run build       ✅ Builds successfully
 
 The extension does not currently traverse Shadow DOM roots for detection. If AI platforms move their input fields into Shadow DOM, detection will fail silently.
 
-**Current Status**: 
+**Current Status**:
 - ChatGPT: Uses standard textarea/contenteditable (no Shadow DOM) ✅
 - Claude: Uses ProseMirror with contenteditable (no Shadow DOM) ✅
 

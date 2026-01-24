@@ -235,11 +235,12 @@ function scheduleConditionalFallback(delayMs: number): void {
       
       if (!health.inputFound || !health.submitFound) {
         // Attempt injection and only mark as active if successful
-        const injected = injectMainWorldScript();
-        if (injected) {
-          fallbackActive = true;
-          notifyFallbackActive();
-        }
+        void injectMainWorldScript().then((injected) => {
+          if (injected) {
+            fallbackActive = true;
+            notifyFallbackActive();
+          }
+        });
       } else {
         // DOM interception working - no fallback needed
       }
@@ -693,32 +694,43 @@ function notifyPasteSensitive(result: DetectionResult): void {
 }
 
 /**
+<<<<<<< HEAD
  * Injects the extension's "injected.js" into the page's main world to enable fetch/XHR patching.
  *
  * @returns `true` if the script element was created and appended to the document, `false` otherwise.
+=======
+ * Inject script into main world for fetch patching.
+ * @returns Promise that resolves to true if script loaded successfully, false if load failed or error occurred
+>>>>>>> 244beaf (Refactor fallback logic and improve element usability checks)
  */
-function injectMainWorldScript(): boolean {
-  try {
-    const url = safeGetURL('injected.js');
-    if (!url) {
-      // Extension context invalidated - can't inject
-      return false;
-    }
+function injectMainWorldScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const url = safeGetURL('injected.js');
+      if (!url) {
+        // Extension context invalidated - can't inject
+        resolve(false);
+        return;
+      }
 
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = () => script.remove();
-    script.onerror = (ev) => {
-      console.error('[AI Leak Checker] Failed to load injected script:', url, ev);
-      script.remove();
-    };
-    (document.head || document.documentElement).appendChild(script);
-    return true;
-  } catch (error) {
-    // Extension context invalidated or other error
-    console.error('[AI Leak Checker] Failed to inject main world script:', error);
-    return false;
-  }
+      const script = document.createElement('script');
+      script.src = url;
+      script.onload = () => {
+        script.remove();
+        resolve(true);
+      };
+      script.onerror = (ev) => {
+        console.error('[AI Leak Checker] Failed to load injected script:', url, ev);
+        script.remove();
+        resolve(false);
+      };
+      (document.head || document.documentElement).appendChild(script);
+    } catch (error) {
+      // Extension context invalidated or other error
+      console.error('[AI Leak Checker] Failed to inject main world script:', error);
+      resolve(false);
+    }
+  });
 }
 
 /**

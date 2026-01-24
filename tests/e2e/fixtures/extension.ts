@@ -186,19 +186,45 @@ export class ExtensionHelper {
    * @returns true if extension loaded successfully, false if timeout reached
    */
   async waitForLoad(timeoutMs: number = 5000): Promise<boolean> {
+    // If extension ID is already cached, return immediately
+    if (this.extensionId) {
+      return true;
+    }
+
+    // Try to get extension ID once (this may open pages/navigate)
+    try {
+      await this.getExtensionId();
+      // If successful, extensionId is now set
+      return true;
+    } catch {
+      // First attempt failed, continue to polling
+    }
+
+    // Poll using a cheaper check (background pages existence)
     const startTime = Date.now();
     const pollInterval = 100; // Check every 100ms
     
     while (Date.now() - startTime < timeoutMs) {
-      try {
-        // Try to get extension ID (this verifies extension is loaded)
-        await this.getExtensionId();
-        // Extension is loaded if we can get the ID
+      // Check if extension ID was set by a concurrent call
+      if (this.extensionId) {
         return true;
-      } catch {
-        // Extension not ready yet, wait and retry
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
       }
+
+      // Check background pages as a cheaper alternative to getExtensionId
+      const backgroundPages = this.context.backgroundPages();
+      if (backgroundPages.length > 0) {
+        // Try to extract extension ID from background page URL
+        const bgPage = backgroundPages[0];
+        const url = bgPage.url();
+        const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
+        if (match && match[1]) {
+          this.extensionId = match[1];
+          return true;
+        }
+      }
+
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
     
     // Timeout reached - extension may not be loaded in this test environment

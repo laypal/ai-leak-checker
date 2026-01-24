@@ -159,6 +159,8 @@ describe('Conditional Fallback Injection', () => {
     });
 
     it('should handle checkSelectorHealth errors gracefully', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      
       mockCheckSelectorHealth.mockImplementation(() => {
         throw new Error('Health check failed');
       });
@@ -168,8 +170,11 @@ describe('Conditional Fallback Injection', () => {
       vi.advanceTimersByTime(FALLBACK_HEALTH_CHECK_DELAY_MS);
 
       expect(mockCheckSelectorHealth).toHaveBeenCalledWith(mockSiteConfig);
+      expect(consoleErrorSpy).toHaveBeenCalled();
       expect(fallbackActive).toBe(false);
       expect(injectMainWorldScriptCalled).toBe(false);
+      
+      consoleErrorSpy.mockRestore();
     });
 
     it('should wait FALLBACK_HEALTH_CHECK_DELAY_MS before checking', async () => {

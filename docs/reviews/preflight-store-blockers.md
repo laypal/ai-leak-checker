@@ -93,6 +93,7 @@ All network activity is interception-only (fetch/XHR patching in main world). No
 ### C.1 Script Injection Analysis
 
 **Injection function** [source: src/content/index.ts#L690-L706]:
+
 ```typescript
 function injectMainWorldScript(): void {
   try {
@@ -150,6 +151,7 @@ The fallback pattern from ARCHITECTURE.md ADR-001 is implemented. `scheduleCondi
 ### D.1 Shadow DOM Usage
 
 **Modal rendering** [source: src/content/modal.ts#L30-L43]:
+
 ```typescript
 constructor(callbacks: WarningModalCallbacks) {
   this.callbacks = callbacks;
@@ -276,6 +278,7 @@ constructor(callbacks: WarningModalCallbacks) {
 - But the actual implementation runs both simultaneously
 
 **Implementation Gap**: The documented fallback pattern from ARCHITECTURE.md shows:
+
 ```typescript
 const attemptInterception = async (site: SiteConfig): Promise<boolean> => {
   // Try primary selectors
@@ -295,6 +298,7 @@ const attemptInterception = async (site: SiteConfig): Promise<boolean> => {
   // ...
 };
 ```
+
 This documented fallback pattern is not implemented - instead, both are always active.
 
 **Store Impact**: HIGH - Reviewers may reject for:
@@ -309,6 +313,7 @@ This documented fallback pattern is not implemented - instead, both are always a
 3. Document fallback behavior
 
 **Implementation Pattern**:
+
 ```typescript
 function initialize(): void {
   // ...
