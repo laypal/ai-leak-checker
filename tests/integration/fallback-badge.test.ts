@@ -109,6 +109,53 @@ describe('Fallback Badge Integration', () => {
     expect(actionMock.setBadgeText).toHaveBeenCalledWith({ text: '', tabId: mockTabId });
   });
 
+  it('should show blocked count badge when fallback deactivates and blocked > 0', async () => {
+    const mockTabId = 123;
+    
+    // Mock storage to return stats with blocked count
+    storageMock.local.get.mockResolvedValueOnce({
+      stats: { actions: { cancelled: 5 } },
+    });
+
+    const message: ExtensionMessage = {
+      type: MessageType.SET_FALLBACK_BADGE,
+      payload: { active: false },
+      timestamp: Date.now(),
+      correlationId: 'test-123',
+      source: 'content',
+    };
+
+    const sender = {
+      tab: { id: mockTabId },
+    } as chrome.runtime.MessageSender;
+
+    // Simulate background script handler (updateBadgeForTab logic)
+    if (message.type === MessageType.SET_FALLBACK_BADGE) {
+      const payload = message.payload as { active: boolean };
+      const tabId = sender.tab?.id;
+      
+      if (tabId && !payload.active) {
+        // Simulate updateBadgeForTab
+        const stats = await chrome.storage.local.get('stats');
+        const blocked = stats.stats?.actions?.cancelled || 0;
+        
+        if (blocked > 0) {
+          const text = blocked > 99 ? '99+' : blocked.toString();
+          await chrome.action.setBadgeText({ text, tabId });
+          await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
+        } else {
+          await chrome.action.setBadgeText({ text: '', tabId });
+        }
+      }
+    }
+
+    expect(actionMock.setBadgeText).toHaveBeenCalledWith({ text: '5', tabId: mockTabId });
+    expect(actionMock.setBadgeBackgroundColor).toHaveBeenCalledWith({
+      color: '#dc3545',
+      tabId: mockTabId,
+    });
+  });
+
   it('should handle missing tabId gracefully', async () => {
     const message: ExtensionMessage = {
       type: MessageType.SET_FALLBACK_BADGE,

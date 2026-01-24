@@ -270,4 +270,4 @@ When DOM selectors fail (after 30-second retry), the extension falls back to fet
 
 ---
 
-*Last updated: January 15, 2026*
+*Last updated: January 24, 2026*

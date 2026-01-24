@@ -120,6 +120,6 @@ See [PRIVACY_POLICY.md](../PRIVACY_POLICY.md) for complete privacy documentation
 
 ## Open Source
 
-The extension is open source: https://github.com/laypal/ai-leak-checker
+The extension is open source: [ai-leak-checker](https://github.com/laypal/ai-leak-checker)
 
 All code is auditable and verifiable.

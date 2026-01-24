@@ -31,12 +31,19 @@ export interface PatternDefinition {
  * Ordered by specificity (most specific first).
  */
 export const API_KEY_PATTERNS: PatternDefinition[] = [
-  // OpenAI
+  // OpenAI - supports sk-, sk-proj-, and sk-admin- variants
+  // Pattern is permissive per OpenAI guidance (keys are opaque), but validation
+  // requires minimum length to reduce false positives from placeholders
   {
     type: DetectorType.API_KEY_OPENAI,
     name: 'OpenAI API Key',
-    pattern: /\bsk-(?:proj-)?[A-Za-z0-9]{20,}(?:T3BlbkFJ[A-Za-z0-9]{20,})?\b/g,
+    pattern: /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g,
     baseConfidence: 0.95,
+    validate: (match) => {
+      // Require minimum 20 chars total to filter out placeholders like "sk-abc"
+      // Real OpenAI keys are significantly longer
+      return match.length >= 20;
+    },
     contextKeywords: ['openai', 'gpt', 'chatgpt', 'api_key', 'OPENAI_API_KEY'],
   },
 

@@ -169,18 +169,27 @@ async function handleMessage(
     }
 
     case MessageType.SET_FALLBACK_BADGE: {
-      const payload = message.payload as { active: boolean };
+      const payload = message.payload;
       const tabId = _sender.tab?.id;
       
       if (!tabId) {
         return { error: 'No tab ID available' };
       }
       
-      if (payload.active) {
+      // Validate payload exists and has active property as boolean
+      if (!payload || typeof payload !== 'object') {
+        return { error: 'Invalid payload: payload must be an object' };
+      }
+      
+      if (!('active' in payload) || typeof payload.active !== 'boolean') {
+        return { error: 'Invalid payload: payload.active must be a boolean' };
+      }
+      
+      if (payload.active === true) {
         // Show warning badge for this specific tab
         await chrome.action.setBadgeText({ text: '⚠', tabId });
         await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
-      } else {
+      } else if (payload.active === false) {
         // Clear fallback badge, restore normal badge for this tab
         await updateBadgeForTab(tabId);
       }

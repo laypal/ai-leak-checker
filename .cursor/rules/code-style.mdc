@@ -40,6 +40,10 @@ function scan(text, options) {
 
 ```typescript
 // ✅ Correct - typed errors with Result pattern
+type Result<T, E> = 
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
 type ScanError = 
   | { type: 'SELECTOR_NOT_FOUND'; selector: string }
   | { type: 'TIMEOUT'; durationMs: number }

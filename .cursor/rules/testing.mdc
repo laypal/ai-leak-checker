@@ -77,6 +77,9 @@ describe('OpenAI API Key Pattern', () => {
 import { test, expect, BrowserContext } from '@playwright/test';
 
 test.describe('ChatGPT Integration', () => {
+  // Note: The string "sk-test1234567890abcdefghij" is an intentional test fixture
+  // used to validate API-key leak detection. This is NOT a real secret and is
+  // safe to include in test code for static analysis tools (e.g., Gitleaks).
   test('shows warning when API key typed', async ({ page }) => {
     await page.goto('https://chat.openai.com');
     

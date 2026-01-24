@@ -5,6 +5,13 @@
 import { test, expect } from '@playwright/test';
 import { setupTestPage, createTestPageHTML } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
+import { DEFAULT_SETTINGS } from '@/shared/types';
+
+/**
+ * Test timeout constant: fallback delay + buffer for health check.
+ * Uses the system's fallbackDelayMs (default 32000ms) plus a small buffer.
+ */
+const FALLBACK_DELAY_WITH_BUFFER_MS = DEFAULT_SETTINGS.fallbackDelayMs + 2000;
 
 /**
  * Create a mock AI page with optional selectors.
@@ -81,8 +88,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check (30s + buffer)
-    await page.waitForTimeout(32000);
+    // Wait for health check (fallback delay + buffer)
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify injected.js was NOT loaded
     const isInjected = await page.evaluate(() => {
@@ -103,8 +110,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check (30s + buffer)
-    await page.waitForTimeout(32000);
+    // Wait for health check (fallback delay + buffer)
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify injected.js WAS loaded
     const isInjected = await page.evaluate(() => {
@@ -125,8 +132,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check (30s + buffer)
-    await page.waitForTimeout(32000);
+    // Wait for health check (fallback delay + buffer)
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify injected.js WAS loaded (input selector missing)
     const isInjected = await page.evaluate(() => {
@@ -147,8 +154,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check (30s + buffer)
-    await page.waitForTimeout(32000);
+    // Wait for health check (fallback delay + buffer)
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify injected.js WAS loaded (submit selector missing)
     const isInjected = await page.evaluate(() => {
@@ -170,7 +177,7 @@ test.describe('Conditional Fallback Injection', () => {
     await setupTestPage(page, 'chatgpt.com', html);
 
     // Wait for fallback activation
-    await page.waitForTimeout(32000);
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Verify fallback is active
     const isInjected = await page.evaluate(() => {
@@ -230,8 +237,8 @@ test.describe('Conditional Fallback Injection', () => {
     
     await setupTestPage(page, 'chatgpt.com', html);
 
-    // Wait for health check (30s + buffer)
-    await page.waitForTimeout(32000);
+    // Wait for health check (fallback delay + buffer)
+    await page.waitForTimeout(FALLBACK_DELAY_WITH_BUFFER_MS);
 
     // Should activate fallback (hidden element not usable)
     const isInjected = await page.evaluate(() => {

@@ -1,7 +1,13 @@
 ---
 description: Chrome Extension Manifest V3 development patterns, APIs, and common pitfalls. Use when working on manifest, background scripts, or extension-specific code.
 globs:
+  - "**/manifest.json"
+  - "**/background/**/*.ts"
+  - "**/content/**/*.ts"
+  - "**/injected/**/*.ts"
 alwaysApply: false
+# Note: This rule is manually applied when working on extension-specific code (manifest, background, content scripts).
+# The globs above match common extension files but alwaysApply is false to avoid auto-applying to all TypeScript files.
 ---
 
 # Chrome Extension (MV3) Development

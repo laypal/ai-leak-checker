@@ -65,7 +65,8 @@ const ENTROPY_THRESHOLDS = {
 
 ```typescript
 const API_KEY_PATTERNS = {
-  openai: /sk-(?:proj-)?[a-zA-Z0-9]{32,}/,
+  // OpenAI: no length validation per official guidance (keys are opaque strings)
+  openai: /sk-(?:proj-|admin-)?[a-zA-Z0-9_-]+/,
   aws_access: /(?:AKIA|ABIA|ACCA|ASIA)[A-Z0-9]{16}/,
   github: /gh[pousr]_[a-zA-Z0-9]{36,}/,
   stripe: /[sr]k_(?:live|test)_[a-zA-Z0-9]{24,}/,

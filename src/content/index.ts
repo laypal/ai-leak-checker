@@ -144,7 +144,7 @@ async function initialize(): Promise<void> {
   setupInterception();
 
   // Load settings for fallback delay
-  let fallbackDelayMs = 30000; // Default
+  let fallbackDelayMs = DEFAULT_SETTINGS.fallbackDelayMs; // Default
   try {
     const result = await chrome.storage.local.get('settings');
     if (result.settings && typeof result.settings === 'object') {

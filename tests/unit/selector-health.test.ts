@@ -225,10 +225,10 @@ describe('Selector Health Validation', () => {
       expect(result.containerFound).toBe(false);
     });
 
-    it('should reject zero-size element (hidden via CSS)', () => {
+    it('should reject element with visibility: hidden', () => {
       document.body.innerHTML = `
         <div id="test-container">
-          <textarea id="test-input" style="display: none;">Hidden</textarea>
+          <textarea id="test-input" style="visibility: hidden;">Hidden via visibility</textarea>
           <button id="test-submit" type="submit">Submit</button>
         </div>
       `;
