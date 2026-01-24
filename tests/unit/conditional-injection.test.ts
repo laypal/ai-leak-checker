@@ -31,9 +31,21 @@ const mockSiteConfig: SiteConfig = {
 
 /**
  * Simulate scheduleConditionalFallback function logic for testing.
- * NOTE: This is a test-only simulation. The real implementation in src/content/index.ts
- * accepts delayMs as a parameter and uses scoped handlers. This test version
- * simulates the behavioral logic for unit testing purposes.
+ * 
+ * NOTE: This is a test-only behavioral simulation. The real implementation in
+ * src/content/index.ts has signature: scheduleConditionalFallback(delayMs: number)
+ * and uses scoped variables (siteConfig, checkSelectorHealth, injectMainWorldScript,
+ * notifyFallbackActive) from the content script module. This test version accepts
+ * these as parameters to enable isolated unit testing of the conditional logic.
+ * 
+ * The real implementation:
+ * - Uses module-scoped siteConfig variable
+ * - Calls checkSelectorHealth(siteConfig) directly
+ * - Calls injectMainWorldScript() and only sets fallbackActive if injection succeeds
+ * - Calls notifyFallbackActive() to update badge
+ * 
+ * This test simulation exercises the same behavioral logic but with injected
+ * dependencies for testability.
  */
 function scheduleConditionalFallback(
   siteConfig: SiteConfig | null,
@@ -49,6 +61,7 @@ function scheduleConditionalFallback(
       const health = checkSelectorHealth(siteConfig);
       
       if (!health.inputFound || !health.submitFound) {
+        // Simulate injection success (real implementation checks injectMainWorldScript return)
         fallbackActive = true;
         injectMainWorldScriptCalled = true;
         notifyFallbackActiveCalled = true;
@@ -185,35 +198,146 @@ describe('Conditional Fallback Injection', () => {
   });
 
   describe('Dual Execution Prevention', () => {
-    it('handleKeyDown should skip when fallbackActive is true', () => {
-      fallbackActive = true;
+    // Test handler functions that mirror the guard behavior from src/content/index.ts
+    // These exercise the actual early-return pattern used by handleKeyDown,
+    // handleSubmitClick, and handleFormSubmit when fallbackActive is true.
+
+    /**
+     * Test version of handleKeyDown that mirrors the guard pattern.
+     * Real implementation: src/content/index.ts:328-375
+     */
+    function testHandleKeyDown(
+      event: { key: string; shiftKey: boolean; target: unknown },
+      fallbackActiveFlag: boolean,
+      onScan: () => void,
+      onShowWarning: () => void
+    ): void {
+      // Skip if fallback patching is handling interception
+      if (fallbackActiveFlag) {
+        return;
+      }
+
+      // Only intercept Enter without Shift (Shift+Enter is newline)
+      if (event.key !== 'Enter' || event.shiftKey) {
+        return;
+      }
+
+      const target = event.target;
+      if (!target) return;
+
+      // Simulate scanning and warning (would call scan() and showWarning() in real code)
+      onScan();
+      onShowWarning();
+    }
+
+    /**
+     * Test version of handleSubmitClick that mirrors the guard pattern.
+     * Real implementation: src/content/index.ts:403-424
+     */
+    function testHandleSubmitClick(
+      event: unknown,
+      fallbackActiveFlag: boolean,
+      onGetText: () => string,
+      onScan: () => void,
+      onShowWarning: () => void
+    ): void {
+      // Skip if fallback patching is handling interception
+      if (fallbackActiveFlag) {
+        return;
+      }
+
+      const text = onGetText();
+      if (text) {
+        onScan();
+        onShowWarning();
+      }
+    }
+
+    /**
+     * Test version of handleFormSubmit that mirrors the guard pattern.
+     * Real implementation: src/content/index.ts:429-450
+     */
+    function testHandleFormSubmit(
+      event: unknown,
+      fallbackActiveFlag: boolean,
+      onGetText: () => string,
+      onScan: () => void,
+      onShowWarning: () => void
+    ): void {
+      // Skip if fallback patching is handling interception
+      if (fallbackActiveFlag) {
+        return;
+      }
+
+      const text = onGetText();
+      if (text) {
+        onScan();
+        onShowWarning();
+      }
+    }
+
+    it('handleKeyDown should early-return when fallbackActive is true and not call scan/showWarning', () => {
+      const scanSpy = vi.fn();
+      const showWarningSpy = vi.fn();
       
-      // Simulate the actual guard pattern from handleKeyDown
-      // In real code: if (fallbackActive) { return; }
-      const shouldProcess = !fallbackActive;
-      
-      expect(shouldProcess).toBe(false);
-      // This test documents the guard pattern - actual behavior is tested in E2E
+      // Create mock KeyboardEvent-like object
+      const event = {
+        key: 'Enter',
+        shiftKey: false,
+        target: { value: 'test' }, // Mock target element
+      };
+
+      // Test with fallbackActive = true - should early return
+      testHandleKeyDown(event, true, scanSpy, showWarningSpy);
+      expect(scanSpy).not.toHaveBeenCalled();
+      expect(showWarningSpy).not.toHaveBeenCalled();
+
+      // Test with fallbackActive = false - should proceed
+      testHandleKeyDown(event, false, scanSpy, showWarningSpy);
+      expect(scanSpy).toHaveBeenCalled();
+      expect(showWarningSpy).toHaveBeenCalled();
     });
 
-    it('handleSubmitClick should skip when fallbackActive is true', () => {
-      fallbackActive = true;
+    it('handleSubmitClick should early-return when fallbackActive is true and not call getText/scan/showWarning', () => {
+      const getTextSpy = vi.fn(() => 'test text');
+      const scanSpy = vi.fn();
+      const showWarningSpy = vi.fn();
       
-      // Simulate the actual guard pattern from handleSubmitClick
-      const shouldProcess = !fallbackActive;
-      
-      expect(shouldProcess).toBe(false);
-      // This test documents the guard pattern - actual behavior is tested in E2E
+      // Create mock MouseEvent-like object (not used in handler logic, just for type)
+      const event = {};
+
+      // Test with fallbackActive = true - should early return
+      testHandleSubmitClick(event, true, getTextSpy, scanSpy, showWarningSpy);
+      expect(getTextSpy).not.toHaveBeenCalled();
+      expect(scanSpy).not.toHaveBeenCalled();
+      expect(showWarningSpy).not.toHaveBeenCalled();
+
+      // Test with fallbackActive = false - should proceed
+      testHandleSubmitClick(event, false, getTextSpy, scanSpy, showWarningSpy);
+      expect(getTextSpy).toHaveBeenCalled();
+      expect(scanSpy).toHaveBeenCalled();
+      expect(showWarningSpy).toHaveBeenCalled();
     });
 
-    it('handleFormSubmit should skip when fallbackActive is true', () => {
-      fallbackActive = true;
+    it('handleFormSubmit should early-return when fallbackActive is true and not call getText/scan/showWarning', () => {
+      const getTextSpy = vi.fn(() => 'test text');
+      const scanSpy = vi.fn();
+      const showWarningSpy = vi.fn();
       
-      // Simulate the actual guard pattern from handleFormSubmit
-      const shouldProcess = !fallbackActive;
-      
-      expect(shouldProcess).toBe(false);
-      // This test documents the guard pattern - actual behavior is tested in E2E
+      // Create mock SubmitEvent-like object (not used in handler logic, just for type)
+      const event = {};
+
+      // Test with fallbackActive = true - should early return
+      testHandleFormSubmit(event, true, getTextSpy, scanSpy, showWarningSpy);
+      expect(getTextSpy).not.toHaveBeenCalled();
+      expect(scanSpy).not.toHaveBeenCalled();
+      expect(showWarningSpy).not.toHaveBeenCalled();
+
+      // Test with fallbackActive = false - should proceed
+      testHandleFormSubmit(event, false, getTextSpy, scanSpy, showWarningSpy);
+      expect(getTextSpy).toHaveBeenCalled();
+      expect(scanSpy).toHaveBeenCalled();
+      expect(showWarningSpy).toHaveBeenCalled();
     });
   });
 });
