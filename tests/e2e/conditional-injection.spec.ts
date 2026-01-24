@@ -3,6 +3,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import type { BrowserContext } from '@playwright/test';
 import { setupTestPage, createTestPageHTML } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 import { DEFAULT_SETTINGS } from '@/shared/types';
@@ -17,7 +18,7 @@ const TEST_FALLBACK_DELAY_MS = (() => {
     return DEFAULT_SETTINGS.fallbackDelayMs;
   }
   const parsed = Number(envValue);
-  if (!Number.isFinite(parsed) || isNaN(parsed) || parsed <= 0) {
+  if (!Number.isFinite(parsed) || parsed <= 0) {
     return DEFAULT_SETTINGS.fallbackDelayMs;
   }
   return parsed;
@@ -86,13 +87,22 @@ function createMockAIPageHTML(
   `;
 }
 
+/**
+ * Helper function to wait for extension load and skip test if not loaded.
+ * Returns the ExtensionHelper instance for use in the test.
+ */
+async function skipIfExtensionNotLoaded(context: BrowserContext): Promise<ExtensionHelper> {
+  const extension = new ExtensionHelper(context);
+  const loaded = await extension.waitForLoad();
+  if (!loaded) {
+    test.skip();
+  }
+  return extension;
+}
+
 test.describe('Conditional Fallback Injection', () => {
   test('should NOT inject when selectors work', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create mock page WITH valid selectors
     const html = createMockAIPageHTML('chatgpt.com', {
@@ -113,11 +123,7 @@ test.describe('Conditional Fallback Injection', () => {
   });
 
   test('should inject when selectors fail', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create mock page WITHOUT matching selectors
     const html = createMockAIPageHTML('chatgpt.com', {
@@ -138,11 +144,7 @@ test.describe('Conditional Fallback Injection', () => {
   });
 
   test('should inject when only input selector fails', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create mock page with submit button but no textarea
     const html = createMockAIPageHTML('chatgpt.com', {
@@ -163,11 +165,7 @@ test.describe('Conditional Fallback Injection', () => {
   });
 
   test('should inject when only submit selector fails', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create mock page with textarea but no submit button
     const html = createMockAIPageHTML('chatgpt.com', {
@@ -188,11 +186,7 @@ test.describe('Conditional Fallback Injection', () => {
   });
 
   test('DOM events should be skipped when fallback active', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create page without selectors (triggers fallback)
     const html = createMockAIPageHTML('chatgpt.com', {
@@ -232,11 +226,7 @@ test.describe('Conditional Fallback Injection', () => {
   });
 
   test('should detect false negative (hidden element matches selector)', async ({ page, context }) => {
-    const extension = new ExtensionHelper(context);
-    const loaded = await extension.waitForLoad();
-    if (!loaded) {
-      test.skip();
-    }
+    const extension = await skipIfExtensionNotLoaded(context);
 
     // Create page with hidden textarea matching selector
     const html = `

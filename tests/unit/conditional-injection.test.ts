@@ -292,6 +292,10 @@ describe('Conditional Fallback Injection', () => {
       expect(scanSpy).not.toHaveBeenCalled();
       expect(showWarningSpy).not.toHaveBeenCalled();
 
+      // Clear spy call history before second scenario (preserves implementations)
+      scanSpy.mockClear();
+      showWarningSpy.mockClear();
+
       // Test with fallbackActive = false - should proceed
       testHandleKeyDown(event, false, scanSpy, showWarningSpy);
       expect(scanSpy).toHaveBeenCalled();
@@ -311,6 +315,11 @@ describe('Conditional Fallback Injection', () => {
       expect(getTextSpy).not.toHaveBeenCalled();
       expect(scanSpy).not.toHaveBeenCalled();
       expect(showWarningSpy).not.toHaveBeenCalled();
+
+      // Clear spy call history before second scenario (preserves implementations)
+      getTextSpy.mockClear();
+      scanSpy.mockClear();
+      showWarningSpy.mockClear();
 
       // Test with fallbackActive = false - should proceed
       testHandleSubmitClick(event, false, getTextSpy, scanSpy, showWarningSpy);
@@ -332,6 +341,11 @@ describe('Conditional Fallback Injection', () => {
       expect(getTextSpy).not.toHaveBeenCalled();
       expect(scanSpy).not.toHaveBeenCalled();
       expect(showWarningSpy).not.toHaveBeenCalled();
+
+      // Clear spy call history before second scenario (preserves implementations)
+      getTextSpy.mockClear();
+      scanSpy.mockClear();
+      showWarningSpy.mockClear();
 
       // Test with fallbackActive = false - should proceed
       testHandleFormSubmit(event, false, getTextSpy, scanSpy, showWarningSpy);
