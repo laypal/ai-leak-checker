@@ -151,6 +151,44 @@ describe('Selector Health Validation', () => {
       expect(result.containerFound).toBe(true);
     });
 
+    it('should accept contenteditable with empty string value (HTML5 spec)', () => {
+      const contenteditableConfig: SiteConfig = {
+        ...mockSiteConfig,
+        inputSelectors: ['div[contenteditable]'],
+        inputType: 'contenteditable',
+      };
+
+      document.body.innerHTML = `
+        <div id="test-container">
+          <div contenteditable="">Editable (empty string = true per HTML5)</div>
+          <button id="test-submit" type="submit">Submit</button>
+        </div>
+      `;
+
+      const result = checkSelectorHealth(contenteditableConfig);
+      expect(result.inputFound).toBe(true);
+      expect(result.submitFound).toBe(true);
+    });
+
+    it('should accept bare contenteditable attribute (no value)', () => {
+      const contenteditableConfig: SiteConfig = {
+        ...mockSiteConfig,
+        inputSelectors: ['div[contenteditable]'],
+        inputType: 'contenteditable',
+      };
+
+      document.body.innerHTML = `
+        <div id="test-container">
+          <div contenteditable>Editable (bare attribute = true per HTML5)</div>
+          <button id="test-submit" type="submit">Submit</button>
+        </div>
+      `;
+
+      const result = checkSelectorHealth(contenteditableConfig);
+      expect(result.inputFound).toBe(true);
+      expect(result.submitFound).toBe(true);
+    });
+
     it('should reject contenteditable="false"', () => {
       const contenteditableConfig: SiteConfig = {
         ...mockSiteConfig,

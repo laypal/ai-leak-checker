@@ -253,11 +253,14 @@ function isInputEditable(element: Element): boolean {
   }
 
   // For contenteditable, check contenteditable attribute
+  // Per HTML5 spec: empty string, "true", or bare attribute = editable
+  // Only "false" means non-editable
   if (element.hasAttribute('contenteditable')) {
     const value = element.getAttribute('contenteditable');
-    if (value === 'false' || value === '') {
+    if (value === 'false') {
       return false;
     }
+    // Empty string, "true", or bare attribute all mean editable
   }
 
   // For textarea/input, check disabled property

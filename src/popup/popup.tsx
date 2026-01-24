@@ -369,7 +369,7 @@ function App() {
                 type="number"
                 min="30"
                 max="120"
-                value={Math.floor(settings.fallbackDelayMs / 1000)}
+                value={Math.floor((settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000)}
                 onChange={(e) => {
                   const seconds = parseInt(e.currentTarget.value) || 30;
                   const clampedSeconds = Math.max(30, Math.min(120, seconds));
