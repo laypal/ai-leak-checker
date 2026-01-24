@@ -214,7 +214,7 @@ function isElementUsable(element: Element): boolean {
   // Check computed styles
   try {
     const style = window.getComputedStyle(element);
-    if (style.display === 'none' || style.visibility === 'hidden') {
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
       return false;
     }
   } catch {
@@ -230,7 +230,7 @@ function isElementUsable(element: Element): boolean {
     // This prevents false positives in test environments
     if (rect.width === 0 && rect.height === 0) {
       const style = window.getComputedStyle(element);
-      if (style.display === 'none' || style.visibility === 'hidden') {
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
         return false;
       }
       // In test environments, zero size might be normal, so allow it
