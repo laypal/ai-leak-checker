@@ -331,7 +331,11 @@ export function scanForApiKeys(
     let match: RegExpExecArray | null;
 
     while ((match = patternDef.pattern.exec(text)) !== null) {
-      const value = match[0];
+      // For PASSWORD detector (or any pattern with capture groups), prefer captured group
+      // This extracts just the secret value (e.g., "secret123") instead of full match (e.g., "password=secret123")
+      const value = (patternDef.type === DetectorType.PASSWORD && match[1] !== undefined)
+        ? match[1]
+        : match[0];
       const key = `${patternDef.type}:${match.index}:${value}`;
 
       // Skip duplicates
@@ -345,13 +349,19 @@ export function scanForApiKeys(
         continue;
       }
 
+      // Calculate position for captured group (if used)
+      // match[1] is always a substring of match[0] in valid regex, but use Math.max for safety
+      const matchStart = patternDef.type === DetectorType.PASSWORD && match[1] !== undefined
+        ? match.index + Math.max(0, match[0].indexOf(match[1]))
+        : match.index;
+
       findings.push({
         type: patternDef.type,
         value,
-        start: match.index,
-        end: match.index + value.length,
+        start: matchStart,
+        end: matchStart + value.length,
         confidence: patternDef.baseConfidence,
-        context: extractContext(text, match.index, value.length),
+        context: extractContext(text, matchStart, value.length),
       });
     }
   }

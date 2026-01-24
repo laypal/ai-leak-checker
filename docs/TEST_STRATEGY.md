@@ -613,7 +613,7 @@ npm run test -- --reporter=verbose
 
 ### 11.1 Overview
 
-E2E tests use Playwright to load the extension in Chrome and verify behavior on real AI chat sites. Tests are isolated in a separate CI job due to long wait times (32s per conditional injection test).
+E2E tests use Playwright to load the extension in Chrome and verify behavior on real AI chat sites. Tests are isolated in a separate CI job due to long wait times (32s per conditional injection test). Total suite runs in ~3.2 minutes with 6 conditional injection tests (32s per test, workers: 1).
 
 ### 11.2 Test Structure
 
