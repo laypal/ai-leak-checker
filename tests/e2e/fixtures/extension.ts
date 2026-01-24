@@ -27,6 +27,17 @@ export class ExtensionHelper {
   }
 
   /**
+   * Extract extension ID from a chrome-extension:// URL.
+   * 
+   * @param url - The URL to extract the ID from
+   * @returns The extension ID if found, null otherwise
+   */
+  private extractExtensionIdFromUrl(url: string): string | null {
+    const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
+    return match && match[1] ? match[1] : null;
+  }
+
+  /**
    * Get the extension ID from Chrome.
    * Extension ID is needed to access extension pages like popup.
    */
@@ -84,9 +95,9 @@ export class ExtensionHelper {
       if (backgroundPages.length > 0) {
         const bgPage = backgroundPages[0];
         const url = bgPage.url();
-        const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
-        if (match && match[1]) {
-          this.extensionId = match[1];
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
           return this.extensionId;
         }
       }
@@ -191,6 +202,10 @@ export class ExtensionHelper {
       return true;
     }
 
+    // Start timing before the first attempt to include it in timeout calculation
+    const startTime = Date.now();
+    const pollInterval = 100; // Check every 100ms
+
     // Try to get extension ID once (this may open pages/navigate)
     try {
       await this.getExtensionId();
@@ -199,10 +214,6 @@ export class ExtensionHelper {
     } catch {
       // First attempt failed, continue to polling
     }
-
-    // Poll using a cheaper check (background pages existence)
-    const startTime = Date.now();
-    const pollInterval = 100; // Check every 100ms
     
     while (Date.now() - startTime < timeoutMs) {
       // Check if extension ID was set by a concurrent call
@@ -216,9 +227,9 @@ export class ExtensionHelper {
         // Try to extract extension ID from background page URL
         const bgPage = backgroundPages[0];
         const url = bgPage.url();
-        const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
-        if (match && match[1]) {
-          this.extensionId = match[1];
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
           return true;
         }
       }
