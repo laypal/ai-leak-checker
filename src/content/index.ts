@@ -694,14 +694,9 @@ function notifyPasteSensitive(result: DetectionResult): void {
 }
 
 /**
-<<<<<<< HEAD
  * Injects the extension's "injected.js" into the page's main world to enable fetch/XHR patching.
- *
- * @returns `true` if the script element was created and appended to the document, `false` otherwise.
-=======
- * Inject script into main world for fetch patching.
- * @returns Promise that resolves to true if script loaded successfully, false if load failed or error occurred
->>>>>>> 244beaf (Refactor fallback logic and improve element usability checks)
+ * 
+ * @returns Promise resolving to true if script loaded successfully, false otherwise
  */
 function injectMainWorldScript(): Promise<boolean> {
   return new Promise((resolve) => {

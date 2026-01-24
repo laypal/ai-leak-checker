@@ -192,6 +192,7 @@ export class ExtensionHelper {
   /**
    * Wait for extension to be fully loaded and ready.
    * Polls until extension ID is available or timeout is reached.
+   * Supports both MV2 (background pages) and MV3 (service workers) extensions.
    * 
    * @param timeoutMs - Maximum time to wait in milliseconds (default: 5000)
    * @returns true if extension loaded successfully, false if timeout reached
@@ -205,6 +206,8 @@ export class ExtensionHelper {
     // Start timing before the first attempt to include it in timeout calculation
     const startTime = Date.now();
     const pollInterval = 100; // Check every 100ms
+    const retryGetExtensionIdInterval = 1000; // Retry getExtensionId every 1000ms
+    let lastGetExtensionIdAttempt = 0;
 
     // Try to get extension ID once (this may open pages/navigate)
     try {
@@ -221,12 +224,35 @@ export class ExtensionHelper {
         return true;
       }
 
-      // Check background pages as a cheaper alternative to getExtensionId
+      // Periodically retry getExtensionId() for late-loading extensions
+      if (Date.now() - lastGetExtensionIdAttempt >= retryGetExtensionIdInterval) {
+        try {
+          await this.getExtensionId();
+          // If successful, extensionId is now set
+          return true;
+        } catch {
+          // Retry failed, continue polling
+        }
+        lastGetExtensionIdAttempt = Date.now();
+      }
+
+      // Check background pages (MV2 extensions)
       const backgroundPages = this.context.backgroundPages();
       if (backgroundPages.length > 0) {
         // Try to extract extension ID from background page URL
         const bgPage = backgroundPages[0];
         const url = bgPage.url();
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
+          return true;
+        }
+      }
+
+      // Check service workers (MV3 extensions)
+      const serviceWorkers = this.context.serviceWorkers();
+      for (const sw of serviceWorkers) {
+        const url = sw.url();
         const extractedId = this.extractExtensionIdFromUrl(url);
         if (extractedId) {
           this.extensionId = extractedId;
