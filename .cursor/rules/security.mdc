@@ -131,7 +131,7 @@ function processConfig(raw: any): Config {
 | XSS | Shadow DOM isolation, no innerHTML with user content |
 | Data exfiltration | No network calls with user content |
 | Privilege escalation | Minimal permissions, no `<all_urls>` |
-| Supply chain | Pinned deps, code review, no remote code |
+| Supply chain | Pinned via lockfile (use caret ranges in package.json with committed package-lock.json), code review, no remote code |
 | Prompt injection | N/A - we don't send to LLMs |
 
 ## Security Review Checklist

@@ -63,6 +63,11 @@ export interface Settings {
 }
 
 /**
+ * Minimum allowed fallback delay in milliseconds.
+ */
+export const MIN_FALLBACK_DELAY_MS = 30000;
+
+/**
  * Maximum allowed fallback delay in milliseconds.
  */
 export const MAX_FALLBACK_DELAY_MS = 120000;

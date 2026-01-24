@@ -19,6 +19,7 @@ import {
   type Settings,
   DEFAULT_SETTINGS,
   MAX_FALLBACK_DELAY_MS,
+  MIN_FALLBACK_DELAY_MS,
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
@@ -153,11 +154,11 @@ async function initialize(): Promise<void> {
       const rawValue = settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs;
       // Coerce to number and validate
       const numericValue = Number(rawValue);
-      if (!Number.isFinite(numericValue) || isNaN(numericValue)) {
+      if (!Number.isFinite(numericValue)) {
         fallbackDelayMs = DEFAULT_SETTINGS.fallbackDelayMs;
       } else {
-      // Clamp between minimum (30000) and maximum (120000)
-      fallbackDelayMs = Math.min(Math.max(numericValue, 30000), MAX_FALLBACK_DELAY_MS);
+        // Clamp between minimum and maximum
+        fallbackDelayMs = Math.min(Math.max(numericValue, MIN_FALLBACK_DELAY_MS), MAX_FALLBACK_DELAY_MS);
       }
     }
   } catch (error) {
@@ -696,6 +697,10 @@ function injectMainWorldScript(): boolean {
     const script = document.createElement('script');
     script.src = url;
     script.onload = () => script.remove();
+    script.onerror = (ev) => {
+      console.error('[AI Leak Checker] Failed to load injected script:', url, ev);
+      script.remove();
+    };
     (document.head || document.documentElement).appendChild(script);
     return true;
   } catch (error) {

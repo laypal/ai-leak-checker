@@ -134,7 +134,7 @@ function App() {
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings'>('stats');
   const [fallbackDelaySeconds, setFallbackDelaySeconds] = useState<number>(
-    Math.floor((DEFAULT_SETTINGS.fallbackDelayMs ?? 32000) / 1000)
+    Math.floor(DEFAULT_SETTINGS.fallbackDelayMs / 1000)
   );
 
   // Load settings and stats on mount

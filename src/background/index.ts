@@ -194,12 +194,12 @@ async function handleMessage(
           // Clear fallback badge, restore normal badge for this tab
           await updateBadgeForTab(tabId);
         }
+        return { success: true };
       } catch (error) {
-        // Tab may have closed - log and continue
+        // Tab may have closed - log and return failure
         console.warn('[AI Leak Checker] Failed to update fallback badge:', error);
-        // Still return success to avoid hanging the message sender
+        return { success: false, error: String(error) };
       }
-      return { success: true };
     }
 
     default:

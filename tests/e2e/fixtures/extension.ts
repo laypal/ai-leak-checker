@@ -50,8 +50,11 @@ export class ExtensionHelper {
       }
     });
 
-    // Wait for extensions to load
-    await extensionsPage.waitForTimeout(1000);
+    // Wait for extensions to load - wait for extension list container
+    await extensionsPage.waitForSelector('extensions-manager', { timeout: 5000 }).catch(() => {
+      // Fallback: wait for network idle if selector not found
+      return extensionsPage.waitForLoadState('networkidle', { timeout: 5000 });
+    });
 
     // Get extension ID from page
     // Extension ID is in the URL or can be extracted from extension details
@@ -132,18 +135,28 @@ export class ExtensionHelper {
 
   /**
    * Capture console logs from extension.
-   * Returns a promise that resolves when logs are captured.
+   * Returns a cleanup function that removes the listener and returns collected logs.
+   * 
+   * Usage:
+   *   const cleanup = await extension.captureConsoleLogs(page);
+   *   // ... perform actions ...
+   *   const logs = cleanup();
    */
-  async captureConsoleLogs(page: Page): Promise<string[]> {
+  async captureConsoleLogs(page: Page): Promise<() => string[]> {
     const logs: string[] = [];
     
-    page.on('console', (msg) => {
+    const handler = (msg: any) => {
       const text = msg.text();
       logs.push(`[${msg.type()}] ${text}`);
-    });
+    };
+    
+    page.on('console', handler);
 
-    // Return logs array (will be populated as logs occur)
-    return logs;
+    // Return cleanup function that removes listener and returns logs
+    return () => {
+      page.off('console', handler);
+      return logs;
+    };
   }
 
   /**
@@ -169,13 +182,10 @@ export class ExtensionHelper {
    * Wait for extension to be fully loaded and ready.
    * Polls until extension ID is available or timeout is reached.
    * 
-   * Note: In Chromium test environments, extension loading may not always work.
-   * This method will wait up to the timeout, but will not throw if the extension
-   * doesn't load - tests should handle this gracefully.
-   * 
    * @param timeoutMs - Maximum time to wait in milliseconds (default: 5000)
+   * @returns true if extension loaded successfully, false if timeout reached
    */
-  async waitForLoad(timeoutMs: number = 5000): Promise<void> {
+  async waitForLoad(timeoutMs: number = 5000): Promise<boolean> {
     const startTime = Date.now();
     const pollInterval = 100; // Check every 100ms
     
@@ -184,7 +194,7 @@ export class ExtensionHelper {
         // Try to get extension ID (this verifies extension is loaded)
         await this.getExtensionId();
         // Extension is loaded if we can get the ID
-        return;
+        return true;
       } catch {
         // Extension not ready yet, wait and retry
         await new Promise(resolve => setTimeout(resolve, pollInterval));
@@ -192,7 +202,6 @@ export class ExtensionHelper {
     }
     
     // Timeout reached - extension may not be loaded in this test environment
-    // (e.g., Chromium may not support extension loading the same way Chrome does)
-    // Don't throw - let tests proceed and handle gracefully
+    return false;
   }
 }

@@ -117,7 +117,7 @@ test.describe('Playwright Extension Setup', () => {
     await page.goto('data:text/html,<html><body>Test</body></html>');
     
     // Capture console logs
-    const logs = await helper.captureConsoleLogs(page);
+    const cleanup = await helper.captureConsoleLogs(page);
     
     // Trigger some console output (if extension is loaded, it may log)
     await page.evaluate(() => {
@@ -126,6 +126,9 @@ test.describe('Playwright Extension Setup', () => {
     
     // Wait a bit for logs to be captured
     await page.waitForTimeout(500);
+    
+    // Get collected logs and cleanup
+    const logs = cleanup();
     
     // Verify logs are being captured
     // The logs array should be populated if extension logs anything
