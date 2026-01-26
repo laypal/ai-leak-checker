@@ -61,8 +61,8 @@
 
 | Location | Type | Purpose | Default Enabled? | Status |
 |----------|------|---------|------------------|--------|
-| `src/injected/index.ts#L160-L185` | `fetch` patching | Intercept AI API calls | ✅ Yes (always-on) | **PASS** - Interception only, no transmission |
-| `src/injected/index.ts#L188-L223` | `XMLHttpRequest` patching | Intercept AI API calls | ✅ Yes (always-on) | **PASS** - Interception only, no transmission |
+| `src/injected/index.ts#L160-L185` | `fetch` patching | Intercept AI API calls | Conditional – enabled only as fallback/after grace period | **PASS** - Interception only, no transmission |
+| `src/injected/index.ts#L188-L223` | `XMLHttpRequest` patching | Intercept AI API calls | Conditional – enabled only as fallback/after grace period | **PASS** - Interception only, no transmission |
 | `src/background/index.ts` | None found | - | - | **PASS** |
 | `src/content/index.ts` | None found | - | - | **PASS** |
 | `.cursor/rules/content-scripts.mdc#L102-L111` | Remote selector fetch | Example code only | ❌ Not implemented | **PASS** - Documentation only |
@@ -84,7 +84,7 @@
 
 **Status**: ✅ **PASS** - Zero network transmission by default.
 
-All network activity is interception-only (fetch/XHR patching in main world). No outbound requests to external servers.
+All network activity is interception-only (fetch/XHR patching conditionally enabled in main world as fallback). No outbound requests to external servers.
 
 ---
 
@@ -130,7 +130,7 @@ The injection is called conditionally via `scheduleConditionalFallback()` [sourc
 
 **Implementation**: ✅ **MATCHES DOCUMENTATION**
 
-The fallback pattern from ARCHITECTURE.md ADR-001 is implemented. `scheduleConditionalFallback()` checks selector health after the grace period (via `fallbackDelayMs` setting, default 32s) and only calls `injectMainWorldScript()` if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false.
+The fallback pattern from ARCHITECTURE.md ADR-001 is implemented. `scheduleConditionalFallback()` checks selector health after the grace period (via `configs/selectors.json` `fallbackBehavior.gracePeriodMs`, default 5000ms) and only calls `injectMainWorldScript()` if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false.
 
 ### C.3 Store Risk Assessment
 
@@ -142,7 +142,7 @@ The fallback pattern from ARCHITECTURE.md ADR-001 is implemented. `scheduleCondi
 
 **Status**: ✅ **PASS** - Main world patching is conditional and only enabled as fallback when DOM interception fails.
 
-**Rationale**: Fetch/XHR patching is disabled by default and only enabled after a grace period (32s default) when selector health check indicates DOM interception is not working. This matches the documented fallback pattern and store requirements.
+**Rationale**: Fetch/XHR patching is disabled by default and only enabled after a grace period (`configs/selectors.json` → `fallbackBehavior.gracePeriodMs`, default 5000ms) when selector health check indicates DOM interception is not working. This matches the documented fallback pattern and store requirements.
 
 ---
 
@@ -270,11 +270,11 @@ constructor(callbacks: WarningModalCallbacks) {
 
 **Status**: ✅ **RESOLVED** - Conditional injection implemented via `scheduleConditionalFallback()`.
 
-**Resolution**: The extension now conditionally injects the main world script only after a grace period (default 32s) when `checkSelectorHealth()` indicates DOM interception has failed. This matches the documented fallback pattern from ARCHITECTURE.md ADR-001.
+**Resolution**: The extension now conditionally injects the main world script only after a grace period (`configs/selectors.json` → `fallbackBehavior.gracePeriodMs`, default 5000ms) when `checkSelectorHealth()` indicates DOM interception has failed. This matches the documented fallback pattern from ARCHITECTURE.md ADR-001.
 
 **Implementation**:
 - Conditional logic implemented in `scheduleConditionalFallback()` [source: src/content/index.ts#L222-L255]
-- Health check runs after grace period (configurable via `fallbackDelayMs` setting)
+- Health check runs after grace period (configurable via `configs/selectors.json` → `fallbackBehavior.gracePeriodMs`, default 5000ms)
 - Injection only occurs if `checkSelectorHealth()` indicates `inputFound` or `submitFound` is false
 - Matches documented behavior: Primary DOM interception, fallback fetch/XHR patching only when needed
 
@@ -282,7 +282,7 @@ constructor(callbacks: WarningModalCallbacks) {
 - Previously, `injectMainWorldScript()` was called unconditionally
 - Fixed by implementing `scheduleConditionalFallback()` which checks selector health before injection
 - Uses `checkSelectorHealth()` from `src/shared/types/selectors.ts#L207-L253`
-- Grace period configurable via `fallbackDelayMs` setting (default 32000ms)
+- Grace period configurable in `configs/selectors.json` under `fallbackBehavior.gracePeriodMs` (default 5000ms) [source: configs/selectors.json#L91]
 
 ### ⚠️ **MEDIUM**: Third Host Permission
 
@@ -310,16 +310,19 @@ constructor(callbacks: WarningModalCallbacks) {
 
 ### P0: Make Fetch Patching Conditional (CRITICAL BLOCKER)
 
-**Required Changes**:
-1. Add selector health check after grace period in `initialize()`
-2. Only call `injectMainWorldScript()` if `checkSelectorHealth()` indicates failure
-3. Use `configs/selectors.json` `fallbackBehavior.gracePeriodMs` (5000ms) for delay
-4. Add user-visible indicator when fallback is active (optional but recommended)
+**Status**: ✅ **RESOLVED** - Implementation matches requirements below.
+
+**Required Changes** (implemented):
+1. `initialize()` waits for grace period (`configs/selectors.json` → `fallbackBehavior.gracePeriodMs`, default 5000ms) then calls `checkSelectorHealth()`
+2. Only calls `injectMainWorldScript()` if `checkSelectorHealth()` indicates failure (`inputFound` or `submitFound` is false)
+3. Grace period configured via `configs/selectors.json` → `fallbackBehavior.gracePeriodMs` (default 5000ms) [source: configs/selectors.json#L91]
+4. User-visible indicator when fallback is active (optional but recommended) - badge shows ⚠ when fallback active
 
 **Implementation**:
-- Use existing `checkSelectorHealth()` function from `src/shared/types/selectors.ts#L207-L253`
-- Check `health.inputFound` and `health.submitFound` after grace period
-- Only inject if either is false
+- Uses existing `checkSelectorHealth()` function from `src/shared/types/selectors.ts#L207-L253`
+- Checks `health.inputFound` and `health.submitFound` after grace period
+- Only injects if either is false
+- Grace period configurable in `configs/selectors.json` under `fallbackBehavior.gracePeriodMs` (default 5000ms)
 
 ### P1: Add Visual Indicator for Selector Failure
 

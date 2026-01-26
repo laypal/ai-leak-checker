@@ -89,15 +89,13 @@ function createMockAIPageHTML(
 
 /**
  * Helper function to wait for extension load and skip test if not loaded.
- * Returns the ExtensionHelper instance for use in the test.
  */
-async function skipIfExtensionNotLoaded(context: BrowserContext): Promise<ExtensionHelper> {
+async function skipIfExtensionNotLoaded(context: BrowserContext): Promise<void> {
   const extension = new ExtensionHelper(context);
   const loaded = await extension.waitForLoad();
   if (!loaded) {
     test.skip();
   }
-  return extension;
 }
 
 test.describe('Conditional Fallback Injection', () => {
