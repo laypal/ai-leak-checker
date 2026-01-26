@@ -72,8 +72,11 @@ const API_KEY_PATTERNS = {
   openai: /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g,
   // AWS Access Key: word boundaries, specific prefixes, uppercase alphanumeric
   aws_access: /\b(A3T[A-Z0-9]|AKIA|ABIA|ACCA|AGPA|AIDA|AIPA|ANPA|ANVA|APKA|AROA|ASCA|ASIA)[A-Z0-9]{16}\b/g,
-  // GitHub: word boundaries, specific prefixes, alphanumeric
-  github: /\b(ghp_|gho_|ghu_|ghs_|github_pat_)[A-Za-z0-9_-]{36,}\b/g,
+  // GitHub: split into two patterns due to different length requirements
+  // Classic tokens (ghp_, gho_, ghu_, ghs_): exactly 36 characters after prefix
+  // Fine-grained PAT (github_pat_): 50+ characters after prefix
+  github_classic: /\b(ghp_|gho_|ghu_|ghs_)[A-Za-z0-9]{36}\b/g,
+  github_pat: /\bgithub_pat_[A-Za-z0-9_-]{50,}\b/g,
   // Stripe: word boundaries, sk_/pk_/rk_ prefixes, test/live environment, alphanumeric
   stripe: /\b(sk|pk|rk)_(test|live)_[A-Za-z0-9]{24,}\b/g,
 };
