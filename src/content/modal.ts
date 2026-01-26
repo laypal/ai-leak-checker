@@ -44,9 +44,17 @@ export class WarningModal {
 
   /**
    * Show the modal with the given findings.
+   * 
+   * If the modal is already visible, it will be hidden first and then shown again
+   * with the new findings. This ensures the modal can always be triggered, even
+   * if it was previously shown (e.g., in a new chat conversation).
    */
   show(findings: Finding[]): void {
-    if (this.isVisible) return;
+    // If already visible, hide first to allow re-showing with new findings
+    // This is important for new chat conversations where the modal should trigger again
+    if (this.isVisible) {
+      this.hide();
+    }
 
     // Store findings for test API (only masked/sanitized data)
     this.currentFindings = findings;

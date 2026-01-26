@@ -176,6 +176,9 @@ async function initialize(): Promise<void> {
     // Extension context invalidated - can't set up listener
     console.warn('[AI Leak Checker] Failed to set up message listener:', error);
   }
+
+  // Listen for messages from injected script (main world)
+  window.addEventListener('message', handleWindowMessage);
 }
 
 /**
@@ -272,10 +275,31 @@ function notifyFallbackActive(): void {
 }
 
 /**
+ * Reset state when a new chat is detected.
+ * This ensures the modal can be triggered again in new conversations.
+ */
+function resetStateForNewChat(): void {
+  // Clear pending submission
+  pendingSubmission = null;
+  
+  // Reset programmatic submit flag
+  isProgrammaticSubmit = false;
+  
+  // Hide modal if visible (new chat = fresh start)
+  if (modal) {
+    modal.hide();
+  }
+}
+
+/**
  * Attach event listeners to input and submit elements.
  */
 function attachListeners(): void {
   if (!siteConfig) return;
+
+  let inputCount = 0;
+  let submitCount = 0;
+  let newInputsFound = false;
 
   // Find and attach to input elements
   for (const selector of siteConfig.inputSelectors) {
@@ -284,10 +308,17 @@ function attachListeners(): void {
       if (!attachedElements.has(input)) {
         if (input instanceof HTMLElement) {
           attachInputListeners(input);
+          inputCount++;
+          newInputsFound = true;
         }
         attachedElements.add(input);
       }
     }
+  }
+
+  // If new input elements were found, reset state (new chat detected)
+  if (newInputsFound) {
+    resetStateForNewChat();
   }
 
   // Find and attach to submit buttons
@@ -297,6 +328,7 @@ function attachListeners(): void {
       if (!attachedElements.has(button)) {
         if (button instanceof HTMLElement) {
           attachSubmitListener(button);
+          submitCount++;
         }
         attachedElements.add(button);
       }
@@ -310,6 +342,11 @@ function attachListeners(): void {
       form.addEventListener('submit', handleFormSubmit, { capture: true });
       attachedElements.add(form);
     }
+  }
+
+  // Debug logging for selector matching
+  if (inputCount > 0 || submitCount > 0) {
+    console.log(`[AI Leak Checker] Attached listeners: ${inputCount} input(s), ${submitCount} submit button(s)`);
   }
 }
 
@@ -771,6 +808,76 @@ function handleMessage(
   }
 
   return false;
+}
+
+/**
+ * Handle messages from injected script (main world) via window.postMessage.
+ * 
+ * Listens for scan requests from the injected script and responds with scan results.
+ * Also handles requests to show the modal when sensitive data is detected via fetch interception.
+ */
+function handleWindowMessage(event: MessageEvent): void {
+  // Only accept messages from same window
+  if (event.source !== window) {
+    return;
+  }
+
+  // Validate message format
+  if (!event.data || typeof event.data !== 'object') {
+    return;
+  }
+
+  const data = event.data as Record<string, unknown>;
+
+  // Only handle our extension messages
+  if (data.type !== 'AI_LEAK_CHECKER') {
+    return;
+  }
+
+  // Handle scan request from injected script
+  if (data.action === 'scan_request' && typeof data.messageId === 'string' && typeof data.content === 'string') {
+    const messageId = data.messageId;
+    const content = data.content;
+
+    // Scan the content
+    const result = scan(content);
+
+    // Send response back to injected script
+    window.postMessage({
+      type: 'AI_LEAK_CHECKER',
+      action: 'scan_result',
+      messageId,
+      result: {
+        hasSensitiveData: result.hasSensitiveData,
+        findings: result.findings,
+      },
+    }, '*');
+
+    // If sensitive data detected, show modal
+    if (result.hasSensitiveData && modal) {
+      // Reset state before showing modal (ensures clean state for new detections)
+      pendingSubmission = null;
+      isProgrammaticSubmit = false;
+      
+      // Store the content for potential redaction/submission
+      pendingSubmission = {
+        text: content,
+        findings: result.findings,
+        result,
+      };
+
+      modal.show(result.findings);
+
+      // Send stats
+      safeSendMessage({
+        type: MessageType.STATS_INCREMENT,
+        payload: {
+          field: 'actions.cancelled',
+          byDetector: result.summary.byType,
+        },
+      });
+    }
+  }
 }
 
 // Initialize when DOM is ready
