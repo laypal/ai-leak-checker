@@ -1,10 +1,16 @@
 /**
- * @fileoverview Unit tests for content script state reset logic.
+ * @file content-state-reset.test.ts
+ * @description Unit tests for content script state reset logic. Ensures the modal
+ * can trigger again in new chat conversations and covers the bug fix where state
+ * wasn't reset when new input elements appeared.
  * @module tests/unit/content-state-reset
- * 
- * Tests the state reset functionality that ensures the modal can trigger again
- * in new chat conversations. This tests the bug fix where state wasn't being
- * reset when new input elements appeared.
+ *
+ * @dependencies
+ * - vitest (describe, it, expect, beforeEach, vi)
+ * - @/shared/types (SiteConfig)
+ *
+ * @security
+ * - No user data or prompts; uses mock state and DOM only.
  */
 
 /**
@@ -231,16 +237,15 @@ describe('Content Script State Reset', () => {
         mockDocument
       );
 
+      // Set state for second call; capture before second attachListeners
+      state.pendingSubmission = { text: 'test' };
+      state.isProgrammaticSubmit = true;
+      state.modalVisible = true;
       const initialState = {
         pendingSubmission: state.pendingSubmission,
         isProgrammaticSubmit: state.isProgrammaticSubmit,
         modalVisible: state.modalVisible,
       };
-
-      // Reset state manually for this test
-      state.pendingSubmission = { text: 'test' };
-      state.isProgrammaticSubmit = true;
-      state.modalVisible = true;
 
       // Second call with same inputs - should not reset
       const result = simulateAttachListeners(
@@ -252,8 +257,9 @@ describe('Content Script State Reset', () => {
       );
 
       expect(result.newInputsFound).toBe(false);
-      // State should remain unchanged (not reset)
-      expect(state.pendingSubmission).not.toBeNull();
+      expect(state.pendingSubmission).toEqual(initialState.pendingSubmission);
+      expect(state.isProgrammaticSubmit).toBe(initialState.isProgrammaticSubmit);
+      expect(state.modalVisible).toBe(initialState.modalVisible);
     });
 
     it('should not clear pendingSubmission when new inputs found but modal is visible', () => {
@@ -325,16 +331,13 @@ describe('Content Script State Reset', () => {
       state.isProgrammaticSubmit = true;
       state.modalVisible = true;
 
-      // New chat detected: reset state
+      // New chat detected: reset state via simulateResetStateForNewChat(state, mockModal)
       simulateResetStateForNewChat(state, mockModal);
 
-      // Verify state is clean for new chat
+      // Verifies state is reset for new chat (pendingSubmission, isProgrammaticSubmit, modalVisible)
       expect(state.pendingSubmission).toBeNull();
       expect(state.isProgrammaticSubmit).toBe(false);
       expect(state.modalVisible).toBe(false);
-
-      // Modal should be able to trigger again (state is clean)
-      // This is verified by the state being reset
     });
 
     it('should handle rapid new chat detection', () => {

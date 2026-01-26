@@ -96,7 +96,7 @@ describe('WarningModal', () => {
       // Modal should still be visible with new content
       expect(container?.style.display).toBe('block');
       
-      // Verify modal container exists (shadow root is closed mode, not accessible)
+      // Test uses shadowMode: 'open' (see modal instantiation), so container.shadowRoot is accessible
       expect(container).toBeTruthy();
     });
 

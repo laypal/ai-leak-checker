@@ -50,6 +50,9 @@ let isProgrammaticSubmit = false;
 /** Flag indicating fallback fetch/XHR patching is active */
 let fallbackActive = false;
 
+/** True in development builds only; avoids noisy selector-matching logs in production. */
+const DEBUG = (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
+
 /**
  * Check if the extension context is still valid.
  * Returns false if the extension has been reloaded.
@@ -345,9 +348,9 @@ function attachListeners(): void {
     }
   }
 
-  // Debug logging for selector matching
-  if (inputCount > 0 || submitCount > 0) {
-    console.log(`[AI Leak Checker] Attached listeners: ${inputCount} input(s), ${submitCount} submit button(s)`);
+  if (DEBUG && (inputCount > 0 || submitCount > 0)) {
+    // eslint-disable-next-line no-console -- debug-only, dev builds only
+    console.debug(`[AI Leak Checker] Attached listeners: ${inputCount} input(s), ${submitCount} submit button(s)`);
   }
 }
 

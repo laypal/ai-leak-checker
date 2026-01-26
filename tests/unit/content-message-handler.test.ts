@@ -179,6 +179,72 @@ describe('Content Script Window Message Handler', () => {
       expect(result.responded).toBe(false);
       expect(postMessageSpy).not.toHaveBeenCalled();
     });
+
+    it('should ignore scan_request when messageId is missing', () => {
+      const event = new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_request',
+          content: 'sk-test1234567890abcdefghijklmnop',
+        },
+      });
+
+      const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
+
+      expect(result.responded).toBe(false);
+      expect(postMessageSpy).not.toHaveBeenCalled();
+    });
+
+    it('should ignore scan_request when content is missing', () => {
+      const event = new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_request',
+          messageId: 'test-123',
+        },
+      });
+
+      const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
+
+      expect(result.responded).toBe(false);
+      expect(postMessageSpy).not.toHaveBeenCalled();
+    });
+
+    it('should ignore scan_request when messageId is not a string', () => {
+      const event = new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_request',
+          messageId: 42,
+          content: 'sk-test1234567890abcdefghijklmnop',
+        },
+      });
+
+      const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
+
+      expect(result.responded).toBe(false);
+      expect(postMessageSpy).not.toHaveBeenCalled();
+    });
+
+    it('should ignore scan_request when content is not a string', () => {
+      const event = new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_request',
+          messageId: 'test-123',
+          content: { body: 'sk-test1234567890abcdefghijklmnop' },
+        },
+      });
+
+      const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
+
+      expect(result.responded).toBe(false);
+      expect(postMessageSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Scan Request Handling', () => {
