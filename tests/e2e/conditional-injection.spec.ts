@@ -4,7 +4,7 @@
 
 import { test, expect } from '@playwright/test';
 import type { BrowserContext } from '@playwright/test';
-import { setupTestPage, createTestPageHTML } from './helpers';
+import { setupTestPage } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
 import { DEFAULT_SETTINGS, MIN_FALLBACK_DELAY_MS, MAX_FALLBACK_DELAY_MS } from '@/shared/types';
 
@@ -30,7 +30,6 @@ const FALLBACK_DELAY_WITH_BUFFER_MS = TEST_FALLBACK_DELAY_MS + 2000;
  * Create a mock AI page with optional selectors.
  */
 function createMockAIPageHTML(
-  hostname: string,
   options: { includeTextarea?: boolean; includeSubmitButton?: boolean } = {}
 ): string {
   const { includeTextarea = true, includeSubmitButton = true } = options;
@@ -104,7 +103,7 @@ test.describe('Conditional Fallback Injection', () => {
     await skipIfExtensionNotLoaded(context);
 
     // Create mock page WITH valid selectors
-    const html = createMockAIPageHTML('chatgpt.com', {
+    const html = createMockAIPageHTML({
       includeTextarea: true,
       includeSubmitButton: true,
     });
@@ -125,7 +124,7 @@ test.describe('Conditional Fallback Injection', () => {
     await skipIfExtensionNotLoaded(context);
 
     // Create mock page WITHOUT matching selectors
-    const html = createMockAIPageHTML('chatgpt.com', {
+    const html = createMockAIPageHTML({
       includeTextarea: false,  // No input element
       includeSubmitButton: false,
     });
@@ -146,7 +145,7 @@ test.describe('Conditional Fallback Injection', () => {
     await skipIfExtensionNotLoaded(context);
 
     // Create mock page with submit button but no textarea
-    const html = createMockAIPageHTML('chatgpt.com', {
+    const html = createMockAIPageHTML({
       includeTextarea: false,
       includeSubmitButton: true,
     });
@@ -167,7 +166,7 @@ test.describe('Conditional Fallback Injection', () => {
     await skipIfExtensionNotLoaded(context);
 
     // Create mock page with textarea but no submit button
-    const html = createMockAIPageHTML('chatgpt.com', {
+    const html = createMockAIPageHTML({
       includeTextarea: true,
       includeSubmitButton: false,
     });
@@ -188,7 +187,7 @@ test.describe('Conditional Fallback Injection', () => {
     await skipIfExtensionNotLoaded(context);
 
     // Create page without selectors (triggers fallback)
-    const html = createMockAIPageHTML('chatgpt.com', {
+    const html = createMockAIPageHTML({
       includeTextarea: false,
       includeSubmitButton: false,
     });
