@@ -4,20 +4,20 @@
   "version": "1.0.0",
   "patterns": {
     "openai": {
-      "description": "OpenAI API keys",
+      "description": "OpenAI API keys - treated as opaque strings per OpenAI guidance",
       "validSamples": [
         "sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzABC567DEF890GHI",
         "sk-abcdefghijklmnopqrstuvwxyz12345678901234567890",
-        "sk-proj-test1234567890abcdefghijklmnopqrstuvwxyz1234567890"
+        "sk-proj-test1234567890abcdefghijklmnopqrstuvwxyz1234567890",
+        "sk-admin-abc123def456ghi789jkl012mno345pqr678",
+        "sk-test_key-with_underscores-and-hyphens"
       ],
       "invalidSamples": [
         "sk-",
-        "sk-abc",
         "not-an-openai-key"
       ],
-      "prefixes": ["sk-", "sk-proj-"],
-      "minLength": 20,
-      "maxLength": 100
+      "prefixes": ["sk-", "sk-proj-", "sk-admin-"],
+      "notes": "OpenAI does not publish or guarantee a fixed key length. Keys should be treated as opaque strings."
     },
     "aws": {
       "description": "AWS Access Key IDs",

@@ -26,6 +26,24 @@ describe('scanForApiKeys', () => {
       expect(findings.some(f => f.type === DetectorType.API_KEY_OPENAI)).toBe(true);
     });
 
+    it('detects admin-scoped OpenAI keys', () => {
+      const text = 'OPENAI_ADMIN_KEY=sk-admin-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz';
+      const findings = scanForApiKeys(text);
+
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      const adminKeyFinding = findings.find(f => f.type === DetectorType.API_KEY_OPENAI);
+      expect(adminKeyFinding).toBeDefined();
+      expect(adminKeyFinding?.value).toContain('sk-admin-');
+    });
+
+    it('detects OpenAI keys with underscores and hyphens', () => {
+      const text = 'key=sk-test_key-with_mixed-chars123';
+      const findings = scanForApiKeys(text);
+
+      expect(findings.length).toBeGreaterThanOrEqual(1);
+      expect(findings.some(f => f.type === DetectorType.API_KEY_OPENAI)).toBe(true);
+    });
+
     it('does not detect invalid OpenAI key format', () => {
       const text = 'Not a key: sk-abc or sk-';
       const findings = scanForApiKeys(text);

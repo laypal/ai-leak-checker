@@ -15,6 +15,11 @@ import {
   type ExtensionMessage,
   MessageType,
   getSiteConfig,
+  checkSelectorHealth,
+  type Settings,
+  DEFAULT_SETTINGS,
+  MAX_FALLBACK_DELAY_MS,
+  MIN_FALLBACK_DELAY_MS,
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
@@ -41,6 +46,9 @@ const attachedElements = new WeakSet<Element>();
 
 /** Flag to temporarily disable scanning during programmatic submission */
 let isProgrammaticSubmit = false;
+
+/** Flag indicating fallback fetch/XHR patching is active */
+let fallbackActive = false;
 
 /**
  * Check if the extension context is still valid.
@@ -109,10 +117,11 @@ function safeGetURL(path: string): string | null {
 }
 
 /**
- * Initialize the content script.
- * Detects the current site and sets up interception.
+ * Prepare the content script for the current page: detect the site, create the warning modal, attach interception listeners, load fallback delay settings, schedule a conditional fallback check, and register the runtime message listener.
+ *
+ * This function sets module-level state such as `siteConfig` and `modal`. If no matching site configuration is found, initialization stops early. When settings are available in storage, the fallback delay is coerced to a number and clamped between configured minimum and maximum values before scheduling the fallback health check.
  */
-function initialize(): void {
+async function initialize(): Promise<void> {
   const hostname = window.location.hostname;
   
   // Find matching site configuration
@@ -137,8 +146,28 @@ function initialize(): void {
   // Set up interception
   setupInterception();
 
-  // Inject main world script for fetch patching
-  injectMainWorldScript();
+  // Load settings for fallback delay
+  let fallbackDelayMs = DEFAULT_SETTINGS.fallbackDelayMs; // Default
+  try {
+    const result = await chrome.storage.local.get('settings');
+    if (result.settings && typeof result.settings === 'object') {
+      const settings = result.settings as Settings;
+      const rawValue = settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs;
+      // Coerce to number and validate
+      const numericValue = Number(rawValue);
+      if (!Number.isFinite(numericValue)) {
+        fallbackDelayMs = DEFAULT_SETTINGS.fallbackDelayMs;
+      } else {
+        // Clamp between minimum and maximum
+        fallbackDelayMs = Math.min(Math.max(numericValue, MIN_FALLBACK_DELAY_MS), MAX_FALLBACK_DELAY_MS);
+      }
+    }
+  } catch (error) {
+    console.warn('[AI Leak Checker] Failed to load settings, using default delay:', error);
+  }
+
+  // Check selector health after grace period, then conditionally inject fallback
+  scheduleConditionalFallback(fallbackDelayMs);
 
   // Listen for messages from service worker
   try {
@@ -150,7 +179,9 @@ function initialize(): void {
 }
 
 /**
- * Set up DOM event interception.
+ * Initialize DOM interception by attaching listeners and scaffolding dynamic reattachment.
+ *
+ * Attaches input/submit/form listeners for the current site, observes the document body for added nodes to re-run attachment when new elements appear, and periodically retries attaching listeners every 2 seconds for up to 30 seconds to cover slow-loading or SPA-rendered elements.
  */
 function setupInterception(): void {
   if (!siteConfig) return;
@@ -184,6 +215,60 @@ function setupInterception(): void {
       observerRetryInterval = null;
     }
   }, 30000);
+}
+
+/**
+ * After a delay, checks whether configured input/submit selectors are present and injects the main-world fallback script if selectors are unhealthy.
+ *
+ * If injection succeeds, marks the fallback active and notifies the background script. If no site configuration exists or selectors are healthy, no action is taken. Errors during the health check or injection are caught and logged.
+ *
+ * @param delayMs - Milliseconds to wait before performing the health check and potential injection
+ */
+function scheduleConditionalFallback(delayMs: number): void {
+  // Capture current siteConfig to avoid race conditions if it changes
+  const currentConfig = siteConfig;
+  if (!currentConfig) return;
+
+  setTimeout(() => {
+    // Re-check that config still exists (may have been cleared)
+    if (!siteConfig) return;
+
+    try {
+      // Use captured config for health check to ensure consistency
+      const health = checkSelectorHealth(currentConfig);
+      
+      if (!health.inputFound || !health.submitFound) {
+        // Attempt injection and only mark as active if successful
+        // Handle promise errors to prevent uncaught rejections
+        injectMainWorldScript()
+          .then((injected) => {
+            if (injected) {
+              fallbackActive = true;
+              notifyFallbackActive();
+            }
+          })
+          .catch((error) => {
+            // Injection failed - log but don't mark as active
+            console.error('[AI Leak Checker] Main world script injection failed:', error);
+          });
+      } else {
+        // DOM interception working - no fallback needed
+      }
+    } catch (error) {
+      // Health check failed - fail safe, skip injection
+      console.error('[AI Leak Checker] Health check failed:', error);
+    }
+  }, delayMs);
+}
+
+/**
+ * Inform the background script that the fallback mechanism is active so the extension badge can update.
+ */
+function notifyFallbackActive(): void {
+  safeSendMessage({
+    type: MessageType.SET_FALLBACK_BADGE,
+    payload: { active: true },
+  });
 }
 
 /**
@@ -247,9 +332,18 @@ function attachSubmitListener(element: HTMLElement): void {
 }
 
 /**
- * Handle keydown events (primarily Enter key).
+ * Intercepts Enter key presses on input elements to scan the input text for sensitive data and display a warning modal when sensitive content is found.
+ *
+ * This handler skips interception when a main-world fallback patch is active, ignores non-Enter keys and Shift+Enter (newline), and treats synthesized or programmatic submissions as trusted. If scanning detects sensitive data, the handler prevents the default submission, stops propagation, and shows the warning modal.
+ *
+ * @param event - The keyboard event originating from the focused input element
  */
 function handleKeyDown(event: KeyboardEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // If user starts typing after programmatic submit, reset flag immediately
   // This prevents the flag from blocking legitimate user input after submission
   if (isProgrammaticSubmit && event.key !== 'Enter') {
@@ -317,9 +411,16 @@ function handlePaste(event: ClipboardEvent): void {
 }
 
 /**
- * Handle submit button click.
+ * Intercepts a submit-button click, scans current input for sensitive data, and shows the warning modal when findings are detected.
+ *
+ * @param event - The original click event from the submit button; this event will be prevented and propagation stopped if sensitive data is found.
  */
 function handleSubmitClick(event: MouseEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
   if (isProgrammaticSubmit) {
     return;
@@ -338,9 +439,20 @@ function handleSubmitClick(event: MouseEvent): void {
 }
 
 /**
- * Handle form submit.
+ * Intercepts a form submit event and blocks submission when user input contains sensitive data.
+ *
+ * If a fallback patch is active or the submission was initiated programmatically, the event is ignored.
+ * Otherwise the current input text is scanned and, if sensitive data is detected, the submit is prevented
+ * and the warning modal is shown to the user.
+ *
+ * @param event - The form `SubmitEvent` that may be prevented when sensitive data is found
  */
 function handleFormSubmit(event: SubmitEvent): void {
+  // Skip if fallback patching is handling interception
+  if (fallbackActive) {
+    return;
+  }
+
   // Skip if this is a programmatic submit (to avoid re-triggering modal)
   if (isProgrammaticSubmit) {
     return;
@@ -592,24 +704,38 @@ function notifyPasteSensitive(result: DetectionResult): void {
 }
 
 /**
- * Inject script into main world for fetch patching.
+ * Injects the extension's "injected.js" into the page's main world to enable fetch/XHR patching.
+ * 
+ * @returns Promise resolving to true if script loaded successfully, false otherwise
  */
-function injectMainWorldScript(): void {
-  try {
-    const url = safeGetURL('injected.js');
-    if (!url) {
-      // Extension context invalidated - can't inject
-      return;
-    }
+function injectMainWorldScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      const url = safeGetURL('injected.js');
+      if (!url) {
+        // Extension context invalidated - can't inject
+        resolve(false);
+        return;
+      }
 
-    const script = document.createElement('script');
-    script.src = url;
-    script.onload = () => script.remove();
-    (document.head || document.documentElement).appendChild(script);
-  } catch (error) {
-    // Extension context invalidated or other error
-    console.error('[AI Leak Checker] Failed to inject main world script:', error);
-  }
+      const script = document.createElement('script');
+      script.src = url;
+      script.onload = () => {
+        script.remove();
+        resolve(true);
+      };
+      script.onerror = (ev) => {
+        console.error('[AI Leak Checker] Failed to load injected script:', url, ev);
+        script.remove();
+        resolve(false);
+      };
+      (document.head || document.documentElement).appendChild(script);
+    } catch (error) {
+      // Extension context invalidated or other error
+      console.error('[AI Leak Checker] Failed to inject main world script:', error);
+      resolve(false);
+    }
+  });
 }
 
 /**
@@ -649,7 +775,9 @@ function handleMessage(
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
+  document.addEventListener('DOMContentLoaded', () => {
+    void initialize();
+  });
 } else {
-  initialize();
+  void initialize();
 }

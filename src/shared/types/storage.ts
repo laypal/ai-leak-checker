@@ -50,7 +50,28 @@ export interface Settings {
 
   /** First run completed */
   onboardingComplete: boolean;
+
+  /**
+   * Grace period (ms) before checking selector health and activating fallback.
+   * Must exceed retry window (30000ms) to avoid race conditions.
+   * 
+   * @default 32000
+   * @minimum 31000
+   * @maximum 120000
+   */
+  fallbackDelayMs: number;
 }
+
+/**
+ * Minimum allowed fallback delay in milliseconds.
+ * Must exceed retry window (30000ms) to avoid race conditions.
+ */
+export const MIN_FALLBACK_DELAY_MS = 31000;
+
+/**
+ * Maximum allowed fallback delay in milliseconds.
+ */
+export const MAX_FALLBACK_DELAY_MS = 120000;
 
 /**
  * Default settings for new installations.
@@ -73,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keyboardShortcutsEnabled: true,
   theme: 'system',
   onboardingComplete: false,
+  fallbackDelayMs: 32000,
 };
 
 // =============================================================================

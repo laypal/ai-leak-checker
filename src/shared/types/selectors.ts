@@ -201,8 +201,129 @@ export interface SelectorHealthResult {
 }
 
 /**
- * Check if selectors are working on the current page.
- * Returns health status for monitoring.
+ * Determine whether a DOM element is visible and usable for interaction.
+ *
+ * @param element - The DOM element to evaluate; non-HTMLElement values are treated as not usable.
+ * @returns `true` if the element appears visible and usable for interaction, `false` otherwise.
+ */
+function isElementUsable(element: Element): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  // Check computed styles
+  try {
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+      return false;
+    }
+  } catch {
+    // If getComputedStyle fails (e.g., in test environment), continue
+  }
+
+  // Check if element is in viewport (rough check)
+  // Note: In test environments (jsdom), getBoundingClientRect may return zeros
+  // so we only reject if explicitly hidden via display/visibility
+  try {
+    const rect = element.getBoundingClientRect();
+    // Only reject if both width and height are zero AND element has explicit hidden style
+    // This prevents false positives in test environments
+    if (rect.width === 0 && rect.height === 0) {
+      const style = window.getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+        return false;
+      }
+      // In test environments, zero size might be normal, so allow it
+    }
+  } catch {
+    // If getBoundingClientRect fails, assume element is usable
+  }
+
+  return true;
+}
+
+/**
+ * Determines whether a DOM element can be edited by a user.
+ *
+ * Treats elements with `readonly` or `disabled` attributes as non-editable. For elements with a `contenteditable` attribute, only the literal value `"false"` is considered non-editable; an empty value, `"true"`, or a bare `contenteditable` attribute are considered editable. For `<input>` and `<textarea>`, the element's `disabled` and `readOnly` properties are also checked.
+ *
+ * @param element - The DOM element to test for editability
+ * @returns `true` if the element is editable by a user, `false` otherwise
+ */
+function isInputEditable(element: Element): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  // For form controls (input/textarea), check disabled and readOnly properties
+  if (element instanceof HTMLTextAreaElement || element instanceof HTMLInputElement) {
+    if (element.disabled || element.readOnly) {
+      return false;
+    }
+    // Form controls are editable if not disabled/readonly
+    return true;
+  }
+
+  // Check readonly/disabled attributes first (applies to all elements)
+  if (element.hasAttribute('readonly') || element.hasAttribute('disabled')) {
+    return false;
+  }
+
+  // For other elements, prefer isContentEditable property to respect inheritance and computed states
+  // Fall back to attribute check for test environments (jsdom) where property may not be set correctly
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  // Fallback: Check contenteditable attribute for test environments
+  // Per HTML5 spec: empty string, "true", or bare attribute = editable
+  // Only "false" means non-editable
+  if (element.hasAttribute('contenteditable')) {
+    const value = element.getAttribute('contenteditable');
+    if (value === 'false') {
+      return false;
+    }
+    // Empty string, "true", or bare attribute all mean editable
+    return true;
+  }
+
+  // Element is not editable
+  return false;
+}
+
+/**
+ * Determines whether an Element can be treated as a clickable button in the page.
+ *
+ * For HTMLButtonElement this checks the `disabled` property; for other HTMLElements this checks for a `disabled` attribute. Non-HTMLElement values are considered not clickable.
+ *
+ * @param element - Candidate element to evaluate
+ * @returns `true` if `element` is an HTMLElement and not disabled as described, `false` otherwise.
+ */
+function isButtonClickable(element: Element): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  // For HTMLButtonElement, use the disabled property
+  if (element instanceof HTMLButtonElement) {
+    if (element.disabled) {
+      return false;
+    }
+  } else {
+    // For other HTMLElements, check the disabled attribute
+    if (element.hasAttribute('disabled')) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Assess whether the configured selectors for a site locate usable input, submit, and container elements on the current page.
+ *
+ * @param siteConfig - Site configuration containing the selectors and metadata to validate
+ * @returns A SelectorHealthResult with `site`, `inputFound`, `submitFound`, `containerFound`, `workingSelector` (the input selector that succeeded or `null`), and `testedAt` timestamp
  */
 export function checkSelectorHealth(
   siteConfig: SiteConfig
@@ -216,37 +337,56 @@ export function checkSelectorHealth(
     testedAt: new Date().toISOString(),
   };
 
-  // Check input selectors
+  // Check container first (needed for context validation)
+  let container: Element | null = null;
+  try {
+    container = document.querySelector(siteConfig.containerSelector);
+    result.containerFound = !!container;
+  } catch {
+    result.containerFound = false;
+  }
+
+  // Check input selectors with validation
   for (const selector of siteConfig.inputSelectors) {
     try {
       const el = document.querySelector(selector);
       if (el) {
-        result.inputFound = true;
-        result.workingSelector = selector;
-        break;
+        // Validate element is actually usable
+        if (
+          isElementUsable(el) &&
+          isInputEditable(el) &&
+          (container ? container.contains(el) : true)  // Context check if container found
+        ) {
+          result.inputFound = true;
+          result.workingSelector = selector;
+          break;
+        }
+        // Element found but not usable - continue to next selector
       }
     } catch {
       // Invalid selector, continue
     }
   }
 
-  // Check submit selectors
+  // Check submit selectors with validation
   for (const selector of siteConfig.submitSelectors) {
     try {
-      if (document.querySelector(selector)) {
-        result.submitFound = true;
-        break;
+      const el = document.querySelector(selector);
+      if (el) {
+        // Validate button is clickable and in correct context
+        if (
+          isElementUsable(el) &&
+          isButtonClickable(el) &&
+          (container ? container.contains(el) : true)
+        ) {
+          result.submitFound = true;
+          break;
+        }
+        // Button found but not usable - continue to next selector
       }
     } catch {
       // Invalid selector, continue
     }
-  }
-
-  // Check container
-  try {
-    result.containerFound = !!document.querySelector(siteConfig.containerSelector);
-  } catch {
-    result.containerFound = false;
   }
 
   return result;

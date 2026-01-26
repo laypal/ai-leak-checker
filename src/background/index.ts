@@ -112,7 +112,16 @@ function validateMessage(message: unknown): message is ExtensionMessage | { type
 }
 
 /**
- * Process incoming messages.
+ * Handle and dispatch incoming extension messages to the corresponding background operations.
+ *
+ * Processes a validated message, performs the requested action (settings/stats operations,
+ * status query, or badge updates), and returns the operation-specific response object.
+ *
+ * @param message - The incoming message object (expected to include a `type` and optional `payload`)
+ * @returns The response for the processed message: settings or stats objects, a status object,
+ *          `{ success: true }` / `{ success: false, error: string }` for badge operations, or
+ *          `{ error: string }` for invalid or unknown messages
+ * @throws Error - If `MessageType.STATS_INCREMENT` is received with an invalid payload
  */
 async function handleMessage(
   message: unknown,
@@ -165,6 +174,40 @@ async function handleMessage(
         return { active: true, version: manifest.version };
       } catch {
         return { active: true, version: 'unknown' };
+      }
+    }
+
+    case MessageType.SET_FALLBACK_BADGE: {
+      const payload = message.payload;
+      const tabId = _sender.tab?.id;
+      
+      if (!tabId) {
+        return { error: 'No tab ID available' };
+      }
+      
+      // Validate payload exists and has active property as boolean
+      if (!payload || typeof payload !== 'object') {
+        return { error: 'Invalid payload: payload must be an object' };
+      }
+      
+      if (!('active' in payload) || typeof payload.active !== 'boolean') {
+        return { error: 'Invalid payload: payload.active must be a boolean' };
+      }
+      
+      try {
+        if (payload.active === true) {
+          // Show warning badge for this specific tab
+          await chrome.action.setBadgeText({ text: '⚠', tabId });
+          await chrome.action.setBadgeBackgroundColor({ color: '#ffc107', tabId });
+        } else if (payload.active === false) {
+          // Clear fallback badge, restore normal badge for this tab
+          await updateBadgeForTab(tabId);
+        }
+        return { success: true };
+      } catch (error) {
+        // Tab may have closed - log and return failure
+        console.warn('[AI Leak Checker] Failed to update fallback badge:', error);
+        return { success: false, error: String(error) };
       }
     }
 
@@ -327,7 +370,10 @@ async function resetStats(): Promise<Stats> {
 }
 
 /**
- * Update the extension badge.
+ * Update the extension action badge to reflect the number of cancelled actions.
+ *
+ * If `actions.cancelled` is greater than 0, sets the badge text to that count (capped at "99+")
+ * and sets the badge background color to `#dc3545`. If the count is 0, clears the badge text.
  */
 async function updateBadge(): Promise<void> {
   const stats = await getStats();
@@ -339,6 +385,31 @@ async function updateBadge(): Promise<void> {
     await chrome.action.setBadgeBackgroundColor({ color: '#dc3545' });
   } else {
     await chrome.action.setBadgeText({ text: '' });
+  }
+}
+
+/**
+ * Restore the action badge for a specific tab based on current stats.
+ *
+ * Sets the badge text to the number of cancelled actions (capped at "99+") and the badge background to red when the count is greater than zero; clears the badge text when the count is zero. Handles tab lifecycle errors gracefully.
+ *
+ * @param tabId - The ID of the tab whose badge should be updated
+ */
+async function updateBadgeForTab(tabId: number): Promise<void> {
+  try {
+    const stats = await getStats();
+    const blocked = stats.actions.cancelled;
+
+    if (blocked > 0) {
+      const text = blocked > 99 ? '99+' : blocked.toString();
+      await chrome.action.setBadgeText({ text, tabId });
+      await chrome.action.setBadgeBackgroundColor({ color: '#dc3545', tabId });
+    } else {
+      await chrome.action.setBadgeText({ text: '', tabId });
+    }
+  } catch (error) {
+    // Tab may have closed - log and continue
+    console.warn('[AI Leak Checker] Failed to update badge for tab:', error);
   }
 }
 

@@ -91,15 +91,13 @@ test.describe('Playwright Extension Setup', () => {
     await page.setContent(testHTML);
     
     // Capture console logs to verify content script messages
-    const logs: string[] = [];
-    page.on('console', (msg) => {
-      if (msg.text().includes('[AI Leak Checker]')) {
-        logs.push(msg.text());
-      }
-    });
+    const cleanup = await helper.captureConsoleLogs(page);
     
     // Wait for content script to potentially inject
     await page.waitForTimeout(2000);
+    
+    // Get collected logs and cleanup
+    const logs = cleanup();
     
     // Verify content script state
     const injected = await helper.verifyContentScriptInjected(page);
@@ -117,7 +115,7 @@ test.describe('Playwright Extension Setup', () => {
     await page.goto('data:text/html,<html><body>Test</body></html>');
     
     // Capture console logs
-    const logs = await helper.captureConsoleLogs(page);
+    const cleanup = await helper.captureConsoleLogs(page);
     
     // Trigger some console output (if extension is loaded, it may log)
     await page.evaluate(() => {
@@ -127,15 +125,15 @@ test.describe('Playwright Extension Setup', () => {
     // Wait a bit for logs to be captured
     await page.waitForTimeout(500);
     
+    // Get collected logs and cleanup
+    const logs = cleanup();
+    
     // Verify logs are being captured
     // The logs array should be populated if extension logs anything
     expect(Array.isArray(logs)).toBe(true);
     
     // Verify we can capture console messages
-    const consoleLogs: string[] = [];
-    page.on('console', (msg) => {
-      consoleLogs.push(msg.text());
-    });
+    const cleanup2 = await helper.captureConsoleLogs(page);
     
     await page.evaluate(() => {
       console.log('Test message');
@@ -143,8 +141,12 @@ test.describe('Playwright Extension Setup', () => {
     
     await page.waitForTimeout(100);
     
+    // Get captured logs and cleanup
+    const consoleLogs = cleanup2();
+    
     // Should have captured at least one log
-    expect(consoleLogs.length).toBeGreaterThanOrEqual(0);
+    expect(consoleLogs.length).toBeGreaterThan(0);
+    expect(consoleLogs.some(log => log.includes('Test message'))).toBe(true);
   });
 
   test('Extension helper class functions correctly', async ({ context }) => {

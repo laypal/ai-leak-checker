@@ -12,6 +12,8 @@ import {
   DETECTOR_LABELS,
   DEFAULT_SETTINGS,
   DEFAULT_STATS,
+  MIN_FALLBACK_DELAY_MS,
+  MAX_FALLBACK_DELAY_MS,
 } from '@/shared/types';
 
 // Styles
@@ -129,10 +131,22 @@ const styles = {
   },
 };
 
+/**
+ * Render the extension popup UI for AI Leak Checker.
+ *
+ * Manages local settings and statistics state, fetches and persists data via chrome.runtime messages,
+ * and provides interactive controls for viewing statistics, adjusting detection settings, and resetting data.
+ *
+ * @returns The Preact component tree for the popup UI.
+ */
 function App() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [activeTab, setActiveTab] = useState<'stats' | 'settings'>('stats');
+  // Local state for raw input value (unclamped) to allow free typing
+  const [rawFallbackDelayInput, setRawFallbackDelayInput] = useState<string>(
+    String(Math.floor(DEFAULT_SETTINGS.fallbackDelayMs / 1000))
+  );
 
   // Load settings and stats on mount
   useEffect(() => {
@@ -160,7 +174,11 @@ function App() {
       ]);
       const [settingsRes, statsRes] = results as [unknown, unknown];
       if (settingsRes && typeof settingsRes === 'object' && !('error' in settingsRes)) {
-        setSettings(settingsRes as Settings);
+        const loadedSettings = settingsRes as Settings;
+        setSettings(loadedSettings);
+        // Update local state for fallback delay input
+        const loadedSeconds = Math.floor((loadedSettings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs) / 1000);
+        setRawFallbackDelayInput(String(loadedSeconds));
       }
       if (statsRes && typeof statsRes === 'object' && !('error' in statsRes)) {
         setStats(statsRes as Stats);
@@ -359,6 +377,45 @@ function App() {
               <option value="medium">Medium (Balanced)</option>
               <option value="high">High (Aggressive)</option>
             </select>
+          </div>
+
+          {/* Fallback Delay */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Fallback Activation Delay</div>
+            <div style={{ marginBottom: '8px' }}>
+              <input
+                type="number"
+                min={MIN_FALLBACK_DELAY_MS / 1000}
+                max={MAX_FALLBACK_DELAY_MS / 1000}
+                value={rawFallbackDelayInput}
+                onChange={(e) => {
+                  // Update raw input value without clamping to allow free typing
+                  setRawFallbackDelayInput(e.currentTarget.value);
+                }}
+                onBlur={(e) => {
+                  // On blur, clamp and persist the value
+                  const minSeconds = MIN_FALLBACK_DELAY_MS / 1000;
+                  const maxSeconds = MAX_FALLBACK_DELAY_MS / 1000;
+                  const parsed = parseInt(e.currentTarget.value, 10);
+                  const seconds = isNaN(parsed) ? minSeconds : parsed;
+                  const clampedSeconds = Math.max(minSeconds, Math.min(maxSeconds, seconds));
+                  setRawFallbackDelayInput(String(clampedSeconds));
+                  void updateSetting('fallbackDelayMs', clampedSeconds * 1000);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  background: '#ffffff',
+                }}
+              />
+              <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+                Time to wait (seconds) before activating fetch/XHR fallback when DOM selectors fail.
+                Minimum {MIN_FALLBACK_DELAY_MS / 1000} seconds to avoid race conditions.
+              </div>
+            </div>
           </div>
 
           {/* Detectors */}

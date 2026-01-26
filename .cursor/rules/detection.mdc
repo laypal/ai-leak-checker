@@ -1,0 +1,152 @@
+---
+description: Detection engine patterns, regex guidelines, and false positive management.
+globs:
+  - src/shared/detectors/**/*.ts
+  - src/shared/utils/entropy.ts
+  - src/shared/utils/luhn.ts
+alwaysApply: false
+---
+
+# Detection Engine Guidelines
+
+## Pattern Design Principles
+
+### Avoid False Positives
+
+```typescript
+// ❌ Too broad - matches UUIDs, hashes
+const BAD_PATTERN = /[a-zA-Z0-9]{32}/;
+
+// ✅ Better - requires specific prefix with word boundaries
+// Matches sk-, sk-proj-, or sk-admin- prefixes with alphanumeric/_/- chars
+// Runtime validation requires token body length >= 20
+const OPENAI_KEY = /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g;
+
+// ✅ Best - prefix + entropy check
+function isLikelyApiKey(match: string): boolean {
+  return hasPrefix(match) && calculateEntropy(match) > 4.0;
+}
+```
+
+### Use Anchoring Context
+
+```typescript
+// Look for context words near high-entropy strings
+const CONTEXT_KEYWORDS = [
+  'key', 'token', 'secret', 'password', 'api',
+  'auth', 'credential', 'bearer', 'authorization'
+];
+
+function hasSecretContext(text: string, position: number): boolean {
+  const window = text.slice(Math.max(0, position - 50), position + 50);
+  return CONTEXT_KEYWORDS.some(kw => 
+    window.toLowerCase().includes(kw)
+  );
+}
+```
+
+## Entropy Thresholds
+
+| Level | Threshold | Use Case |
+|-------|-----------|----------|
+| Suspicious | 3.5 | Flag for review |
+| Likely | 4.0 | Default detection |
+| Definite | 4.5 | High confidence |
+
+```typescript
+const ENTROPY_THRESHOLDS = {
+  suspicious: 3.5,
+  likely: 4.0,
+  definite: 4.5,
+};
+```
+
+## Pattern Categories
+
+### API Keys (High Entropy + Prefix)
+
+```typescript
+const API_KEY_PATTERNS = {
+  // OpenAI: word boundaries, optional proj-/admin- prefixes, alphanumeric/_/-
+  // Runtime validation requires token body length >= 20
+  openai: /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g,
+  // AWS Access Key: word boundaries, specific prefixes, uppercase alphanumeric
+  aws_access: /\b(A3T[A-Z0-9]|AKIA|ABIA|ACCA|AGPA|AIDA|AIPA|ANPA|ANVA|APKA|AROA|ASCA|ASIA)[A-Z0-9]{16}\b/g,
+  // GitHub: split into two patterns due to different length requirements
+  // Classic tokens (ghp_, gho_, ghu_, ghs_): exactly 36 characters after prefix
+  // Fine-grained PAT (github_pat_): 50+ characters after prefix
+  github_classic: /\b(ghp_|gho_|ghu_|ghs_)[A-Za-z0-9]{36}\b/g,
+  github_pat: /\bgithub_pat_[A-Za-z0-9_-]{50,}\b/g,
+  // Stripe: word boundaries, sk_/pk_/rk_ prefixes, test/live environment, alphanumeric
+  stripe: /\b(sk|pk|rk)_(test|live)_[A-Za-z0-9]{24,}\b/g,
+};
+```
+
+### PII (Format + Validation)
+
+```typescript
+// Credit card: format + Luhn validation
+function detectCreditCard(text: string): Finding[] {
+  const matches = text.match(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g);
+  return (matches ?? [])
+    .filter(m => luhnValidate(m.replace(/\D/g, '')))
+    .map(m => ({ type: 'credit_card', value: m }));
+}
+
+// Email: format + confidence scoring
+function detectEmail(text: string): Finding[] {
+  const matches = text.match(EMAIL_REGEX);
+  return (matches ?? []).map(m => ({
+    type: 'email',
+    value: m,
+    confidence: getEmailConfidence(m), // Higher for personal domains
+  }));
+}
+```
+
+## Adding New Patterns
+
+1. **Add type** to `src/shared/types/detection.ts`:
+   ```typescript
+   export const DetectorType = {
+     // ... existing
+     API_KEY_NEW_SERVICE: 'api_key_new_service',
+   } as const;
+   ```
+
+2. **Add pattern** to `src/shared/detectors/patterns.ts`:
+   ```typescript
+   {
+     type: DetectorType.API_KEY_NEW_SERVICE,
+     pattern: /prefix_[a-zA-Z0-9]{32}/g,
+     confidence: 0.9,
+     validator: (match) => calculateEntropy(match) > 4.0,
+   }
+   ```
+
+3. **Add tests** to `tests/unit/patterns.test.ts`:
+   ```typescript
+   describe('New Service API Key', () => {
+     test.each(validKeys)('detects: %s', ...);
+     test.each(invalidKeys)('ignores: %s', ...);
+   });
+   ```
+
+4. **Add fixtures** to `tests/fixtures/api_keys.json`
+
+## Performance Considerations
+
+- **Quick check first**: Use `quickCheck()` before full scan
+- **Limit text length**: Don't scan >100KB
+- **Reuse compiled regex**: Define patterns as module constants
+- **Early exit**: Stop after `maxResults` findings
+
+```typescript
+function quickCheck(text: string): boolean {
+  // Fast string checks before expensive regex
+  return text.includes('sk-') ||
+         text.includes('AKIA') ||
+         text.includes('ghp_') ||
+         /\d{16}/.test(text);
+}
+```

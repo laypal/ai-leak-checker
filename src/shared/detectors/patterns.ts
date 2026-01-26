@@ -31,12 +31,19 @@ export interface PatternDefinition {
  * Ordered by specificity (most specific first).
  */
 export const API_KEY_PATTERNS: PatternDefinition[] = [
-  // OpenAI
+  // OpenAI - supports sk-, sk-proj-, and sk-admin- variants
+  // Pattern is permissive per OpenAI guidance (keys are opaque), but validation
+  // requires minimum length to reduce false positives from placeholders
   {
     type: DetectorType.API_KEY_OPENAI,
     name: 'OpenAI API Key',
-    pattern: /\bsk-(?:proj-)?[A-Za-z0-9]{20,}(?:T3BlbkFJ[A-Za-z0-9]{20,})?\b/g,
+    pattern: /\bsk-(?:proj-|admin-)?[A-Za-z0-9_-]+\b/g,
     baseConfidence: 0.95,
+    validate: (match) => {
+      // Require minimum 20 chars total to filter out placeholders like "sk-abc"
+      // Real OpenAI keys are significantly longer
+      return match.length >= 20;
+    },
     contextKeywords: ['openai', 'gpt', 'chatgpt', 'api_key', 'OPENAI_API_KEY'],
   },
 
@@ -324,7 +331,17 @@ export function scanForApiKeys(
     let match: RegExpExecArray | null;
 
     while ((match = patternDef.pattern.exec(text)) !== null) {
-      const value = match[0];
+      // For PASSWORD detector (or any pattern with capture groups), prefer captured group
+      // This extracts just the secret value (e.g., "secret123") instead of full match (e.g., "password=secret123")
+      const captureGroup = match[1];
+      const useCapture = patternDef.type === DetectorType.PASSWORD && captureGroup !== undefined;
+      const value = useCapture ? captureGroup : match[0];
+      // Note: Regex capture groups are always contained within the full match (match[0]),
+      // so indexOf should never return -1. However, we add a defensive fallback.
+      const captureIndex = useCapture ? match[0].indexOf(captureGroup) : -1;
+      const matchStart = useCapture
+        ? match.index + (captureIndex >= 0 ? captureIndex : 0)
+        : match.index;
       const key = `${patternDef.type}:${match.index}:${value}`;
 
       // Skip duplicates
@@ -341,10 +358,10 @@ export function scanForApiKeys(
       findings.push({
         type: patternDef.type,
         value,
-        start: match.index,
-        end: match.index + value.length,
+        start: matchStart,
+        end: matchStart + value.length,
         confidence: patternDef.baseConfidence,
-        context: extractContext(text, match.index, value.length),
+        context: extractContext(text, matchStart, value.length),
       });
     }
   }

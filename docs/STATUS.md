@@ -1,7 +1,7 @@
 # AI Leak Checker - Current Project Status
 
 > **Document Purpose**: High-level status summary and blockers for store submission.
-> **Version**: 1.0.0 | **Last Updated**: 2026-01-15
+> **Version**: 1.0.0 | **Last Updated**: January 24, 2026
 > **Repository**: https://github.com/laypal/ai-leak-checker
 
 ---
@@ -246,4 +246,28 @@ npm run build       ✅ Builds successfully
 
 ---
 
-*Last updated: January 15, 2026*
+## Known Limitations
+
+### Shadow DOM Detection
+
+The extension does not currently traverse Shadow DOM roots for detection. If AI platforms move their input fields into Shadow DOM, detection will fail silently.
+
+**Current Status**:
+- ChatGPT: Uses standard textarea/contenteditable (no Shadow DOM) ✅
+- Claude: Uses ProseMirror with contenteditable (no Shadow DOM) ✅
+
+**Future Work**: Shadow DOM traversal will be added in Phase 7 if platforms adopt it.
+
+### Fallback Mode
+
+When DOM selectors fail (after 32-second retry window), the extension falls back to fetch/XHR interception. A warning badge (⚠) appears on the extension icon for affected tabs.
+
+**Behavior**:
+- Health check runs after 32-second retry window ends (per `fallbackDelayMs` setting, default 32000ms)
+- If selectors not found, fetch/XHR patching is injected as fallback
+- DOM event handlers are disabled when fallback is active (prevents dual execution)
+- Tab-specific badge indicates fallback status
+
+---
+
+Last updated: January 24, 2026

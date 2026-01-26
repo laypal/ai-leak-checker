@@ -27,6 +27,17 @@ export class ExtensionHelper {
   }
 
   /**
+   * Extract extension ID from a chrome-extension:// URL.
+   * 
+   * @param url - The URL to extract the ID from
+   * @returns The extension ID if found, null otherwise
+   */
+  private extractExtensionIdFromUrl(url: string): string | null {
+    const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
+    return match && match[1] ? match[1] : null;
+  }
+
+  /**
    * Get the extension ID from Chrome.
    * Extension ID is needed to access extension pages like popup.
    */
@@ -50,8 +61,11 @@ export class ExtensionHelper {
       }
     });
 
-    // Wait for extensions to load
-    await extensionsPage.waitForTimeout(1000);
+    // Wait for extensions to load - wait for extension list container
+    await extensionsPage.waitForSelector('extensions-manager', { timeout: 5000 }).catch(() => {
+      // Fallback: wait for network idle if selector not found
+      return extensionsPage.waitForLoadState('networkidle', { timeout: 5000 });
+    });
 
     // Get extension ID from page
     // Extension ID is in the URL or can be extracted from extension details
@@ -81,9 +95,9 @@ export class ExtensionHelper {
       if (backgroundPages.length > 0) {
         const bgPage = backgroundPages[0];
         const url = bgPage.url();
-        const match = url.match(/chrome-extension:\/\/([a-z]{32})/);
-        if (match && match[1]) {
-          this.extensionId = match[1];
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
           return this.extensionId;
         }
       }
@@ -132,18 +146,28 @@ export class ExtensionHelper {
 
   /**
    * Capture console logs from extension.
-   * Returns a promise that resolves when logs are captured.
+   * Returns a cleanup function that removes the listener and returns collected logs.
+   * 
+   * Usage:
+   *   const cleanup = await extension.captureConsoleLogs(page);
+   *   // ... perform actions ...
+   *   const logs = cleanup();
    */
-  async captureConsoleLogs(page: Page): Promise<string[]> {
+  async captureConsoleLogs(page: Page): Promise<() => string[]> {
     const logs: string[] = [];
     
-    page.on('console', (msg) => {
+    const handler = (msg: any) => {
       const text = msg.text();
       logs.push(`[${msg.type()}] ${text}`);
-    });
+    };
+    
+    page.on('console', handler);
 
-    // Return logs array (will be populated as logs occur)
-    return logs;
+    // Return cleanup function that removes listener and returns logs
+    return () => {
+      page.off('console', handler);
+      return logs;
+    };
   }
 
   /**
@@ -163,5 +187,86 @@ export class ExtensionHelper {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Wait for extension to be fully loaded and ready.
+   * Polls until extension ID is available or timeout is reached.
+   * Supports both MV2 (background pages) and MV3 (service workers) extensions.
+   * 
+   * @param timeoutMs - Maximum time to wait in milliseconds (default: 5000)
+   * @returns true if extension loaded successfully, false if timeout reached
+   */
+  async waitForLoad(timeoutMs: number = 5000): Promise<boolean> {
+    // If extension ID is already cached, return immediately
+    if (this.extensionId) {
+      return true;
+    }
+
+    // Start timing before the first attempt to include it in timeout calculation
+    const startTime = Date.now();
+    const pollInterval = 100; // Check every 100ms
+    const retryGetExtensionIdInterval = 1000; // Retry getExtensionId every 1000ms
+    let lastGetExtensionIdAttempt = startTime; // Initialize to startTime to respect retry interval
+
+    // Try to get extension ID once (this may open pages/navigate)
+    try {
+      await this.getExtensionId();
+      // If successful, extensionId is now set
+      return true;
+    } catch {
+      // First attempt failed, continue to polling
+      // Update lastGetExtensionIdAttempt so first loop iteration respects retry interval
+      lastGetExtensionIdAttempt = Date.now();
+    }
+    
+    while (Date.now() - startTime < timeoutMs) {
+      // Check if extension ID was set by a concurrent call
+      if (this.extensionId) {
+        return true;
+      }
+
+      // Periodically retry getExtensionId() for late-loading extensions
+      if (Date.now() - lastGetExtensionIdAttempt >= retryGetExtensionIdInterval) {
+        try {
+          await this.getExtensionId();
+          // If successful, extensionId is now set
+          return true;
+        } catch {
+          // Retry failed, continue polling
+        }
+        lastGetExtensionIdAttempt = Date.now();
+      }
+
+      // Check background pages (MV2 extensions)
+      const backgroundPages = this.context.backgroundPages();
+      if (backgroundPages.length > 0) {
+        // Try to extract extension ID from background page URL
+        const bgPage = backgroundPages[0];
+        const url = bgPage.url();
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
+          return true;
+        }
+      }
+
+      // Check service workers (MV3 extensions)
+      const serviceWorkers = this.context.serviceWorkers();
+      for (const sw of serviceWorkers) {
+        const url = sw.url();
+        const extractedId = this.extractExtensionIdFromUrl(url);
+        if (extractedId) {
+          this.extensionId = extractedId;
+          return true;
+        }
+      }
+
+      // Wait before next check
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+    
+    // Timeout reached - extension may not be loaded in this test environment
+    return false;
   }
 }
