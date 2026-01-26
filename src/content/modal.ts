@@ -45,21 +45,28 @@ export class WarningModal {
   /**
    * Show the modal with the given findings.
    * 
-   * If the modal is already visible, it will be hidden first and then shown again
-   * with the new findings. This ensures the modal can always be triggered, even
-   * if it was previously shown (e.g., in a new chat conversation).
+   * If the modal is already visible, updates the content in-place to avoid flicker.
+   * Otherwise, renders and displays the modal normally.
    */
   show(findings: Finding[]): void {
-    // If already visible, hide first to allow re-showing with new findings
-    // This is important for new chat conversations where the modal should trigger again
-    if (this.isVisible) {
-      this.hide();
-    }
-
     // Store findings for test API (only masked/sanitized data)
     this.currentFindings = findings;
 
     const content = this.renderContent(findings);
+    
+    // If already visible, update content in-place to avoid flicker
+    if (this.isVisible) {
+      this.shadowRoot.innerHTML = this.getStyles() + content;
+      this.attachEventListeners();
+      // Re-trap focus
+      requestAnimationFrame(() => {
+        const cancelButton = this.shadowRoot.querySelector('.cancel-btn') as HTMLButtonElement;
+        cancelButton?.focus();
+      });
+      return;
+    }
+
+    // Not visible - render and show normally
     this.shadowRoot.innerHTML = this.getStyles() + content;
     this.attachEventListeners();
     this.container.style.display = 'block';
@@ -82,6 +89,13 @@ export class WarningModal {
     this.container.style.display = 'none';
     this.isVisible = false;
     document.removeEventListener('keydown', this.handleEscape);
+  }
+
+  /**
+   * Check if the modal is currently visible.
+   */
+  isCurrentlyVisible(): boolean {
+    return this.isVisible;
   }
 
   /**

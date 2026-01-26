@@ -1,6 +1,6 @@
 {
   "name": "ai-leak-checker",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Browser extension to prevent accidental data leaks to AI chat platforms",
   "type": "module",
   "scripts": {

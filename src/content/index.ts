@@ -317,7 +317,8 @@ function attachListeners(): void {
   }
 
   // If new input elements were found, reset state (new chat detected)
-  if (newInputsFound) {
+  // Only reset if modal is not currently visible to avoid closing active warnings
+  if (newInputsFound && (!modal || !modal.isCurrentlyVisible())) {
     resetStateForNewChat();
   }
 
@@ -839,8 +840,25 @@ function handleWindowMessage(event: MessageEvent): void {
     const messageId = data.messageId;
     const content = data.content;
 
-    // Scan the content
-    const result = scan(content);
+    // Scan the content with error handling
+    let result: DetectionResult;
+    try {
+      result = scan(content);
+    } catch (error) {
+      // On error, send failure response but don't block
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      window.postMessage({
+        type: 'AI_LEAK_CHECKER',
+        action: 'scan_result',
+        messageId,
+        result: {
+          hasSensitiveData: false,
+          findings: [],
+          error: errorMessage,
+        },
+      }, '*');
+      return;
+    }
 
     // Send response back to injected script
     window.postMessage({
@@ -856,7 +874,6 @@ function handleWindowMessage(event: MessageEvent): void {
     // If sensitive data detected, show modal
     if (result.hasSensitiveData && modal) {
       // Reset state before showing modal (ensures clean state for new detections)
-      pendingSubmission = null;
       isProgrammaticSubmit = false;
       
       // Store the content for potential redaction/submission
