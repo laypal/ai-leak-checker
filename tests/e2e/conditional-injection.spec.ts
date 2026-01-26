@@ -6,11 +6,12 @@ import { test, expect } from '@playwright/test';
 import type { BrowserContext } from '@playwright/test';
 import { setupTestPage, createTestPageHTML } from './helpers';
 import { ExtensionHelper } from './fixtures/extension';
-import { DEFAULT_SETTINGS } from '@/shared/types';
+import { DEFAULT_SETTINGS, MIN_FALLBACK_DELAY_MS, MAX_FALLBACK_DELAY_MS } from '@/shared/types';
 
 /**
  * Test timeout constant: fallback delay + buffer for health check.
  * Uses test override if available (TEST_FALLBACK_DELAY_MS env var) or system default.
+ * Clamped to production bounds (MIN_FALLBACK_DELAY_MS to MAX_FALLBACK_DELAY_MS).
  */
 const TEST_FALLBACK_DELAY_MS = (() => {
   const envValue = process.env.TEST_FALLBACK_DELAY_MS?.trim();
@@ -21,7 +22,7 @@ const TEST_FALLBACK_DELAY_MS = (() => {
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return DEFAULT_SETTINGS.fallbackDelayMs;
   }
-  return parsed;
+  return Math.min(MAX_FALLBACK_DELAY_MS, Math.max(MIN_FALLBACK_DELAY_MS, parsed));
 })();
 const FALLBACK_DELAY_WITH_BUFFER_MS = TEST_FALLBACK_DELAY_MS + 2000;
 
