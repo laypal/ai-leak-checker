@@ -15,6 +15,12 @@ export interface WarningModalCallbacks {
   onCancel: () => void;
 }
 
+/** Optional constructor options. shadowMode: 'open' for unit tests only. */
+export interface WarningModalOptions {
+  /** Default 'closed'. Use 'open' in unit tests to query shadow DOM for button clicks. */
+  shadowMode?: 'open' | 'closed';
+}
+
 /**
  * Warning modal component displayed when sensitive data is detected.
  * Uses Shadow DOM for style isolation.
@@ -27,13 +33,12 @@ export class WarningModal {
   // Store current findings for test API (sanitized data only)
   private currentFindings: Finding[] = [];
 
-  constructor(callbacks: WarningModalCallbacks) {
+  constructor(callbacks: WarningModalCallbacks, options?: WarningModalOptions) {
     this.callbacks = callbacks;
     this.container = document.createElement('div');
     this.container.id = 'ai-leak-checker-modal';
-    // Use 'closed' mode for security - prevents webpage JS from accessing shadow root
-    // E2E tests use test-only API exposed on window instead
-    this.shadowRoot = this.container.attachShadow({ mode: 'closed' });
+    const mode = options?.shadowMode ?? 'closed';
+    this.shadowRoot = this.container.attachShadow({ mode });
     
     this.injectStyles();
     document.body.appendChild(this.container);

@@ -19,11 +19,13 @@ import { DetectorType, type Finding, type DetectionResult } from '@/shared/types
  * NOTE: The real implementation in src/content/index.ts uses module-scoped variables
  * (siteConfig, modal, pendingSubmission, etc.). This test version accepts these as
  * parameters to enable isolated unit testing of the message handling logic.
+ * Optional scanFn allows injecting a throwing scanner to test the error path.
  */
 function simulateHandleWindowMessage(
   event: MessageEvent,
   modal: { show: (findings: Finding[]) => void; hide: () => void } | null,
-  onStatsIncrement: (payload: unknown) => void
+  onStatsIncrement: (payload: unknown) => void,
+  scanFn: (text: string) => DetectionResult = scan
 ): { responded: boolean; modalShown: boolean } {
   // Only accept messages from same window
   if (event.source !== window) {
@@ -47,8 +49,26 @@ function simulateHandleWindowMessage(
     const messageId = data.messageId;
     const content = data.content;
 
-    // Scan the content
-    const result = scan(content);
+    let result: DetectionResult;
+    try {
+      result = scanFn(content);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      window.postMessage(
+        {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_result',
+          messageId,
+          result: {
+            hasSensitiveData: false,
+            findings: [],
+            error: errorMessage,
+          },
+        },
+        '*'
+      );
+      return { responded: true, modalShown: false };
+    }
 
     // Send response back to injected script
     window.postMessage({
@@ -335,6 +355,51 @@ describe('Content Script Window Message Handler', () => {
 
       const callArgs = postMessageSpy.mock.calls[0][0] as { messageId: string };
       expect(callArgs.messageId).toBe(messageId);
+    });
+  });
+
+  describe('Scan error handling', () => {
+    it('should catch scan errors, postMessage scan_result with error, return responded true modalShown false, and not call modal or stats', () => {
+      const messageId = 'err-msg-1';
+      const scanError = new Error('scan failed');
+      const throwingScan = (_text: string): DetectionResult => {
+        throw scanError;
+      };
+
+      const event = new MessageEvent('message', {
+        source: window,
+        data: {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_request',
+          messageId,
+          content: 'any',
+        },
+      });
+
+      const result = simulateHandleWindowMessage(
+        event,
+        mockModal,
+        mockStatsIncrement,
+        throwingScan
+      );
+
+      expect(result).toEqual({ responded: true, modalShown: false });
+      expect(postMessageSpy).toHaveBeenCalledTimes(1);
+      expect(postMessageSpy).toHaveBeenCalledWith(
+        {
+          type: 'AI_LEAK_CHECKER',
+          action: 'scan_result',
+          messageId,
+          result: {
+            hasSensitiveData: false,
+            findings: [],
+            error: 'scan failed',
+          },
+        },
+        '*'
+      );
+      expect(mockModal.show).not.toHaveBeenCalled();
+      expect(mockStatsIncrement).not.toHaveBeenCalled();
     });
   });
 });

@@ -45,7 +45,8 @@ function simulateResetStateForNewChat(
  * 
  * NOTE: The real implementation in src/content/index.ts uses module-scoped variables.
  * This test version simulates the behavior of detecting new input elements and
- * calling resetStateForNewChat when new inputs are found.
+ * calling resetStateForNewChat when new inputs are found. Only resets when
+ * newInputsFound && (!modal || !modal.isCurrentlyVisible()), matching the real guard.
  */
 function simulateAttachListeners(
   siteConfig: SiteConfig | null,
@@ -55,7 +56,7 @@ function simulateAttachListeners(
     isProgrammaticSubmit: boolean;
     modalVisible: boolean;
   },
-  modal: { hide: () => void } | null,
+  modal: { hide: () => void; isCurrentlyVisible: () => boolean } | null,
   document: { querySelectorAll: (selector: string) => NodeListOf<HTMLElement> }
 ): { newInputsFound: boolean; inputsAttached: number } {
   if (!siteConfig) return { newInputsFound: false, inputsAttached: 0 };
@@ -75,8 +76,9 @@ function simulateAttachListeners(
     }
   }
 
-  // If new input elements were found, reset state (new chat detected)
-  if (newInputsFound) {
+  // If new input elements were found, reset state only when modal not visible
+  // (matches real attachListeners: avoid closing active warnings)
+  if (newInputsFound && (!modal || !modal.isCurrentlyVisible())) {
     simulateResetStateForNewChat(state, modal);
   }
 
@@ -84,7 +86,7 @@ function simulateAttachListeners(
 }
 
 describe('Content Script State Reset', () => {
-  let mockModal: { hide: ReturnType<typeof vi.fn> };
+  let mockModal: { hide: ReturnType<typeof vi.fn>; isCurrentlyVisible: ReturnType<typeof vi.fn> };
   let mockDocument: { querySelectorAll: ReturnType<typeof vi.fn> };
   let state: {
     pendingSubmission: unknown;
@@ -108,6 +110,7 @@ describe('Content Script State Reset', () => {
   beforeEach(() => {
     mockModal = {
       hide: vi.fn(),
+      isCurrentlyVisible: vi.fn(() => false),
     };
     // Create mock elements using jsdom
     const mockInput = document.createElement('textarea');
@@ -251,6 +254,25 @@ describe('Content Script State Reset', () => {
       expect(result.newInputsFound).toBe(false);
       // State should remain unchanged (not reset)
       expect(state.pendingSubmission).not.toBeNull();
+    });
+
+    it('should not clear pendingSubmission when new inputs found but modal is visible', () => {
+      state.pendingSubmission = { text: 'previous chat data', findings: [] };
+      state.isProgrammaticSubmit = true;
+      state.modalVisible = true;
+      mockModal.isCurrentlyVisible.mockReturnValue(true);
+
+      simulateAttachListeners(
+        mockSiteConfig,
+        existingInputs,
+        state,
+        mockModal,
+        mockDocument
+      );
+
+      expect(state.pendingSubmission).not.toBeNull();
+      expect(state.pendingSubmission).toEqual({ text: 'previous chat data', findings: [] });
+      expect(mockModal.hide).not.toHaveBeenCalled();
     });
 
     it('should handle multiple new inputs correctly', () => {

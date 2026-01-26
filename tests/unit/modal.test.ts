@@ -33,7 +33,7 @@ describe('WarningModal', () => {
       onCancel: mockOnCancel,
     };
     
-    modal = new WarningModal(callbacks);
+    modal = new WarningModal(callbacks, { shadowMode: 'open' });
   });
 
   afterEach(() => {
@@ -177,74 +177,50 @@ describe('WarningModal', () => {
   });
 
   describe('Modal Callbacks', () => {
+    const defaultFindings: Finding[] = [
+      {
+        type: DetectorType.API_KEY_OPENAI,
+        value: 'sk-test1234567890abcdefghijklmnop',
+        start: 0,
+        end: 35,
+        confidence: 0.95,
+      },
+    ];
+
     it('should call onCancel when cancel button clicked', () => {
-      const findings: Finding[] = [
-        {
-          type: DetectorType.API_KEY_OPENAI,
-          value: 'sk-test1234567890abcdefghijklmnop',
-          start: 0,
-          end: 35,
-          confidence: 0.95,
-        },
-      ];
+      modal.show(defaultFindings);
 
-      modal.show(findings);
-
-      // Find cancel button in shadow DOM and click it
-      const container = document.getElementById('ai-leak-checker-modal');
-      const shadowRoot = (container as HTMLElement & { shadowRoot?: ShadowRoot })?.shadowRoot;
-      const cancelBtn = shadowRoot?.querySelector('.cancel-btn') as HTMLButtonElement;
-      
-      if (cancelBtn) {
-        cancelBtn.click();
-        expect(mockOnCancel).toHaveBeenCalled();
-      }
+      const container = document.getElementById('ai-leak-checker-modal') as HTMLElement;
+      const sr = container.shadowRoot;
+      expect(sr).toBeTruthy();
+      const cancelBtn = sr!.querySelector('.cancel-btn') as HTMLButtonElement;
+      expect(cancelBtn).toBeTruthy();
+      cancelBtn.click();
+      expect(mockOnCancel).toHaveBeenCalled();
     });
 
     it('should call onContinue when redact button clicked', () => {
-      const findings: Finding[] = [
-        {
-          type: DetectorType.API_KEY_OPENAI,
-          value: 'sk-test1234567890abcdefghijklmnop',
-          start: 0,
-          end: 35,
-          confidence: 0.95,
-        },
-      ];
+      modal.show(defaultFindings);
 
-      modal.show(findings);
-
-      const container = document.getElementById('ai-leak-checker-modal');
-      const shadowRoot = (container as HTMLElement & { shadowRoot?: ShadowRoot })?.shadowRoot;
-      const redactBtn = shadowRoot?.querySelector('.redact-btn') as HTMLButtonElement;
-      
-      if (redactBtn) {
-        redactBtn.click();
-        expect(mockOnContinue).toHaveBeenCalled();
-      }
+      const container = document.getElementById('ai-leak-checker-modal') as HTMLElement;
+      const sr = container.shadowRoot;
+      expect(sr).toBeTruthy();
+      const redactBtn = sr!.querySelector('.redact-btn') as HTMLButtonElement;
+      expect(redactBtn).toBeTruthy();
+      redactBtn.click();
+      expect(mockOnContinue).toHaveBeenCalled();
     });
 
     it('should call onSendAnyway when send button clicked', () => {
-      const findings: Finding[] = [
-        {
-          type: DetectorType.API_KEY_OPENAI,
-          value: 'sk-test1234567890abcdefghijklmnop',
-          start: 0,
-          end: 35,
-          confidence: 0.95,
-        },
-      ];
+      modal.show(defaultFindings);
 
-      modal.show(findings);
-
-      const container = document.getElementById('ai-leak-checker-modal');
-      const shadowRoot = (container as HTMLElement & { shadowRoot?: ShadowRoot })?.shadowRoot;
-      const sendBtn = shadowRoot?.querySelector('.send-btn') as HTMLButtonElement;
-      
-      if (sendBtn) {
-        sendBtn.click();
-        expect(mockOnSendAnyway).toHaveBeenCalled();
-      }
+      const container = document.getElementById('ai-leak-checker-modal') as HTMLElement;
+      const sr = container.shadowRoot;
+      expect(sr).toBeTruthy();
+      const sendBtn = sr!.querySelector('.send-btn') as HTMLButtonElement;
+      expect(sendBtn).toBeTruthy();
+      sendBtn.click();
+      expect(mockOnSendAnyway).toHaveBeenCalled();
     });
   });
 });
