@@ -425,7 +425,7 @@ function handleKeyDown(event: KeyboardEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -476,7 +476,7 @@ function handleSubmitClick(event: MouseEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -508,7 +508,7 @@ function handleFormSubmit(event: SubmitEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -568,7 +568,6 @@ function shouldScan(text: string): boolean {
  * Does not store raw prompt; Mask & Continue re-reads from input.
  */
 function showWarning(
-  _text: string,
   result: DetectionResult,
   originalEvent?: Event
 ): void {

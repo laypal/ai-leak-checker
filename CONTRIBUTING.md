@@ -196,25 +196,28 @@ Closes #123
 src/
 ├── background/           # Service worker
 │   └── index.ts
-├── content/             # Content scripts
-│   ├── dom-interceptor.ts
-│   ├── modal.ts
+├── content/             # Content scripts (DOM interception, window message handler)
+│   ├── index.ts
+│   └── modal.ts
+├── injected/            # Main world scripts (fetch/XHR patching fallback)
 │   └── index.ts
-├── injected/            # Main world scripts
-│   └── fetch-interceptor.ts
 ├── popup/               # Extension popup
-│   ├── components/
-│   └── index.tsx
+│   ├── index.html
+│   └── popup.tsx
 └── shared/              # Shared code
     ├── detectors/
     │   ├── index.ts
+    │   ├── engine.ts
     │   ├── patterns.ts
-    │   └── entropy.ts
+    │   └── pii.ts
     ├── types/
     │   ├── detection.ts
-    │   └── messages.ts
+    │   ├── messages.ts
+    │   └── ...
     └── utils/
-        └── redaction.ts
+        ├── entropy.ts
+        ├── luhn.ts
+        └── redact.ts
 ```
 
 ### File Size Limits

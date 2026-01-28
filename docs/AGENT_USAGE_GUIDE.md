@@ -286,7 +286,7 @@ Workflow:
 Users report slowness when typing long prompts (10KB+).
 Analyze detection performance in:
 - src/shared/detectors/index.ts
-- src/content/dom-interceptor.ts
+- src/content/index.ts
 
 After analysis identifies bottleneck:
 

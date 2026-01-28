@@ -73,8 +73,9 @@ src/
 | File | Purpose |
 |------|---------|
 | `src/shared/detectors/index.ts` | Main detection engine |
-| `src/content/dom-interceptor.ts` | DOM event interception |
+| `src/content/index.ts` | DOM interception, window message handler (scan_request/scan_result) |
 | `src/content/modal.ts` | Warning modal component |
+| `src/injected/index.ts` | Fetch/XHR patching (fallback when DOM selectors fail) |
 | `configs/selectors.json` | Site-specific selectors |
 
 ## Testing
@@ -83,7 +84,7 @@ src/
 - **E2E**: Playwright - `npm run test:e2e`
 - **Property**: Hypothesis (Python) - `npm run test:property`
 
-Test files mirror source structure in `tests/`.
+Test files mirror source structure in `tests/`. Content script–specific unit tests: `content-message-handler`, `content-state-reset`, `modal`; use `tests/fixtures/ai-leak-checker-scan.ts` for window postMessage payloads.
 
 ## Common Tasks
 
@@ -135,3 +136,4 @@ See `docs/requirements/ROADMAP.md` for full timeline.
 - [Architecture](docs/architecture/ARCHITECTURE.md)
 - [Task Order](docs/tasks/TASK_ORDER.md)
 - [Roadmap](docs/requirements/ROADMAP.md)
+- [Agent Usage Guide](docs/AGENT_USAGE_GUIDE.md) – Skills, subagents, workflows
