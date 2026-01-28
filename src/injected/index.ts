@@ -156,6 +156,9 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
 
   /**
    * Patched fetch function.
+   * 
+   * Intercepts fetch requests to monitored endpoints, scans content for sensitive data,
+   * and blocks the request if sensitive data is detected.
    */
   window.fetch = async function patchedFetch(
     input: RequestInfo | URL,
@@ -174,13 +177,18 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
         const scanResult = await requestScan(content);
 
         if (scanResult.hasSensitiveData) {
-          // Content script will handle blocking - we just log here
-          console.warn('[AI Leak Checker] Sensitive data detected in fetch request');
+          console.warn('[AI Leak Checker] Sensitive data detected in fetch request - blocking');
+          
+          // Block the request by rejecting the promise
+          // The content script will show the modal via the scan_result handler
+          return Promise.reject(
+            new Error('Request blocked by AI Leak Checker: Sensitive data detected')
+          );
         }
       }
     }
 
-    // Proceed with original fetch
+    // Proceed with original fetch if no sensitive data detected
     return originalFetch.call(window, input, init);
   };
 
@@ -207,10 +215,20 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
         if (content) {
           console.log('[AI Leak Checker] Intercepted XHR to:', this._url);
 
-          // Async scan - can't easily block XHR
+          // Scan and block if sensitive data detected
+          // Note: XHR blocking is less reliable than fetch, but we attempt it
           void requestScan(content).then(result => {
             if (result.hasSensitiveData) {
-              console.warn('[AI Leak Checker] Sensitive data detected in XHR request');
+              console.warn('[AI Leak Checker] Sensitive data detected in XHR request - attempting to abort');
+              // Try to abort the request if it hasn't been sent yet
+              // The content script will show the modal via the scan_result handler
+              try {
+                if (this.readyState < XMLHttpRequest.OPENED || this.readyState === XMLHttpRequest.OPENED) {
+                  this.abort();
+                }
+              } catch {
+                // Ignore errors - request may have already been sent
+              }
             }
           });
         }

@@ -11,6 +11,7 @@ import { redact } from '@/shared/utils/redact';
 import {
   type Finding,
   type DetectionResult,
+  type DetectorType,
   type SiteConfig,
   type ExtensionMessage,
   MessageType,
@@ -23,17 +24,37 @@ import {
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
+/** Minimal finding metadata stored in pendingSubmission (no sensitive .value). */
+type FindingMeta = {
+  type: DetectorType;
+  start: number;
+  end: number;
+  confidence: number;
+};
+
+/** Convert FindingMeta[] to Finding[] for redact(); uses placeholder value (marker style ignores it). */
+function findingMetaToFindingsForRedact(meta: FindingMeta[]): Finding[] {
+  return meta.map((m) => ({
+    type: m.type,
+    value: '[REDACTED]',
+    start: m.start,
+    end: m.end,
+    confidence: m.confidence,
+  }));
+}
+
 /** Current site configuration */
 let siteConfig: SiteConfig | null = null;
 
 /** Warning modal instance */
 let modal: WarningModal | null = null;
 
-/** Pending submission data when showing modal */
+/** Pending submission metadata when showing modal. No raw prompt or finding values stored; re-read from input on Mask & Continue. */
 let pendingSubmission: {
-  text: string;
-  findings: Finding[];
-  result: DetectionResult;
+  findingMeta: FindingMeta[];
+  messageId?: string;
+  detectorTypes: string[];
+  timestamp: string;
   originalEvent?: Event;
   submitFn?: () => void;
 } | null = null;
@@ -49,6 +70,9 @@ let isProgrammaticSubmit = false;
 
 /** Flag indicating fallback fetch/XHR patching is active */
 let fallbackActive = false;
+
+/** True in development builds only; avoids noisy selector-matching logs in production. */
+const DEBUG = (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
 /**
  * Check if the extension context is still valid.
@@ -176,6 +200,9 @@ async function initialize(): Promise<void> {
     // Extension context invalidated - can't set up listener
     console.warn('[AI Leak Checker] Failed to set up message listener:', error);
   }
+
+  // Listen for messages from injected script (main world)
+  window.addEventListener('message', handleWindowMessage);
 }
 
 /**
@@ -272,10 +299,31 @@ function notifyFallbackActive(): void {
 }
 
 /**
+ * Reset state when a new chat is detected.
+ * This ensures the modal can be triggered again in new conversations.
+ */
+function resetStateForNewChat(): void {
+  // Clear pending submission
+  pendingSubmission = null;
+  
+  // Reset programmatic submit flag
+  isProgrammaticSubmit = false;
+  
+  // Hide modal if visible (new chat = fresh start)
+  if (modal) {
+    modal.hide();
+  }
+}
+
+/**
  * Attach event listeners to input and submit elements.
  */
 function attachListeners(): void {
   if (!siteConfig) return;
+
+  let inputCount = 0;
+  let submitCount = 0;
+  let newInputsFound = false;
 
   // Find and attach to input elements
   for (const selector of siteConfig.inputSelectors) {
@@ -284,10 +332,18 @@ function attachListeners(): void {
       if (!attachedElements.has(input)) {
         if (input instanceof HTMLElement) {
           attachInputListeners(input);
+          inputCount++;
+          newInputsFound = true;
         }
         attachedElements.add(input);
       }
     }
+  }
+
+  // If new input elements were found, reset state (new chat detected)
+  // Only reset if modal is not currently visible to avoid closing active warnings
+  if (newInputsFound && (!modal || !modal.isCurrentlyVisible())) {
+    resetStateForNewChat();
   }
 
   // Find and attach to submit buttons
@@ -297,6 +353,7 @@ function attachListeners(): void {
       if (!attachedElements.has(button)) {
         if (button instanceof HTMLElement) {
           attachSubmitListener(button);
+          submitCount++;
         }
         attachedElements.add(button);
       }
@@ -310,6 +367,11 @@ function attachListeners(): void {
       form.addEventListener('submit', handleFormSubmit, { capture: true });
       attachedElements.add(form);
     }
+  }
+
+  if (DEBUG && (inputCount > 0 || submitCount > 0)) {
+    // eslint-disable-next-line no-console -- debug-only, dev builds only
+    console.debug(`[AI Leak Checker] Attached listeners: ${inputCount} input(s), ${submitCount} submit button(s)`);
   }
 }
 
@@ -382,7 +444,7 @@ function handleKeyDown(event: KeyboardEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -433,7 +495,7 @@ function handleSubmitClick(event: MouseEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -465,7 +527,7 @@ function handleFormSubmit(event: SubmitEvent): void {
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
-      showWarning(text, result, event);
+      showWarning(result, event);
     }
   }
 }
@@ -522,18 +584,25 @@ function shouldScan(text: string): boolean {
 
 /**
  * Show warning modal with detected findings.
+ * Does not store raw prompt or finding values; Mask & Continue re-reads from input.
  */
 function showWarning(
-  text: string,
   result: DetectionResult,
   originalEvent?: Event
 ): void {
   if (!modal) return;
 
+  const findingMeta: FindingMeta[] = result.findings.map((f) => ({
+    type: f.type,
+    start: f.start,
+    end: f.end,
+    confidence: f.confidence,
+  }));
+
   pendingSubmission = {
-    text,
-    findings: result.findings,
-    result,
+    findingMeta,
+    detectorTypes: result.findings.map((f) => f.type),
+    timestamp: new Date().toISOString(),
     originalEvent,
   };
 
@@ -551,13 +620,15 @@ function showWarning(
 
 /**
  * Handle "Mask & Continue" action.
+ * Re-reads current input (no raw prompt stored); redacts via minimal metadata and submits.
  */
 function handleContinueWithRedaction(): void {
   if (!pendingSubmission || !siteConfig) return;
 
-  const redactedText = redact(pendingSubmission.text, pendingSubmission.findings);
-  
-  // Update the input with redacted text
+  const currentText = getCurrentInputText();
+  const findingsForRedact = findingMetaToFindingsForRedact(pendingSubmission.findingMeta);
+  const redactedText = redact(currentText, findingsForRedact);
+
   for (const selector of siteConfig.inputSelectors) {
     const input = document.querySelector(selector);
     if (input && input instanceof HTMLElement) {
@@ -771,6 +842,96 @@ function handleMessage(
   }
 
   return false;
+}
+
+/** Discriminated union for AI Leak Checker window messages from injected script. */
+type AILeakCheckerScanRequest = {
+  type: 'AI_LEAK_CHECKER';
+  action: 'scan_request';
+  messageId: string;
+  content: string;
+};
+
+function isAILeakCheckerMessage(obj: unknown): obj is AILeakCheckerScanRequest {
+  if (!obj || typeof obj !== 'object') return false;
+  const d = obj as Record<string, unknown>;
+  return (
+    d.type === 'AI_LEAK_CHECKER' &&
+    d.action === 'scan_request' &&
+    typeof d.messageId === 'string' &&
+    typeof d.content === 'string'
+  );
+}
+
+/** targetOrigin for postMessage; restrict to current page (no sensitive data to cross-origin). */
+function getWindowMessageTargetOrigin(): string {
+  return window.location.origin;
+}
+
+/**
+ * Handle messages from injected script (main world) via window.postMessage.
+ *
+ * Listens for scan requests from the injected script and responds with scan results.
+ * Never sends raw finding values; only hasSensitiveData and minimal metadata.
+ */
+function handleWindowMessage(event: MessageEvent): void {
+  if (event.source !== window) return;
+  if (!event.data || typeof event.data !== 'object') return;
+
+  if (!isAILeakCheckerMessage(event.data)) return;
+
+  const { messageId, content } = event.data;
+
+  let result: DetectionResult;
+  try {
+    result = scan(content);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    window.postMessage(
+      {
+        type: 'AI_LEAK_CHECKER',
+        action: 'scan_result',
+        messageId,
+        result: { hasSensitiveData: false, error: errorMessage },
+      },
+      getWindowMessageTargetOrigin()
+    );
+    return;
+  }
+
+  window.postMessage(
+    {
+      type: 'AI_LEAK_CHECKER',
+      action: 'scan_result',
+      messageId,
+      result: { hasSensitiveData: result.hasSensitiveData },
+    },
+    getWindowMessageTargetOrigin()
+  );
+
+  if (result.hasSensitiveData && modal) {
+    isProgrammaticSubmit = false;
+    const findingMeta: FindingMeta[] = result.findings.map((f) => ({
+      type: f.type,
+      start: f.start,
+      end: f.end,
+      confidence: f.confidence,
+    }));
+    pendingSubmission = {
+      findingMeta,
+      messageId,
+      detectorTypes: result.findings.map((f) => f.type),
+      timestamp: new Date().toISOString(),
+    };
+    modal.show(result.findings);
+    safeSendMessage({
+      type: MessageType.STATS_INCREMENT,
+      payload: {
+        field: 'actions.cancelled',
+        byDetector: result.summary.byType,
+      },
+    });
+  }
 }
 
 // Initialize when DOM is ready

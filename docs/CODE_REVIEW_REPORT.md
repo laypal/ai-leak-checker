@@ -333,7 +333,7 @@ ls -la dist/manifest.json && echo "✅ Build complete"
 
 # 5. File structure verification
 test -f src/shared/detectors/index.ts && echo "✅ Detection engine exists"
-test -f src/content/dom-interceptor.ts && echo "✅ DOM interceptor exists"
+test -f src/content/index.ts && echo "✅ Content script (DOM interception) exists"
 test -f src/content/modal.ts && echo "✅ Modal component exists"
 test -f configs/selectors.json && echo "✅ Selectors config exists"
 

@@ -1,7 +1,7 @@
 # AI Leak Checker - Architectural Design Document
 
 > **Document Purpose**: Technical architecture, design decisions, and implementation patterns.
-> **Version**: 1.0.0 | **Last Updated**: 2026-01-15
+> **Version**: 1.0.0 | **Last Updated**: 2026-01-28
 
 ---
 
@@ -407,8 +407,10 @@ User Input → Content Script → Detection Engine → Result
                     └──→ Storage (stats only, no content)
 ```
 
-**Never transmitted**: Prompt text, full findings, user PII
+**Never transmitted**: Prompt text, full findings, user PII  
 **Stored locally**: Detection counts, timestamps, domains
+
+**Content script**: Does not persist raw prompt text. Pending submission holds only metadata (findings, detector types, timestamp); Mask & Continue re-reads from the input when the user acts. **Window postMessage** (injected ↔ content): Injected script sends `scan_request` with content; content script replies with `scan_result` containing `hasSensitiveData` only (no `finding.value`). `postMessage` uses `targetOrigin` = `window.location.origin`, not `*`.
 
 ---
 
@@ -700,11 +702,8 @@ src/
 │   ├── message-handler.ts    # Message routing
 │   └── storage.ts            # Storage operations
 ├── content/
-│   ├── index.ts              # Content script entry
-│   ├── dom-interceptor.ts    # DOM event listeners
-│   ├── fetch-patcher.ts      # Main world injection
-│   ├── modal.ts              # Warning modal component
-│   └── mutation-observer.ts  # DOM change detection
+│   ├── index.ts              # Content script entry (DOM interception, window message handler)
+│   └── modal.ts              # Warning modal component
 ├── popup/
 │   ├── App.tsx               # Popup UI root
 │   ├── components/           # UI components
