@@ -11,6 +11,7 @@ import { redact } from '@/shared/utils/redact';
 import {
   type Finding,
   type DetectionResult,
+  type DetectorType,
   type SiteConfig,
   type ExtensionMessage,
   MessageType,
@@ -23,16 +24,34 @@ import {
 } from '@/shared/types';
 import { WarningModal } from './modal';
 
+/** Minimal finding metadata stored in pendingSubmission (no sensitive .value). */
+type FindingMeta = {
+  type: DetectorType;
+  start: number;
+  end: number;
+  confidence: number;
+};
+
+/** Convert FindingMeta[] to Finding[] for redact(); uses placeholder value (marker style ignores it). */
+function findingMetaToFindingsForRedact(meta: FindingMeta[]): Finding[] {
+  return meta.map((m) => ({
+    type: m.type,
+    value: '[REDACTED]',
+    start: m.start,
+    end: m.end,
+    confidence: m.confidence,
+  }));
+}
+
 /** Current site configuration */
 let siteConfig: SiteConfig | null = null;
 
 /** Warning modal instance */
 let modal: WarningModal | null = null;
 
-/** Pending submission metadata when showing modal. No raw prompt stored; re-read from input on Mask & Continue. */
+/** Pending submission metadata when showing modal. No raw prompt or finding values stored; re-read from input on Mask & Continue. */
 let pendingSubmission: {
-  findings: Finding[];
-  result: DetectionResult;
+  findingMeta: FindingMeta[];
   messageId?: string;
   detectorTypes: string[];
   timestamp: string;
@@ -565,7 +584,7 @@ function shouldScan(text: string): boolean {
 
 /**
  * Show warning modal with detected findings.
- * Does not store raw prompt; Mask & Continue re-reads from input.
+ * Does not store raw prompt or finding values; Mask & Continue re-reads from input.
  */
 function showWarning(
   result: DetectionResult,
@@ -573,9 +592,15 @@ function showWarning(
 ): void {
   if (!modal) return;
 
+  const findingMeta: FindingMeta[] = result.findings.map((f) => ({
+    type: f.type,
+    start: f.start,
+    end: f.end,
+    confidence: f.confidence,
+  }));
+
   pendingSubmission = {
-    findings: result.findings,
-    result,
+    findingMeta,
     detectorTypes: result.findings.map((f) => f.type),
     timestamp: new Date().toISOString(),
     originalEvent,
@@ -595,13 +620,14 @@ function showWarning(
 
 /**
  * Handle "Mask & Continue" action.
- * Re-reads current input (no raw prompt stored); redacts and submits.
+ * Re-reads current input (no raw prompt stored); redacts via minimal metadata and submits.
  */
 function handleContinueWithRedaction(): void {
   if (!pendingSubmission || !siteConfig) return;
 
   const currentText = getCurrentInputText();
-  const redactedText = redact(currentText, pendingSubmission.findings);
+  const findingsForRedact = findingMetaToFindingsForRedact(pendingSubmission.findingMeta);
+  const redactedText = redact(currentText, findingsForRedact);
 
   for (const selector of siteConfig.inputSelectors) {
     const input = document.querySelector(selector);
@@ -885,9 +911,14 @@ function handleWindowMessage(event: MessageEvent): void {
 
   if (result.hasSensitiveData && modal) {
     isProgrammaticSubmit = false;
+    const findingMeta: FindingMeta[] = result.findings.map((f) => ({
+      type: f.type,
+      start: f.start,
+      end: f.end,
+      confidence: f.confidence,
+    }));
     pendingSubmission = {
-      findings: result.findings,
-      result,
+      findingMeta,
       messageId,
       detectorTypes: result.findings.map((f) => f.type),
       timestamp: new Date().toISOString(),

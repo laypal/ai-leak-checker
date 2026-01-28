@@ -10,9 +10,9 @@
  * - Sensitive content uses synthetic placeholders or clearly fake strings; no real secrets.
  */
 
-/** Content string that triggers sensitive-data detection (OpenAI key pattern). */
+/** Content string that triggers sensitive-data detection (OpenAI key pattern; ≥20 chars for validator). */
 export const SENSITIVE_SCAN_CONTENT =
-  'my email is john@gmail.com and api key is sk-134567890abcdef';
+  'my email is john@gmail.com and api key is sk-abc123def456ghi789jkl012mno345pqr678';
 
 /** Content string that does not trigger detection. */
 export const CLEAN_SCAN_CONTENT =
