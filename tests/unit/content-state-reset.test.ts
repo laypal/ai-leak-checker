@@ -33,14 +33,10 @@ function simulateResetStateForNewChat(
   },
   modal: { hide: () => void } | null
 ): void {
-  // Clear pending submission
   state.pendingSubmission = null;
-  
-  // Reset programmatic submit flag
   state.isProgrammaticSubmit = false;
-  
-  // Hide modal if visible (new chat = fresh start)
-  if (modal && state.modalVisible) {
+
+  if (modal) {
     modal.hide();
     state.modalVisible = false;
   }
@@ -160,12 +156,13 @@ describe('Content Script State Reset', () => {
       expect(state.modalVisible).toBe(false);
     });
 
-    it('should not hide modal if already hidden', () => {
+    it('should hide modal whenever provided (even if already hidden)', () => {
       state.modalVisible = false;
-      
+
       simulateResetStateForNewChat(state, mockModal);
 
-      expect(mockModal.hide).not.toHaveBeenCalled();
+      expect(mockModal.hide).toHaveBeenCalled();
+      expect(state.modalVisible).toBe(false);
     });
 
     it('should handle null modal gracefully', () => {

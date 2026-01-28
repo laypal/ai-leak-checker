@@ -1,12 +1,21 @@
 /**
- * @fileoverview Unit tests for WarningModal component.
+ * @file modal.test.ts
+ * @description Unit tests for the WarningModal component: visibility, re-show
+ * after hide, callbacks, and rapid show/hide cycles.
  * @module tests/unit/modal
- * 
- * Tests modal functionality including re-showing capability after being hidden.
- * 
+ *
+ * @dependencies
+ * - vitest (describe, it, expect, beforeEach, afterEach, vi)
+ * - jsdom (@vitest-environment)
+ * - @/content/modal (WarningModal)
+ * - @/shared/types (Finding, DetectorType)
+ *
+ * @security
+ * - Finding values use placeholders (e.g. GITHUB_TOKEN_PLACEHOLDER) to avoid
+ *   real-looking secrets in tests.
+ *
  * @vitest-environment jsdom
  */
-
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { WarningModal, type WarningModalCallbacks } from '@/content/modal';
 import { DetectorType, type Finding } from '@/shared/types';
@@ -77,9 +86,9 @@ describe('WarningModal', () => {
       const findings2: Finding[] = [
         {
           type: DetectorType.API_KEY_GITHUB,
-          value: 'ghp_test1234567890abcdefghijklmnopqrstuv',
+          value: 'GITHUB_TOKEN_PLACEHOLDER',
           start: 0,
-          end: 39,
+          end: 23,
           confidence: 0.98,
         },
       ];

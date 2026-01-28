@@ -29,11 +29,13 @@ let siteConfig: SiteConfig | null = null;
 /** Warning modal instance */
 let modal: WarningModal | null = null;
 
-/** Pending submission data when showing modal */
+/** Pending submission metadata when showing modal. No raw prompt stored; re-read from input on Mask & Continue. */
 let pendingSubmission: {
-  text: string;
   findings: Finding[];
   result: DetectionResult;
+  messageId?: string;
+  detectorTypes: string[];
+  timestamp: string;
   originalEvent?: Event;
   submitFn?: () => void;
 } | null = null;
@@ -563,18 +565,20 @@ function shouldScan(text: string): boolean {
 
 /**
  * Show warning modal with detected findings.
+ * Does not store raw prompt; Mask & Continue re-reads from input.
  */
 function showWarning(
-  text: string,
+  _text: string,
   result: DetectionResult,
   originalEvent?: Event
 ): void {
   if (!modal) return;
 
   pendingSubmission = {
-    text,
     findings: result.findings,
     result,
+    detectorTypes: result.findings.map((f) => f.type),
+    timestamp: new Date().toISOString(),
     originalEvent,
   };
 
@@ -592,13 +596,14 @@ function showWarning(
 
 /**
  * Handle "Mask & Continue" action.
+ * Re-reads current input (no raw prompt stored); redacts and submits.
  */
 function handleContinueWithRedaction(): void {
   if (!pendingSubmission || !siteConfig) return;
 
-  const redactedText = redact(pendingSubmission.text, pendingSubmission.findings);
-  
-  // Update the input with redacted text
+  const currentText = getCurrentInputText();
+  const redactedText = redact(currentText, pendingSubmission.findings);
+
   for (const selector of siteConfig.inputSelectors) {
     const input = document.querySelector(selector);
     if (input && input instanceof HTMLElement) {
@@ -814,89 +819,88 @@ function handleMessage(
   return false;
 }
 
+/** Discriminated union for AI Leak Checker window messages from injected script. */
+type AILeakCheckerScanRequest = {
+  type: 'AI_LEAK_CHECKER';
+  action: 'scan_request';
+  messageId: string;
+  content: string;
+};
+
+function isAILeakCheckerMessage(obj: unknown): obj is AILeakCheckerScanRequest {
+  if (!obj || typeof obj !== 'object') return false;
+  const d = obj as Record<string, unknown>;
+  return (
+    d.type === 'AI_LEAK_CHECKER' &&
+    d.action === 'scan_request' &&
+    typeof d.messageId === 'string' &&
+    typeof d.content === 'string'
+  );
+}
+
+/** targetOrigin for postMessage; restrict to current page (no sensitive data to cross-origin). */
+function getWindowMessageTargetOrigin(): string {
+  return window.location.origin;
+}
+
 /**
  * Handle messages from injected script (main world) via window.postMessage.
- * 
+ *
  * Listens for scan requests from the injected script and responds with scan results.
- * Also handles requests to show the modal when sensitive data is detected via fetch interception.
+ * Never sends raw finding values; only hasSensitiveData and minimal metadata.
  */
 function handleWindowMessage(event: MessageEvent): void {
-  // Only accept messages from same window
-  if (event.source !== window) {
-    return;
-  }
+  if (event.source !== window) return;
+  if (!event.data || typeof event.data !== 'object') return;
 
-  // Validate message format
-  if (!event.data || typeof event.data !== 'object') {
-    return;
-  }
+  if (!isAILeakCheckerMessage(event.data)) return;
 
-  const data = event.data as Record<string, unknown>;
+  const { messageId, content } = event.data;
 
-  // Only handle our extension messages
-  if (data.type !== 'AI_LEAK_CHECKER') {
-    return;
-  }
-
-  // Handle scan request from injected script
-  if (data.action === 'scan_request' && typeof data.messageId === 'string' && typeof data.content === 'string') {
-    const messageId = data.messageId;
-    const content = data.content;
-
-    // Scan the content with error handling
-    let result: DetectionResult;
-    try {
-      result = scan(content);
-    } catch (error) {
-      // On error, send failure response but don't block
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      window.postMessage({
+  let result: DetectionResult;
+  try {
+    result = scan(content);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    window.postMessage(
+      {
         type: 'AI_LEAK_CHECKER',
         action: 'scan_result',
         messageId,
-        result: {
-          hasSensitiveData: false,
-          findings: [],
-          error: errorMessage,
-        },
-      }, '*');
-      return;
-    }
+        result: { hasSensitiveData: false, error: errorMessage },
+      },
+      getWindowMessageTargetOrigin()
+    );
+    return;
+  }
 
-    // Send response back to injected script
-    window.postMessage({
+  window.postMessage(
+    {
       type: 'AI_LEAK_CHECKER',
       action: 'scan_result',
       messageId,
-      result: {
-        hasSensitiveData: result.hasSensitiveData,
-        findings: result.findings,
+      result: { hasSensitiveData: result.hasSensitiveData },
+    },
+    getWindowMessageTargetOrigin()
+  );
+
+  if (result.hasSensitiveData && modal) {
+    isProgrammaticSubmit = false;
+    pendingSubmission = {
+      findings: result.findings,
+      result,
+      messageId,
+      detectorTypes: result.findings.map((f) => f.type),
+      timestamp: new Date().toISOString(),
+    };
+    modal.show(result.findings);
+    safeSendMessage({
+      type: MessageType.STATS_INCREMENT,
+      payload: {
+        field: 'actions.cancelled',
+        byDetector: result.summary.byType,
       },
-    }, '*');
-
-    // If sensitive data detected, show modal
-    if (result.hasSensitiveData && modal) {
-      // Reset state before showing modal (ensures clean state for new detections)
-      isProgrammaticSubmit = false;
-      
-      // Store the content for potential redaction/submission
-      pendingSubmission = {
-        text: content,
-        findings: result.findings,
-        result,
-      };
-
-      modal.show(result.findings);
-
-      // Send stats
-      safeSendMessage({
-        type: MessageType.STATS_INCREMENT,
-        payload: {
-          field: 'actions.cancelled',
-          byDetector: result.summary.byType,
-        },
-      });
-    }
+    });
   }
 }
 

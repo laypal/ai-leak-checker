@@ -1,25 +1,38 @@
 /**
- * @fileoverview Unit tests for content script window message handler.
+ * @file content-message-handler.test.ts
+ * @description Unit tests for content script window.postMessage handler. Covers
+ * scan_request/scan_result flow, validation, and the fix where injected-script
+ * scan requests were not handled.
  * @module tests/unit/content-message-handler
- * 
- * Tests the window.postMessage communication between injected script and content script.
- * This tests the critical bug fix where scan requests from injected script were not being handled.
- */
-
-/**
+ *
+ * @dependencies
+ * - vitest (describe, it, expect, beforeEach, afterEach, vi)
+ * - @/shared/detectors (scan)
+ * - @/shared/types (Finding, DetectionResult, DetectorType)
+ * - tests/fixtures/ai-leak-checker-scan (payload fixtures)
+ *
+ * @security
+ * - Fixtures use synthetic/safe strings; no real secrets. postMessage tests
+ *   assert sanitized payloads (no finding.value) and restricted targetOrigin.
+ *
  * @vitest-environment jsdom
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { scan } from '@/shared/detectors';
 import { DetectorType, type Finding, type DetectionResult } from '@/shared/types';
+import {
+  aiLeakCheckerScanRequestSensitive,
+  aiLeakCheckerScanRequestClean,
+  aiLeakCheckerScanRequestGeneric,
+  SCAN_MESSAGE_ID_GENERIC,
+} from '../fixtures/ai-leak-checker-scan';
+
+const TARGET_ORIGIN = (): string => window.location.origin;
 
 /**
  * Simulate the handleWindowMessage function logic for testing.
- * 
- * NOTE: The real implementation in src/content/index.ts uses module-scoped variables
- * (siteConfig, modal, pendingSubmission, etc.). This test version accepts these as
- * parameters to enable isolated unit testing of the message handling logic.
- * Optional scanFn allows injecting a throwing scanner to test the error path.
+ * Mirrors production: sanitized result (hasSensitiveData only, no findings),
+ * targetOrigin = window.location.origin.
  */
 function simulateHandleWindowMessage(
   event: MessageEvent,
@@ -27,74 +40,59 @@ function simulateHandleWindowMessage(
   onStatsIncrement: (payload: unknown) => void,
   scanFn: (text: string) => DetectionResult = scan
 ): { responded: boolean; modalShown: boolean } {
-  // Only accept messages from same window
-  if (event.source !== window) {
-    return { responded: false, modalShown: false };
-  }
-
-  // Validate message format
-  if (!event.data || typeof event.data !== 'object') {
-    return { responded: false, modalShown: false };
-  }
+  if (event.source !== window) return { responded: false, modalShown: false };
+  if (!event.data || typeof event.data !== 'object') return { responded: false, modalShown: false };
 
   const data = event.data as Record<string, unknown>;
-
-  // Only handle our extension messages
-  if (data.type !== 'AI_LEAK_CHECKER') {
+  if (data.type !== 'AI_LEAK_CHECKER') return { responded: false, modalShown: false };
+  if (
+    data.action !== 'scan_request' ||
+    typeof data.messageId !== 'string' ||
+    typeof data.content !== 'string'
+  ) {
     return { responded: false, modalShown: false };
   }
 
-  // Handle scan request from injected script
-  if (data.action === 'scan_request' && typeof data.messageId === 'string' && typeof data.content === 'string') {
-    const messageId = data.messageId;
-    const content = data.content;
+  const messageId = data.messageId;
+  const content = data.content;
 
-    let result: DetectionResult;
-    try {
-      result = scanFn(content);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      window.postMessage(
-        {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_result',
-          messageId,
-          result: {
-            hasSensitiveData: false,
-            findings: [],
-            error: errorMessage,
-          },
-        },
-        '*'
-      );
-      return { responded: true, modalShown: false };
-    }
-
-    // Send response back to injected script
-    window.postMessage({
-      type: 'AI_LEAK_CHECKER',
-      action: 'scan_result',
-      messageId,
-      result: {
-        hasSensitiveData: result.hasSensitiveData,
-        findings: result.findings,
+  let result: DetectionResult;
+  try {
+    result = scanFn(content);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    window.postMessage(
+      {
+        type: 'AI_LEAK_CHECKER',
+        action: 'scan_result',
+        messageId,
+        result: { hasSensitiveData: false, error: errorMessage },
       },
-    }, '*');
-
-    // If sensitive data detected, show modal
-    if (result.hasSensitiveData && modal) {
-      modal.show(result.findings);
-      onStatsIncrement({
-        field: 'actions.cancelled',
-        byDetector: result.summary.byType,
-      });
-      return { responded: true, modalShown: true };
-    }
-
+      TARGET_ORIGIN()
+    );
     return { responded: true, modalShown: false };
   }
 
-  return { responded: false, modalShown: false };
+  window.postMessage(
+    {
+      type: 'AI_LEAK_CHECKER',
+      action: 'scan_result',
+      messageId,
+      result: { hasSensitiveData: result.hasSensitiveData },
+    },
+    TARGET_ORIGIN()
+  );
+
+  if (result.hasSensitiveData && modal) {
+    modal.show(result.findings);
+    onStatsIncrement({
+      field: 'actions.cancelled',
+      byDetector: result.summary.byType,
+    });
+    return { responded: true, modalShown: true };
+  }
+
+  return { responded: true, modalShown: false };
 }
 
 describe('Content Script Window Message Handler', () => {
@@ -119,13 +117,8 @@ describe('Content Script Window Message Handler', () => {
   describe('Message Validation', () => {
     it('should ignore messages from different source', () => {
       const event = new MessageEvent('message', {
-        source: {} as Window, // Different source
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-123',
-          content: 'sk-test1234567890abcdefghijklmnop',
-        },
+        source: {} as Window,
+        data: aiLeakCheckerScanRequestGeneric,
       });
 
       const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
@@ -251,12 +244,7 @@ describe('Content Script Window Message Handler', () => {
     it('should respond to valid scan_request with scan_result', () => {
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-123',
-          content: 'sk-test1234567890abcdefghijklmnop',
-        },
+        data: aiLeakCheckerScanRequestGeneric,
       });
 
       const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
@@ -266,47 +254,33 @@ describe('Content Script Window Message Handler', () => {
         expect.objectContaining({
           type: 'AI_LEAK_CHECKER',
           action: 'scan_result',
-          messageId: 'test-123',
+          messageId: SCAN_MESSAGE_ID_GENERIC,
           result: expect.objectContaining({
             hasSensitiveData: true,
           }),
         }),
-        '*'
+        window.location.origin
       );
     });
 
     it('should scan content and detect sensitive data', () => {
-      const sensitiveContent = 'my email is john@gmail.com and api key is sk-134567890abcdef';
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-456',
-          content: sensitiveContent,
-        },
+        data: aiLeakCheckerScanRequestSensitive,
       });
 
       const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
 
       expect(result.responded).toBe(true);
       expect(result.modalShown).toBe(true);
-      
-      const callArgs = postMessageSpy.mock.calls[0][0] as { result: { hasSensitiveData: boolean; findings: Finding[] } };
+      const callArgs = postMessageSpy.mock.calls[0][0] as { result: { hasSensitiveData: boolean } };
       expect(callArgs.result.hasSensitiveData).toBe(true);
-      expect(callArgs.result.findings.length).toBeGreaterThan(0);
     });
 
     it('should not show modal for clean content', () => {
-      const cleanContent = 'This is just a normal message with no sensitive data.';
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-789',
-          content: cleanContent,
-        },
+        data: aiLeakCheckerScanRequestClean,
       });
 
       const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
@@ -314,20 +288,16 @@ describe('Content Script Window Message Handler', () => {
       expect(result.responded).toBe(true);
       expect(result.modalShown).toBe(false);
       expect(mockModal.show).not.toHaveBeenCalled();
-      
       const callArgs = postMessageSpy.mock.calls[0][0] as { result: { hasSensitiveData: boolean } };
       expect(callArgs.result.hasSensitiveData).toBe(false);
     });
 
     it('should not show modal if modal instance is null', () => {
-      const sensitiveContent = 'sk-test1234567890abcdefghijklmnop';
       const event = new MessageEvent('message', {
         source: window,
         data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
+          ...aiLeakCheckerScanRequestGeneric,
           messageId: 'test-null',
-          content: sensitiveContent,
         },
       });
 
@@ -337,60 +307,42 @@ describe('Content Script Window Message Handler', () => {
       expect(result.modalShown).toBe(false);
     });
 
-    it('should include findings in scan_result response', () => {
-      const sensitiveContent = 'sk-test1234567890abcdefghijklmnop';
+    it('should send hasSensitiveData in scan_result and show modal with findings (no finding values in postMessage)', () => {
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-findings',
-          content: sensitiveContent,
-        },
+        data: { ...aiLeakCheckerScanRequestGeneric, messageId: 'test-findings' },
       });
 
       simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
 
-      const callArgs = postMessageSpy.mock.calls[0][0] as { result: { findings: Finding[] } };
-      expect(callArgs.result.findings).toBeDefined();
-      expect(Array.isArray(callArgs.result.findings)).toBe(true);
-      expect(callArgs.result.findings.length).toBeGreaterThan(0);
-      expect(callArgs.result.findings[0]).toHaveProperty('type');
-      expect(callArgs.result.findings[0]).toHaveProperty('value');
+      const callArgs = postMessageSpy.mock.calls[0][0] as { result: Record<string, unknown> };
+      expect(callArgs.result.hasSensitiveData).toBe(true);
+      expect(callArgs.result.findings).toBeUndefined();
+      expect(mockModal.show).toHaveBeenCalled();
+      const findings = mockModal.show.mock.calls[0][0] as Finding[];
+      expect(findings.length).toBeGreaterThan(0);
+      expect(findings[0]).toHaveProperty('type');
     });
 
     it('should show modal with findings when sensitive data detected', () => {
-      const sensitiveContent = 'sk-test1234567890abcdefghijklmnop';
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-modal',
-          content: sensitiveContent,
-        },
+        data: { ...aiLeakCheckerScanRequestGeneric, messageId: 'test-modal' },
       });
 
       const result = simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
 
       expect(result.modalShown).toBe(true);
       expect(mockModal.show).toHaveBeenCalled();
-      
       const findings = mockModal.show.mock.calls[0][0] as Finding[];
       expect(findings.length).toBeGreaterThan(0);
       expect(findings[0].type).toBe(DetectorType.API_KEY_OPENAI);
     });
 
     it('should send stats increment when sensitive data detected', () => {
-      const sensitiveContent = 'sk-test1234567890abcdefghijklmnop';
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId: 'test-stats',
-          content: sensitiveContent,
-        },
+        data: { ...aiLeakCheckerScanRequestGeneric, messageId: 'test-stats' },
       });
 
       simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
@@ -406,30 +358,23 @@ describe('Content Script Window Message Handler', () => {
 
   describe('Message ID Matching', () => {
     it('should include correct messageId in response', () => {
-      const messageId = 'unique-message-id-12345';
       const event = new MessageEvent('message', {
         source: window,
-        data: {
-          type: 'AI_LEAK_CHECKER',
-          action: 'scan_request',
-          messageId,
-          content: 'test',
-        },
+        data: { ...aiLeakCheckerScanRequestGeneric, messageId: 'unique-message-id-12345' },
       });
 
       simulateHandleWindowMessage(event, mockModal, mockStatsIncrement);
 
       const callArgs = postMessageSpy.mock.calls[0][0] as { messageId: string };
-      expect(callArgs.messageId).toBe(messageId);
+      expect(callArgs.messageId).toBe('unique-message-id-12345');
     });
   });
 
   describe('Scan error handling', () => {
     it('should catch scan errors, postMessage scan_result with error, return responded true modalShown false, and not call modal or stats', () => {
       const messageId = 'err-msg-1';
-      const scanError = new Error('scan failed');
       const throwingScan = (_text: string): DetectionResult => {
-        throw scanError;
+        throw new Error('scan failed');
       };
 
       const event = new MessageEvent('message', {
@@ -456,13 +401,9 @@ describe('Content Script Window Message Handler', () => {
           type: 'AI_LEAK_CHECKER',
           action: 'scan_result',
           messageId,
-          result: {
-            hasSensitiveData: false,
-            findings: [],
-            error: 'scan failed',
-          },
+          result: { hasSensitiveData: false, error: 'scan failed' },
         },
-        '*'
+        window.location.origin
       );
       expect(mockModal.show).not.toHaveBeenCalled();
       expect(mockStatsIncrement).not.toHaveBeenCalled();
