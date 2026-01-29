@@ -284,19 +284,23 @@ async function updateSettings(updates: Partial<Settings>): Promise<Settings> {
   
   await chrome.storage.local.set({ settings: updated });
 
-  // Notify all tabs of settings change
-  const tabs = await chrome.tabs.query({});
-  for (const tab of tabs) {
-    if (tab.id) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, {
-          type: MessageType.SETTINGS_UPDATED,
-          payload: { settings: updated },
-        });
-      } catch {
-        // Tab might not have content script
+  // Notify all tabs of settings change (best-effort; don't fail update if this throws)
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: MessageType.SETTINGS_UPDATED,
+            payload: { settings: updated },
+          });
+        } catch {
+          // Tab might not have content script
+        }
       }
     }
+  } catch {
+    // tabs.query or iteration failed (e.g. permission edge case); settings already saved
   }
 
   return updated;
