@@ -14,7 +14,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ICONS_DIR="$SCRIPT_DIR/../public/icons"
-SVG_SOURCE="$ICONS_DIR/icon.svg"
+SVG_SOURCE="$ICONS_DIR/AI Leak Checker.svg"
 
 echo "Generating icons from $SVG_SOURCE..."
 
@@ -46,7 +46,7 @@ else
     echo "  - Inkscape: brew install inkscape (macOS) / apt install inkscape (Ubuntu)"
     echo ""
     echo "Or convert manually using an online tool:"
-    echo "  1. Open public/icons/icon.svg in a browser"
+    echo "  1. Open public/icons/AI Leak Checker.svg in a browser"
     echo "  2. Use a tool like https://svgtopng.com/"
     echo "  3. Save as icon16.png, icon32.png, icon48.png, icon128.png"
     exit 1
