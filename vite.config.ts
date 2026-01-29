@@ -197,10 +197,10 @@ export default defineConfig(({ mode }) => ({
             }
           }
 
-          // Also copy SVG source
-          const svgPath = resolve(iconsDir, 'icon.svg');
-          if (existsSync(svgPath)) {
-            copyFileSync(svgPath, resolve(distIconsDir, 'icon.svg'));
+          // Also copy SVG source (source: "AI Leak Checker.svg"; output: icon.svg)
+          const svgSourcePath = resolve(iconsDir, 'AI Leak Checker.svg');
+          if (existsSync(svgSourcePath)) {
+            copyFileSync(svgSourcePath, resolve(distIconsDir, 'icon.svg'));
           }
         }
 

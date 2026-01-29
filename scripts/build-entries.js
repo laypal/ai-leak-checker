@@ -214,10 +214,10 @@ function copyStaticAssets() {
       }
     }
     
-    // Copy SVG source
-    const svgPath = join(iconsSrcDir, 'icon.svg');
-    if (existsSync(svgPath)) {
-      copyFileSync(svgPath, join(iconsDestDir, 'icon.svg'));
+    // Copy SVG source (source renamed to "AI Leak Checker.svg"; output stays icon.svg for dist)
+    const svgSourcePath = join(iconsSrcDir, 'AI Leak Checker.svg');
+    if (existsSync(svgSourcePath)) {
+      copyFileSync(svgSourcePath, join(iconsDestDir, 'icon.svg'));
     }
     
     console.log('[build-entries] ✅ Copied icons');
