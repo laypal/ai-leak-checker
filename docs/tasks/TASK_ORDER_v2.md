@@ -350,8 +350,8 @@ file public/icons/*.png
 - [x] Policy lists exact data collected (anonymized stats only) - Lines 32-36
 - [x] Policy includes data retention period - Lines 44-53
 - [x] Policy includes contact information - Line 122 (GitHub repo URL, email placeholder needs manual completion)
-- [ ] Policy is accessible via public URL - *Manual step: Enable GitHub Pages and configure*
-- [ ] URL is added to manifest.json (if supported) or store listing - *Note: Chrome Web Store doesn't support privacy_policy in manifest.json, URL is provided during store listing submission*
+- [x] Policy is accessible via public URL - *Manual step: Enable GitHub Pages and configure*
+- [x] URL is added to manifest.json (if supported) or store listing - *Note: Chrome Web Store doesn't support privacy_policy in manifest.json, URL is provided during store listing submission*
 - [x] GDPR lawful basis stated (legitimate interest for security) - Line 117
 
 **Files**:
@@ -379,30 +379,30 @@ file public/icons/*.png
 **Description**: Prepare all materials for Chrome Web Store submission.
 
 **Deliverables**:
-- [ ] Store listing copy (name, summary, description)
-- [ ] Screenshots (5 minimum)
-- [ ] Promotional images
+- [x] Store listing copy (name, summary, description)
+- [x] Screenshots (5 minimum)
+- [x] Promotional images
 
 **Acceptance Criteria**:
-- [ ] Extension name: "AI Leak Checker" (≤45 chars)
-- [ ] Short description (≤132 chars) includes key value prop
-- [ ] Detailed description covers: features, privacy, use cases
-- [ ] 5+ screenshots showing:
-  - [ ] Warning modal in action
-  - [ ] Popup settings page
-  - [ ] Mask & Continue feature
-  - [ ] Detection types supported
-  - [ ] Before/after redaction
-- [ ] Screenshots are 1280x800 or 640x400 PNG
-- [ ] Small promo tile: 440x280 PNG
-- [ ] Large promo tile: 920x680 PNG (optional)
-- [ ] Category selected: Productivity or Privacy & Security
+- [x] Extension name: "AI Leak Checker" (≤45 chars)
+- [x] Short description (≤132 chars) includes key value prop
+- [x] Detailed description covers: features, privacy, use cases
+- [x] 5+ screenshots showing:
+  - [x] Warning modal in action
+  - [x] Popup settings page
+  - [x] Mask & Continue feature
+  - [x] Detection types supported
+  - [x] Before/after redaction
+- [x] Screenshots are 1280x800 or 640x400 PNG
+- [x] Small promo tile: 440x280 PNG
+- [x] Large promo tile: 920x680 PNG (optional)
+- [x] Category selected: Productivity or Privacy & Security
 
 **Files**:
-- [ ] `store/description.md` - Listing copy
-- [ ] `store/screenshots/` - 5+ screenshots
-- [ ] `store/promo-small.png` - 440x280
-- [ ] `store/promo-large.png` - 920x680 (optional)
+- [x] `store/description.md` - Listing copy
+- [x] `store/screenshots/` - 5+ screenshots
+- [x] `store/promo-small.png` - 440x280
+- [x] `store/promo-large.png` - 920x680 (optional)
 
 ---
 
@@ -412,16 +412,16 @@ file public/icons/*.png
 **Description**: Create 30-60 second demo video for store listing.
 
 **Deliverables**:
-- [ ] Screen recording of extension in action
-- [ ] Edited video with captions
+- [x] Screen recording of extension in action
+- [x] Edited video with captions
 
 **Acceptance Criteria**:
-- [ ] Video is 30-60 seconds long
-- [ ] Shows: paste API key → warning → mask → continue
-- [ ] No audio required (captions sufficient)
-- [ ] Resolution: 1280x720 minimum
-- [ ] Format: MP4 or YouTube link
-- [ ] Demonstrates value proposition clearly
+- [x] Video is 30-60 seconds long
+- [x] Shows: paste API key → warning → mask → continue
+- [x] No audio required (captions sufficient)
+- [x] Resolution: 1280x720 minimum
+- [x] Format: MP4 or YouTube link
+- [x] Demonstrates value proposition clearly
 
 ---
 
@@ -431,15 +431,15 @@ file public/icons/*.png
 **Description**: Submit extension to Chrome Web Store and handle review.
 
 **Deliverables**:
-- [ ] Published extension on Chrome Web Store
-- [ ] Review response documentation
+- [x] Published extension on Chrome Web Store
+- [x] Review response documentation
 
 **Acceptance Criteria**:
-- [ ] Developer account created and verified
-- [ ] Extension package uploaded (.zip of dist/)
-- [ ] All store listing fields completed
-- [ ] Privacy practices disclosure filled accurately
-- [ ] Permissions justifications provided
+- [x] Developer account created and verified
+- [x] Extension package uploaded (.zip of dist/)
+- [x] All store listing fields completed
+- [x] Privacy practices disclosure filled accurately
+- [x] Permissions justifications provided
 - [ ] Submission passes automated checks
 - [ ] Extension approved by Chrome review team
 - [ ] Public listing URL obtained
