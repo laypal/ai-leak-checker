@@ -15,22 +15,145 @@
     }
     h1 { color: #4F46E5; }
     h2 { margin-top: 30px; color: #4F46E5; }
+    h3 { margin-top: 20px; color: #555; }
     table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-    th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+    th, td { padding: 10px; text-align: left; border: 1px solid #ddd; }
     th { background-color: #f5f5f5; }
     code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
     a { color: #4F46E5; }
+    ul, ol { margin: 10px 0; padding-left: 25px; }
+    li { margin: 5px 0; }
+    hr { margin: 30px 0; border: none; border-top: 1px solid #ddd; }
+    .summary { background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4F46E5; }
   </style>
 </head>
 <body>
   <h1>Privacy Policy</h1>
   <p><strong>AI Leak Checker Browser Extension</strong></p>
-  <p><em>Last updated: January 2026</em></p>
-  
-  <!-- Privacy Policy content will be rendered here -->
-  <!-- For GitHub Pages, you can use a markdown renderer or copy the markdown content -->
-  <!-- This is a placeholder - the actual policy is in PRIVACY_POLICY.md -->
-  
-  <p><a href="https://github.com/laypal/ai-leak-checker/blob/main/PRIVACY_POLICY.md">View full Privacy Policy (Markdown)</a></p>
+  <p><em>Last updated: February 2026</em></p>
+
+  <h2>Overview</h2>
+  <p>AI Leak Checker is a browser extension designed to prevent accidental exposure of sensitive data (API keys, credentials, personal information) when using AI chat platforms. We are committed to protecting your privacy and being transparent about our data practices.</p>
+
+  <h2>Data Collection</h2>
+
+  <h3>What We DO NOT Collect</h3>
+  <ul>
+    <li><strong>No prompt content</strong>: We never store, transmit, or log the actual text you type into AI chat interfaces</li>
+    <li><strong>No personal information</strong>: We do not collect names, email addresses, or any identifying information</li>
+    <li><strong>No browsing history</strong>: We do not track which websites you visit</li>
+    <li><strong>No analytics or telemetry</strong>: We do not send any data to external servers</li>
+    <li><strong>No API keys or credentials</strong>: Detected sensitive data is never stored or transmitted</li>
+  </ul>
+
+  <h3>What We Store Locally</h3>
+  <p>The extension stores the following data <strong>locally on your device only</strong> using Chrome's <code>chrome.storage.local</code> API:</p>
+  <ol>
+    <li><strong>Settings preferences</strong>: Your configuration choices (sensitivity level, enabled detectors, allowlist entries)</li>
+    <li><strong>Aggregate statistics</strong>: Counts only (e.g., "5 potential leaks blocked today") - never the actual sensitive content</li>
+    <li><strong>Allowlist entries</strong>: Domains or patterns you've explicitly marked as safe</li>
+  </ol>
+  <p>This data:</p>
+  <ul>
+    <li>Never leaves your device</li>
+    <li>Is not synced to any cloud service</li>
+    <li>Can be cleared at any time via the extension settings</li>
+    <li>Is automatically deleted when you uninstall the extension</li>
+  </ul>
+
+  <h3>Data Retention</h3>
+  <p>Since all data is stored locally on your device:</p>
+  <ul>
+    <li><strong>Settings and preferences</strong>: Retained until you clear them or uninstall the extension</li>
+    <li><strong>Aggregate statistics</strong>: Retained until you clear them via extension settings or uninstall the extension</li>
+    <li><strong>Allowlist entries</strong>: Retained until you remove them or uninstall the extension</li>
+  </ul>
+  <p><strong>Data is automatically deleted</strong> when you uninstall the extension. You can also manually clear all data at any time through the extension's settings panel.</p>
+  <p>We do not have access to any of this data, as it never leaves your device.</p>
+
+  <h2>How the Extension Works</h2>
+  <ol>
+    <li><strong>Local scanning</strong>: When you submit text to supported AI platforms (ChatGPT, Claude), the extension scans the text locally in your browser</li>
+    <li><strong>Pattern matching</strong>: We use regex patterns and entropy analysis to detect potential sensitive data</li>
+    <li><strong>User notification</strong>: If sensitive data is detected, you're shown a warning modal with options to cancel, mask, or proceed</li>
+    <li><strong>No external communication</strong>: All processing happens locally - we never send your data anywhere</li>
+  </ol>
+
+  <h2>Permissions Explained</h2>
+  <p>The extension requests the following Chrome permissions:</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Permission</th>
+        <th>Why We Need It</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>storage</code></td>
+        <td>Store your settings and aggregate stats locally</td>
+      </tr>
+      <tr>
+        <td><code>activeTab</code></td>
+        <td>Read/modify content only on the current tab when you click the extension</td>
+      </tr>
+      <tr>
+        <td>Host permissions for <code>chat.openai.com</code>, <code>chatgpt.com</code>, <code>claude.ai</code></td>
+        <td>Inject content scripts to monitor form submissions on these specific sites only</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>We follow the principle of <strong>least privilege</strong> - we only request permissions absolutely necessary for the extension to function.</p>
+
+  <h2>Third-Party Services</h2>
+  <p>AI Leak Checker does not use any third-party services, analytics, or tracking. There are no:</p>
+  <ul>
+    <li>Google Analytics or similar tracking</li>
+    <li>Crash reporting services</li>
+    <li>A/B testing platforms</li>
+    <li>Advertising networks</li>
+    <li>External API calls</li>
+  </ul>
+
+  <h2>Data Security</h2>
+  <ul>
+    <li><strong>All detection processing occurs locally</strong> in your browser's sandboxed environment</li>
+    <li><strong>No prompt content is stored or transmitted</strong> - your text is scanned in memory and never persisted</li>
+    <li>We use Chrome's built-in storage APIs, with data protected by your operating system's disk encryption if enabled</li>
+    <li>The extension code is open source and auditable at: <a href="https://github.com/laypal/ai-leak-checker">https://github.com/laypal/ai-leak-checker</a></li>
+    <li>We do not have access to any of your data, as it never leaves your device</li>
+  </ul>
+
+  <h2>Children's Privacy</h2>
+  <p>AI Leak Checker is not directed at children under 13 and we do not knowingly collect data from children.</p>
+
+  <h2>Changes to This Policy</h2>
+  <p>We may update this privacy policy from time to time. We will notify users of any material changes by updating the "Last updated" date and, for significant changes, through the Chrome Web Store update notes.</p>
+
+  <h2>Your Rights (GDPR &amp; Privacy Rights)</h2>
+  <p>AI Leak Checker is designed to minimize data collection and protect your privacy. Since we don't collect personal data, there is no personal data to access, correct, or delete. However, you have the following rights:</p>
+  <ul>
+    <li><strong>Right to access</strong>: All data stored locally is accessible through the extension's settings panel</li>
+    <li><strong>Right to deletion</strong>: Clear all locally stored data via the extension settings, or uninstall the extension</li>
+    <li><strong>Right to data portability</strong>: Export statistics as CSV (if feature is enabled)</li>
+    <li><strong>Right to transparency</strong>: Review the complete source code to verify our privacy practices</li>
+  </ul>
+  <p><strong>GDPR Lawful Basis</strong>: We process locally stored settings and statistics based on legitimate interest (security and data protection). The extension helps protect your organization's sensitive data, which serves a legitimate security interest. All processing occurs locally on your device with your explicit consent via installation.</p>
+
+  <h2>Contact</h2>
+  <p>If you have questions about this privacy policy or the extension's data practices, please:</p>
+  <ul>
+    <li>Open an issue on our GitHub repository: <a href="https://github.com/laypal/ai-leak-checker">https://github.com/laypal/ai-leak-checker</a></li>
+    <li>Email: <a href="mailto:aileakchecker@proton.me">aileakchecker@proton.me</a></li>
+  </ul>
+
+  <h2>Open Source</h2>
+  <p>AI Leak Checker is open source software. You can review the complete source code to verify that we handle your data as described in this policy.</p>
+
+  <hr>
+
+  <div class="summary">
+    <strong>Summary</strong>: AI Leak Checker processes everything locally, stores only settings and counts (never actual sensitive data), and never transmits anything to external servers. Your privacy is protected by design.
+  </div>
 </body>
 </html>
