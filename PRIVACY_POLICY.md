@@ -2,7 +2,7 @@
 
 **AI Leak Checker Browser Extension**
 
-Last updated: January 2026
+Last updated: February 2026
 
 ## Overview
 
@@ -90,7 +90,7 @@ There are no:
 
 - **All detection processing occurs locally** in your browser's sandboxed environment
 - **No prompt content is stored or transmitted** - your text is scanned in memory and never persisted
-- We use Chrome's built-in storage APIs which are encrypted at rest
+- We use Chrome's built-in storage APIs, with data protected by your operating system's disk encryption if enabled
 - The extension code is open source and auditable at: https://github.com/laypal/ai-leak-checker
 - We do not have access to any of your data, as it never leaves your device
 
