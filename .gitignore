@@ -70,3 +70,7 @@ venv/
 # Local development
 .local/
 *.local.json
+
+# Private / internal docs — strategy, competitive research, marketing, unreleased
+# product design (MCP), OSS tooling notes, detailed task sheets. Local-only.
+docs/internal/

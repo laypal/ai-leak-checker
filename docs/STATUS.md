@@ -1,14 +1,22 @@
 # AI Leak Checker - Current Project Status
 
-> **Document Purpose**: High-level status summary and blockers for store submission.
-> **Version**: 1.0.0 | **Last Updated**: January 24, 2026
+> **Document Purpose**: High-level status summary.
+> **Version**: 2.0.0 | **Last Updated**: 2026-06-06
 > **Repository**: https://github.com/laypal/ai-leak-checker
+>
+> ⚠️ **The phase-by-phase tables below the Executive Summary are historical (Jan 2026, pre-launch).** For the current breakdown of work, use the two task sheets:
+> _(These sheets live in the git-ignored `docs/internal/` — local-only.)_
+> - ✅ Shipped: `docs/internal/EXTENSION_DONE.md`
+> - ⬜ Remaining (extension): `docs/internal/EXTENSION_TODO.md`
+> - 🆕 MCP server build: `docs/internal/MCP_SERVER_TASKS.md`
 
 ---
 
 ## Executive Summary
 
-The **AI Leak Checker** MVP is **functionally complete** with core detection, DOM interception, service worker, popup UI, and E2E testing all implemented. The project is **blocked on Chrome Web Store submission** (Phase 6.3-6.5) and **ready for hardening** (Phase 7).
+The **AI Leak Checker** extension is **launched live** on the Chrome Web Store (v0.1.6) — core detection, DOM interception, service worker, popup UI, and E2E testing all shipped, with the pre-release security/MV3/performance review passed. Active work is now **post-launch hardening** (false-positive tuning, selector health monitoring — Phase 7) and a planned MCP server that reuses the detection engine (see the local-only `docs/internal/` planning docs).
+
+> **Note:** the sections below reflect the pre-launch Jan-2026 snapshot and are retained for history. The live source of truth for remaining work is `EXTENSION_TODO.md`.
 
 ### Overall Status
 
@@ -270,4 +278,4 @@ When DOM selectors fail (after 32-second retry window), the extension falls back
 
 ---
 
-Last updated: January 24, 2026
+Last updated: 2026-06-06 (post-launch). Sections above the Executive Summary note reflect the Jan-2026 pre-launch snapshot.
