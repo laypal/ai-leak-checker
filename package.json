@@ -1,6 +1,6 @@
 {
   "name": "ai-leak-checker",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Browser extension to prevent accidental data leaks to AI chat platforms",
   "type": "module",
   "scripts": {
@@ -22,6 +22,7 @@
     "test:coverage": "vitest run --coverage",
     "test:build": "vitest run tests/build/build-output.test.ts",
     "check:selectors": "tsx scripts/check-selectors.ts",
+    "package": "npm run build && node scripts/package.js",
     "clean": "rm -rf dist node_modules/.vite",
     "prepare": "husky install"
   },
