@@ -7,7 +7,7 @@
 Native config lives in `.claude/` and is the maintained source:
 
 - **Agents** — `.claude/agents/`: `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`. Launch via the Agent tool.
-- **Skills** — `.claude/skills/`: `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist` (invoke with the Skill tool / `/<skill>`). Plus installed `superpowers` workflow skills (brainstorming, writing-plans, TDD, subagent-driven-development) — use these for the MCP build against `docs/internal/MCP_SERVER_TASKS.md`.
+- **Skills** — `.claude/skills/`: `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist` (invoke with the Skill tool / `/<skill>`). Plus installed `superpowers` workflow skills (brainstorming, writing-plans, TDD, subagent-driven-development) — use these for the MCP build (maintainers only; tracked in the local-only, git-ignored `docs/internal/MCP_SERVER_TASKS.md`). External contributors don't need that file; see `CONTRIBUTING.md` for the contributor workflow.
 - **Rules** — `.claude/rules/`: detection, security, content-scripts, testing, code-style — referenced from `CLAUDE.md`.
 - **Context & memory** — use **Context7** for library docs, **claude-mem** + the project memory dir for cross-session memory. See `docs/internal/OSS_INTEGRATIONS.md` Part A (local-only).
 
@@ -47,7 +47,7 @@ The `.cursor/` directory mirrors the same agents/skills/rules for Cursor users. 
 | `security-reviewer` | Reviewing PRs, security concerns | `@security-reviewer` |
 | `test-coverage-analyzer` | Identifying missing tests | `@test-coverage-analyzer` |
 | `selector-validator` | Validating DOM selector stability | `@selector-validator` |
-| `documentation-sync-agent` | After feature completion | `@documentation-sync-agent` |
+| `documentation-sync` | After feature completion | `@documentation-sync` |
 | `performance-analyzer` | Investigating slowness | `@performance-analyzer` |
 | `manifest-v3-compliance` | Before Web Store submission | `@manifest-v3-compliance` |
 
@@ -166,7 +166,7 @@ npm run test:bench
 
 #### 🔴 Pre-Release
 `````
-1. @documentation-sync-agent
+1. @documentation-sync
    → Ensure docs match code
    
 2. @manifest-v3-compliance
@@ -180,7 +180,7 @@ Example Workflow:
 # Preparing for v1.0.0 release
 
 # Step 1: Sync documentation
-@documentation-sync-agent
+@documentation-sync
 # Review: All docs in /docs folder
 
 # Step 2: MV3 compliance
@@ -238,7 +238,7 @@ Analyze test coverage for the new Anthropic key detector
 Before committing:
 
 # 4. Update documentation
-@documentation-sync-agent
+@documentation-sync
 `````
 
 **In chat**:
@@ -337,7 +337,7 @@ Scenario: Ready to submit extension to Chrome Web Store
 Complete Workflow:
 
 # Step 1: Documentation sync
-@documentation-sync-agent
+@documentation-sync
 `````
 **In chat**:
 `````
@@ -452,7 +452,7 @@ npm run package
 `````
 1. Implement feature
 2. Write tests
-3. @documentation-sync-agent ← DON'T SKIP
+3. @documentation-sync ← DON'T SKIP
 4. Update docs per recommendations
 5. Commit
 `````
@@ -528,7 +528,7 @@ Day 12: Ship
 
 6. [Add missing tests]
 
-7. @documentation-sync-agent
+7. @documentation-sync
    → Update docs
 
 8. Commit ✅
@@ -583,7 +583,7 @@ npm run test:unit || exit 1
 npm run lint || exit 1
 
 echo "Consider running:"
-echo "  @documentation-sync-agent"
+echo "  @documentation-sync"
 echo "  @manifest-v3-compliance"
 `````
 
@@ -707,7 +707,7 @@ Common Commands
 # Maintenance
 @skills update-selectors
 @selector-validator
-@documentation-sync-agent
+@documentation-sync
 
 # Pre-Release
 @performance-analyzer

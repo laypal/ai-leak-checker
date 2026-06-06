@@ -278,4 +278,4 @@ When DOM selectors fail (after 32-second retry window), the extension falls back
 
 ---
 
-Last updated: January 24, 2026
+Last updated: 2026-06-06 (post-launch). Sections above the Executive Summary note reflect the Jan-2026 pre-launch snapshot.

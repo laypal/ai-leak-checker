@@ -4,7 +4,7 @@
 > **Version**: 3.0.0 | **Last Updated**: 2026-01-15
 > **Repository**: https://github.com/laypal/ai-leak-checker
 >
-> 📌 **Historical (pre-launch) plan.** The extension has since launched (v0.1.6). Phases 0–6 here are complete; Phase 7+ remaining work now lives in the maintained sheets in the git-ignored `docs/internal/` (local-only):
+> 📌 **Historical (pre-launch) plan.** The extension has since launched (v0.1.6): Phases 0–5 are complete, and the Phase 6 store-submission steps still shown as "🔄 Partial" in the table below are now done (the extension is live). Phase 7+ remaining work now lives in the maintained sheets in the git-ignored `docs/internal/` (local-only):
 > - ✅ `docs/internal/EXTENSION_DONE.md` — shipped through launch
 > - ⬜ `docs/internal/EXTENSION_TODO.md` — remaining extension work (Phase 7 hardening, Pro, monetisation, platform expansion)
 > - 🆕 `docs/internal/MCP_SERVER_TASKS.md` — MCP server build

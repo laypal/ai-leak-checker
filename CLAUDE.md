@@ -32,7 +32,7 @@ npm run lint && npm run typecheck
 
 ## Current repo shape (single package — pre-monorepo)
 
-```
+```text
 src/
 ├── background/      # service worker (no DOM, no localStorage)
 ├── content/         # DOM interception, modal, window message bridge
