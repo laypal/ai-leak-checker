@@ -107,6 +107,7 @@ function detectEmail(text: string): Finding[] {
 ## Adding New Patterns
 
 1. **Add type** to `src/shared/types/detection.ts`:
+
    ```typescript
    export const DetectorType = {
      // ... existing
@@ -115,6 +116,7 @@ function detectEmail(text: string): Finding[] {
    ```
 
 2. **Add pattern** to `src/shared/detectors/patterns.ts`:
+
    ```typescript
    {
      type: DetectorType.API_KEY_NEW_SERVICE,
@@ -125,6 +127,7 @@ function detectEmail(text: string): Finding[] {
    ```
 
 3. **Add tests** to `tests/unit/patterns.test.ts`:
+
    ```typescript
    describe('New Service API Key', () => {
      test.each(validKeys)('detects: %s', ...);

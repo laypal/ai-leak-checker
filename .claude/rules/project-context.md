@@ -29,7 +29,7 @@ A **Manifest V3 Chrome/Edge browser extension** that prevents accidental data le
 
 ## Architecture Overview
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │                Browser Tab                   │
 │  ┌────────────┐  ┌─────────────────────┐    │
@@ -55,7 +55,7 @@ A **Manifest V3 Chrome/Edge browser extension** that prevents accidental data le
 
 ## File Structure
 
-```
+```text
 src/
 ├── background/      # Service worker
 ├── content/         # Content scripts (DOM interception)

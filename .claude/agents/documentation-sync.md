@@ -21,4 +21,4 @@ You keep documentation truthful and current after work lands. Stale docs are wor
 - Keep the privacy/security claims in README and PRIVACY_POLICY consistent with what the code actually does.
 
 ## Output
-Summarise which docs you changed and why. Reference: the task sheets in `docs/tasks/`.
+Summarise which docs you changed and why. Reference: the task sheets in `docs/internal/` (local-only, git-ignored).

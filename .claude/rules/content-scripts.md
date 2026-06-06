@@ -126,18 +126,35 @@ class WarningModal {
     document.body.appendChild(host);
   }
 
+  // Build via DOM APIs + textContent — never innerHTML with finding data
+  // (see the security rule: no innerHTML with non-constant content).
   show(result: DetectionResult): void {
-    this.shadow.innerHTML = `
-      <style>${this.getStyles()}</style>
-      <div class="modal">
-        <h2>⚠️ Sensitive Data Detected</h2>
-        <ul>
-          ${result.findings.map(f => `<li>${f.type}</li>`).join('')}
-        </ul>
-        <button id="mask-btn">Mask & Continue</button>
-        <button id="cancel-btn">Cancel</button>
-      </div>
-    `;
+    const style = document.createElement('style');
+    style.textContent = this.getStyles();
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+
+    const heading = document.createElement('h2');
+    heading.textContent = '⚠️ Sensitive Data Detected';
+
+    const list = document.createElement('ul');
+    for (const f of result.findings) {
+      const li = document.createElement('li');
+      li.textContent = f.type; // textContent, not innerHTML
+      list.appendChild(li);
+    }
+
+    const maskBtn = document.createElement('button');
+    maskBtn.id = 'mask-btn';
+    maskBtn.textContent = 'Mask & Continue';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancel-btn';
+    cancelBtn.textContent = 'Cancel';
+
+    modal.append(heading, list, maskBtn, cancelBtn);
+    this.shadow.replaceChildren(style, modal);
     this.attachHandlers();
   }
 }

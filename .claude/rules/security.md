@@ -112,10 +112,11 @@ function processConfig(raw: any): Config {
 
 ## Data Flow Rules
 
-### What CAN Leave the Extension
+### What Leaves the Extension
 
-- Aggregate statistics (counts only) to optional dashboard
-- Error reports (no user data) if user opts in
+**Nothing, by default.** The extension makes zero network calls and ships no telemetry — this is the core privacy guarantee (see `CLAUDE.md`). The shipped product transmits no data of any kind.
+
+Any future outbound feature (e.g. aggregate counts to an optional dashboard, or error reports with no user data) is **forbidden unless** it is explicitly opt-in, off by default, documented in the privacy policy, and reviewed against this rule. There is no "telemetry by default".
 
 ### What MUST Stay Local
 
