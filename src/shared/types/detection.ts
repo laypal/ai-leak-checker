@@ -231,6 +231,13 @@ export interface ScanOptions {
 
   /** User-defined strings to ignore (allowlist) */
   allowlist?: string[];
+
+  /**
+   * Disable the built-in allowlist (placeholder/example/product-code
+   * suppression). Mainly for tests that verify raw detector coverage.
+   * Default: false.
+   */
+  disableBuiltinAllowlist?: boolean;
 }
 
 /**
@@ -245,6 +252,7 @@ export const DEFAULT_SCAN_OPTIONS: Required<Omit<ScanOptions, 'enabledDetectors'
   filterDomains: ['example.com', 'test.com', 'localhost'],
   minConfidence: 0.5,
   allowlist: [],
+  disableBuiltinAllowlist: false,
 };
 
 // =============================================================================

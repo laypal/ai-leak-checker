@@ -138,6 +138,17 @@ export function scanForUKPhones(text: string): Finding[] {
 
       const value = match[0];
 
+      // Skip digit runs embedded in a longer alphanumeric token (e.g. the
+      // "0123456789" prefix of a hex string or random id). A real phone number
+      // is not immediately adjacent to letters.
+      const charBefore = text[match.index - 1];
+      const charAfter = text[match.index + value.length];
+      const precededByAlnum = charBefore !== undefined && /[A-Za-z0-9]/.test(charBefore);
+      const followedByAlnum = charAfter !== undefined && /[A-Za-z0-9]/.test(charAfter);
+      if (precededByAlnum || followedByAlnum) {
+        continue;
+      }
+
       // Validate it's a plausible phone number
       if (!isValidUKPhone(value)) {
         continue;

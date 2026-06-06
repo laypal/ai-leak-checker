@@ -55,7 +55,7 @@ describe('scan', () => {
     it('detects multiple types of sensitive data', () => {
       const text = `
         API Key: sk-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz
-        Email: user@example.com
+        Email: user@gmail.com
         Card: 4532015112830366
       `;
       const result = scan(text);
@@ -70,7 +70,7 @@ describe('scan', () => {
     });
 
     it('detects multiple instances of same type', () => {
-      const text = 'Emails: user1@example.com and user2@example.com';
+      const text = 'Emails: user1@gmail.com and user2@gmail.com';
       const result = scan(text);
 
       const emailFindings = result.findings.filter(f => f.type === DetectorType.EMAIL);
@@ -523,7 +523,7 @@ describe('integration scenarios', () => {
         
         const stripe = Stripe('sk_live_51234567890abcdefghijklmnopqrstuvwxyz');
         
-        It's throwing an error when I try to charge customer@example.com
+        It's throwing an error when I try to charge customer@gmail.com
       `;
       const result = scan(text);
 

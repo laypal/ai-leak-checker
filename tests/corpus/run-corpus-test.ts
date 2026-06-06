@@ -97,7 +97,13 @@ function runCorpusTest(): void {
   const falsePositives = results.filter(r => r.detected);
   const falsePositiveCount = falsePositives.length;
   const falsePositiveRate = (falsePositiveCount / totalSamples) * 100;
-  const targetRate = 5.0; // 5% target from NFR-REL-002
+  // Regression gate. NFR-REL-002 sets a 5% ceiling; after Phase 7.1 tuning the
+  // engine sits at ~3.2% (high sensitivity), so the gate is tightened to 4% to
+  // lock in the gain and fail the build if a change regresses precision.
+  // The residual is a small set of adversarial synthetic strings (e.g.
+  // sequential alphabets like "abcdefghij...0123456789"); see
+  // docs/detection/FALSE_POSITIVES.md.
+  const targetRate = 4.0;
 
   // Group false positives by pattern type
   const falsePositivesByType = new Map<string, number>();

@@ -28,6 +28,21 @@ function isLikelyApiKey(match: string): boolean {
 }
 ```
 
+> **Built-in false-positive suppression (Phase 7.1).** Before adding new
+> patterns, know the two existing layers — reuse them instead of duplicating:
+>
+> - **Structural exclusions** in `src/shared/utils/entropy.ts` (URLs, pure-hex
+>   ≥32, base64 data-URIs, filenames, semver), `luhn.ts` (UUID fragments,
+>   bare 13-digit non-issuer numbers) and `pii.ts` (token-embedded phones).
+> - **Value allowlist** in `src/shared/utils/placeholders.ts`
+>   (`isPlaceholderSecret` / `isExampleEmail` / `isProductCode`), applied
+>   engine-wide via `isKnownSafeValue`. Markers are split strong (any length)
+>   vs weak (≤40 chars) to avoid suppressing real long secrets.
+>
+> Validate changes with `npm run test:corpus` (regression gate <4%). See
+> `docs/detection/FALSE_POSITIVES.md`. Use `scan(text, { disableBuiltinAllowlist: true })`
+> in tests that must exercise raw detector coverage on canonical example values.
+
 ### Use Anchoring Context
 
 ```typescript

@@ -21,6 +21,7 @@
     "test:property": "cd tests/property && python -m pytest -v",
     "test:coverage": "vitest run --coverage",
     "test:build": "vitest run tests/build/build-output.test.ts",
+    "check:selectors": "tsx scripts/check-selectors.ts",
     "clean": "rm -rf dist node_modules/.vite",
     "prepare": "husky install"
   },

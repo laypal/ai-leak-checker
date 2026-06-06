@@ -20,8 +20,12 @@ describe('comprehensive multi-detection', () => {
   describe('all detector types', () => {
     it('detects all detector types in comprehensive prompt', () => {
       const text = getComprehensivePrompt();
-      const result = scan(text);
-      
+      // Bypass the built-in allowlist: the fixture intentionally uses safe
+      // canonical example values (e.g. AKIAIOSFODNN7EXAMPLE) which the engine
+      // would otherwise correctly suppress as placeholders. This test verifies
+      // raw detector coverage; suppression is covered in engine.suppression.test.ts.
+      const result = scan(text, { disableBuiltinAllowlist: true });
+
       expect(result.hasSensitiveData).toBe(true);
       const types = new Set(result.findings.map(f => f.type));
       expect(types.size).toBeGreaterThanOrEqual(18);
@@ -69,7 +73,7 @@ describe('comprehensive multi-detection', () => {
       ];
       
       const text = buildPromptFromTypes(apiKeyTypes);
-      const result = scan(text);
+      const result = scan(text, { disableBuiltinAllowlist: true });
       const types = new Set(result.findings.map(f => f.type));
       
       expect(types.has(DetectorType.API_KEY_OPENAI)).toBe(true);
@@ -86,7 +90,7 @@ describe('comprehensive multi-detection', () => {
       ];
       
       const text = buildPromptFromTypes(piiTypes);
-      const result = scan(text);
+      const result = scan(text, { disableBuiltinAllowlist: true });
       const types = new Set(result.findings.map(f => f.type));
       
       expect(types.has(DetectorType.EMAIL)).toBe(true);
@@ -116,7 +120,7 @@ describe('comprehensive multi-detection', () => {
       ];
       
       const text = buildPromptFromTypes(secretTypes);
-      const result = scan(text);
+      const result = scan(text, { disableBuiltinAllowlist: true });
       const types = new Set(result.findings.map(f => f.type));
       
       expect(types.has(DetectorType.PRIVATE_KEY)).toBe(true);

@@ -154,6 +154,63 @@ function isPartOfUrl(text: string, start: number, end: number): boolean {
 }
 
 /**
+ * Minimum length at which a pure-hex string is treated as a digest/identifier
+ * rather than a random secret. Covers MD5(32), SHA-1/git(40), SHA-256(64),
+ * SHA-512(128) and concatenated/truncated hex blobs in between.
+ */
+const HEX_DIGEST_MIN_LENGTH = 32;
+
+/**
+ * File extensions that mark a token as a filename, not a secret.
+ */
+const FILENAME_EXTENSION =
+  /\.(js|ts|jsx|tsx|mjs|cjs|json|ya?ml|lock|md|txt|csv|css|scss|less|html?|xml|toml|ini|cfg|conf|config|sh|py|rb|go|rs|java|php|sql)$/i;
+
+/**
+ * Semantic-version shape, e.g. `1.0.0`, `2.3.4-alpha.1+build.123`.
+ */
+const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/;
+
+/**
+ * Check whether a candidate is a well-known, non-secret high-entropy structure.
+ *
+ * These structures have high Shannon entropy by nature but are not secrets:
+ *  - Cryptographic digests / git commit SHAs (pure hex of standard lengths)
+ *  - base64-encoded payloads inside a `data:...;base64,` URI (e.g. inline images)
+ *
+ * @param text - Full text containing the candidate
+ * @param start - Start index of the candidate in `text`
+ * @param fullToken - The full matched token (before any length truncation)
+ * @returns true if the candidate is a known-safe structure that should not be flagged
+ */
+function isKnownSafeStructure(text: string, start: number, fullToken: string): boolean {
+  // Cryptographic digest / git SHA / hex identifier: long pure-hex string.
+  // Use the full (untruncated) token so long digests like SHA-512 are matched.
+  if (fullToken.length >= HEX_DIGEST_MIN_LENGTH && /^[0-9a-fA-F]+$/.test(fullToken)) {
+    return true;
+  }
+
+  // Filenames (e.g. webpack.config.js, package-lock.json).
+  if (FILENAME_EXTENSION.test(fullToken)) {
+    return true;
+  }
+
+  // Semantic version strings (e.g. 1.0.0-alpha.1+build.123).
+  if (SEMVER_PATTERN.test(fullToken)) {
+    return true;
+  }
+
+  // base64 data-URI payload: candidate is immediately preceded by `base64,`.
+  // Look back a few characters to catch the `;base64,` marker.
+  const prefix = text.slice(Math.max(0, start - 8), start).toLowerCase();
+  if (prefix.includes('base64')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Find high-entropy regions in text.
  * Merges adjacent high-entropy windows into contiguous regions.
  * 
@@ -190,7 +247,13 @@ export function findHighEntropyRegions(
       if (isPartOfUrl(text, match.index, match.index + candidate.length)) {
         continue;
       }
-      
+
+      // Skip known-safe high-entropy structures (hashes, git SHAs, base64 data URIs).
+      // Pass the full match (not the truncated candidate) so long digests are caught.
+      if (isKnownSafeStructure(text, match.index, match[0])) {
+        continue;
+      }
+
       regions.push({
         start: match.index,
         end: match.index + candidate.length,

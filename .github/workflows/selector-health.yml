@@ -1,0 +1,87 @@
+name: Selector Health
+
+# Task 7.2 — detect selector breakage on target AI platforms before users do.
+# Runs the structural validation daily (authoritative pass/fail) and a
+# best-effort live DOM check; opens a GitHub issue on failure.
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # daily at 07:00 UTC
+  workflow_dispatch: {} # allow manual runs
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  selector-health:
+    name: Selector health check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (for live check)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run selector health check
+        id: check
+        run: npm run check:selectors -- --live | tee selector-health.log
+        # Structural failures fail the step; live failures are reported but not
+        # fatal (sites are auth-gated). --live-strict would make them fatal.
+
+      - name: Open issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let log = '';
+            try { log = fs.readFileSync('selector-health.log', 'utf8'); } catch {}
+            const title = '🔴 Selector health check failed';
+            const body = [
+              'The daily selector health check failed — a target site may have',
+              'changed its DOM and broken our selectors.',
+              '',
+              '```',
+              log.slice(0, 60000),
+              '```',
+              '',
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Fix: inspect the site, update `configs/selectors.json`, and run `npm run check:selectors`.',
+            ].join('\n');
+
+            // Avoid duplicate issues: reuse an open one with the same title.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'selector-health',
+            });
+            const match = existing.data.find((i) => i.title === title);
+            if (match) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: match.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['selector-health'],
+              });
+            }
