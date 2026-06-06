@@ -2,7 +2,7 @@
 
 > 🛡️ **Your seatbelt for ChatGPT & AI tools** — Prevent accidental data leaks before you hit send.
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-green?logo=googlechrome)](https://chrome.google.com/webstore)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Extension-green?logo=googlechrome)](https://chromewebstore.google.com/detail/ffdmphfcipjmoochiafeihceiodehjcc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue?logo=typescript)](https://www.typescriptlang.org/)
 
@@ -29,7 +29,7 @@ AI Leak Checker is a browser extension that detects sensitive information (API k
 
 ### From Chrome Web Store (Recommended)
 
-1. Visit the [Chrome Web Store listing](#) <!-- TODO: Add link -->
+1. Visit the [Chrome Web Store listing](https://chromewebstore.google.com/detail/ffdmphfcipjmoochiafeihceiodehjcc?utm_source=item-share-cb)
 2. Click "Add to Chrome"
 3. Done! The extension will activate on supported sites.
 

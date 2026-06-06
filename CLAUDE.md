@@ -1,139 +1,120 @@
-# AI Leak Checker - Claude Context
+# AI Leak Checker — Claude Code Context
 
-> This file provides context for AI assistants working on this codebase.
+> Context for AI assistants (Claude Code) working on this repo. Read this first.
+> **These instructions override default behaviour.** Where they conflict with a skill, follow these.
 
-## Project Overview
+## What this is
 
-**AI Leak Checker** is a Manifest V3 Chrome/Edge browser extension that prevents accidental data leaks to AI chat platforms (ChatGPT, Claude). It detects sensitive information (API keys, PII, credit cards) before submission and provides warn/block/redact capabilities.
+**AI Leak Checker** is a **live** (Chrome Web Store, v0.1.6) Manifest V3 Chrome/Edge extension that stops accidental data leaks to AI chat platforms. It detects API keys, credentials, PII, and credit cards **locally** before submission and offers warn / mask / block. We are now (a) hardening the launched extension and (b) building a **paid MCP server** that reuses the same detection engine.
 
-## Quick Start
+**Product philosophy:** the *seatbelt* for AI tools — simple, local-first, trustworthy. Privacy is the product: zero network calls, no prompt content ever stored or transmitted.
+
+## Two products, one engine
+
+| Product | Audience | Surface | Tier |
+|---------|----------|---------|------|
+| **Extension** (live) | individuals / SMB | ChatGPT, Claude (Gemini/Copilot/Perplexity planned) | Free + Pro |
+| **MCP server** (design → build) | developers using Claude Code / Cursor / Cline / Windsurf | `scan_text` / `scan_file` / `scan_diff` / `get_patterns` / `redact` | Free / Pro / Team |
+
+The shared idea: **one detection engine, used in the browser and in the IDE**. The planned `@ai-leak-checker/core` package is that engine. Pricing, positioning, and competitive analysis live in the local-only `docs/internal/` (git-ignored) — see there, not here, for go-to-market detail.
+
+## Quick start
 
 ```bash
-# Install dependencies
 npm install
-
-# Development build (watch mode)
-npm run dev
-
-# Production build
-npm run build
-
-# Run tests
-npm run test:unit
-npm run test:e2e
+npm run dev            # watch build
+npm run build          # tsc && node scripts/build-entries.js  (per-entry, MV3-safe)
+npm run test           # unit + integration
+npm run test:e2e       # Playwright (build first)
+npm run test:corpus    # false-positive rate report
+npm run lint && npm run typecheck
 ```
 
-## Architecture Summary
-
-```
-┌─────────────────────────────────────────────┐
-│                Browser Tab                   │
-│  ┌────────────┐  ┌─────────────────────┐    │
-│  │ AI Chat    │  │   Content Script    │    │
-│  │ (ChatGPT,  │◄─│ • DOM Interceptors  │    │
-│  │  Claude)   │  │ • Detection Engine  │    │
-│  └────────────┘  │ • Warning Modal     │    │
-│                  └──────────┬──────────┘    │
-└─────────────────────────────┼───────────────┘
-                              │ chrome.runtime
-┌─────────────────────────────▼───────────────┐
-│            Service Worker (Background)       │
-│  • Message routing                          │
-│  • Storage management                       │
-│  • Badge updates                            │
-└─────────────────────────────────────────────┘
-```
-
-## Key Technical Decisions
-
-1. **MV3 Constraint**: Cannot use `webRequestBlocking` for body inspection. Using DOM interception + fetch monkey-patching instead.
-
-2. **Detection**: Regex-based with entropy analysis. No ML/AI inference to keep it local-first.
-
-3. **Selectors**: Versioned JSON configuration. AI platforms change UI frequently - selectors will break.
-
-4. **Privacy**: No prompt content storage. No network telemetry by default.
-
-## File Structure
+## Current repo shape (single package — pre-monorepo)
 
 ```
 src/
-├── background/      # Service worker
-├── content/         # Content scripts (DOM interception)
-├── popup/           # Extension popup UI (Preact)
-├── injected/        # Main world scripts (fetch patching)
+├── background/      # service worker (no DOM, no localStorage)
+├── content/         # DOM interception, modal, window message bridge
+├── injected/        # main-world fetch/XHR patch (fallback)
+├── popup/           # Preact popup UI
 └── shared/
-    ├── detectors/   # Detection engine
-    ├── types/       # TypeScript definitions
-    └── utils/       # Shared utilities
+    ├── detectors/   # engine.ts, patterns.ts, pii.ts, index.ts
+    ├── types/       # detection.ts, messages.ts, selectors.ts, storage.ts
+    └── utils/       # entropy.ts, luhn.ts, redact.ts
+public/manifest.json # ← manifest lives here (NOT root)
+configs/selectors.json
+tests/{unit,integration,e2e,build,corpus,fixtures,property}
 ```
 
-## Core Files to Know
+> **Planned migration (Phase MCP-0):** pnpm + Turborepo workspace → `packages/{core,extension,mcp-server}`. Until that lands, this is a single npm package and the engine still lives under `src/shared/`. See `docs/internal/MCP_SERVER_ARCHITECTURE.md` §2 (local-only).
+
+## Core files
 
 | File | Purpose |
 |------|---------|
-| `src/shared/detectors/index.ts` | Main detection engine |
-| `src/content/index.ts` | DOM interception, window message handler (scan_request/scan_result) |
-| `src/content/modal.ts` | Warning modal component |
-| `src/injected/index.ts` | Fetch/XHR patching (fallback when DOM selectors fail) |
-| `configs/selectors.json` | Site-specific selectors |
+| `src/shared/detectors/engine.ts` | Detection orchestrator (`scan`, `quickCheck`) |
+| `src/shared/detectors/patterns.ts` | API-key / secret regex registry |
+| `src/shared/detectors/pii.ts` | PII detectors (email, UK phone/NINO/postcode) |
+| `src/shared/utils/{entropy,luhn,redact}.ts` | Entropy, Luhn, redaction markers |
+| `src/content/index.ts` | DOM interception + scan_request/scan_result handler |
+| `src/content/modal.ts` | Shadow-DOM warning modal |
+| `src/injected/index.ts` | fetch/XHR patch (fallback when selectors fail) |
+| `public/manifest.json` | Permissions, CSP, host permissions |
+| `configs/selectors.json` | Per-site selectors with fallback chains |
 
-## Testing
+## Hard invariants (never violate)
 
-- **Unit**: Vitest - `npm run test:unit`
-- **E2E**: Playwright - `npm run test:e2e`
-- **Property**: Hypothesis (Python) - `npm run test:property`
+- **Never** store or transmit prompt content. Storage holds metadata/stats only (`type`, offsets, confidence, domain, timestamp).
+- **Never** make network requests by default / add telemetry. Local-first is the entire value prop.
+- **Never** request `<all_urls>` or broad `tabs`. Permissions stay `storage` + `activeTab` + explicit host permissions.
+- **Never** use `eval()`, `new Function()`, or `innerHTML` with unescaped user data. CSP forbids `unsafe-eval`/`unsafe-inline`.
+- **Always** use typed messages between contexts and validate `sender.id` / `event.source`.
+- **Always** handle selector failure gracefully (fallback chain → fetch patch → "unsupported" state).
+- (MCP) the **`core` package must never import** `chrome.*`, `window`, `document`, `navigator`, `fetch`. The **MCP server must never persist scanned content** — counts/types/timings only.
 
-Test files mirror source structure in `tests/`. Content script–specific unit tests: `content-message-handler`, `content-state-reset`, `modal`; use `tests/fixtures/ai-leak-checker-scan.ts` for window postMessage payloads.
+## Code constraints
 
-## Common Tasks
+- Max **400 lines/file**, **50 lines/function**. JSDoc header on every file. Unit tests for new code.
+- TypeScript strict. Preact (not React) for UI. Pre-compile regex at module scope; bound patterns (no unbounded `.*` — ReDoS).
 
-### Add a new detector pattern
+## Where things are documented
 
-1. Add type to `src/shared/types/detection.ts`
-2. Add pattern to `src/shared/detectors/patterns.ts`
-3. Add tests to `tests/unit/detectors/patterns.test.ts`
-4. Add property tests if needed
+> **Note on `docs/internal/`:** that folder is **git-ignored / local-only** (strategy, pricing, competitive research, unreleased MCP design, OSS notes, detailed task sheets). It exists on this machine for AI context but is never pushed to the public repo. Public docs live directly under `docs/`.
 
-### Update selectors for a site
+| Topic | Doc | Visibility |
+|-------|-----|------------|
+| What's shipped | `docs/internal/EXTENSION_DONE.md` | local-only |
+| Extension work left | `docs/internal/EXTENSION_TODO.md` | local-only |
+| MCP build (feature-by-feature, BDD) | `docs/internal/MCP_SERVER_TASKS.md` | local-only |
+| MCP architecture | `docs/internal/MCP_SERVER_ARCHITECTURE.md` | local-only |
+| Competitive research / marketing | `docs/internal/COMPETITIVE_RESEARCH.md`, `SALES_MARKETING_PLAN.md` | local-only |
+| OSS tooling for this build | `docs/internal/OSS_INTEGRATIONS.md` | local-only |
+| Status snapshot | `docs/STATUS.md` | public |
+| Requirements / roadmap | `docs/requirements/` | public |
+| Extension architecture | `docs/architecture/ARCHITECTURE.md` | public |
+| Selector maintenance | `docs/SELECTOR_MAINTENANCE.md` | public |
+| Agents / skills usage | `docs/AGENT_USAGE_GUIDE.md` | public |
 
-1. Inspect the site's current DOM structure
-2. Update `configs/selectors.json`
-3. Run E2E tests: `npm run test:e2e`
-4. If remote config enabled, update CDN
+## Project agents & skills (Claude Code)
 
-### Add a new AI platform
+Native config lives in `.claude/`:
 
-1. Add SiteConfig to `configs/selectors.json`
-2. Add host permission to `manifest.json`
-3. Add E2E test in `tests/e2e/`
+- **Agents** (`.claude/agents/`): `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`.
+- **Skills** (`.claude/skills/`): `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist`.
+- **Rules** (`.claude/rules/`): detection, security, content-scripts, testing, code-style. Referenced from here.
 
-## Anti-Patterns to Avoid
+(The `.cursor/` directory mirrors these for Cursor users — keep both in sync if you change one.)
 
-- **Never** store prompt content
-- **Never** use `eval()` or `Function()`
-- **Never** request `<all_urls>` permission
-- **Never** make network requests without user consent
-- **Always** use typed messages between components
-- **Always** handle selector failures gracefully
+## Common tasks
 
-## Key Constraints
+- **Add a detector** → use the `add-detector-pattern` skill (types → patterns → tests → docs; keep FP rate <5%).
+- **Fix broken selectors** → use the `update-selectors` skill (new selectors prepended, old kept as fallback, E2E green).
+- **Security-sensitive change** → run the `security-reviewer` agent / `security-review-checklist` skill before committing.
+- **New AI platform** → selector config + host permission in `public/manifest.json` + E2E suite.
 
-- **Max file size**: 400 lines
-- **Max function size**: 50 lines
-- **Required**: JSDoc header on every file
-- **Required**: Unit tests for new code
+## House rules for working here
 
-## Current Phase
-
-**Phase 1: MVP** - Building core detection + interception for ChatGPT + Claude.
-
-See `docs/requirements/ROADMAP.md` for full timeline.
-
-## Links
-
-- [Requirements](docs/requirements/REQUIREMENTS.md)
-- [Architecture](docs/architecture/ARCHITECTURE.md)
-- [Task Order](docs/tasks/TASK_ORDER.md)
-- [Roadmap](docs/requirements/ROADMAP.md)
-- [Agent Usage Guide](docs/AGENT_USAGE_GUIDE.md) – Skills, subagents, workflows
+- Use **Context7 MCP** for any library/framework/SDK/API question (MCP SDK, Stripe, Vite, Playwright, Preact) — even ones you think you know.
+- Confirm before destructive or outward-facing actions; don't commit/push unless asked.
+- Today's product state: **launched**. Treat user-facing regressions as high severity. Prefer additive, reversible changes.

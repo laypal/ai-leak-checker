@@ -1,6 +1,23 @@
-# Cursor Skills & Subagents Usage Guide
+# AI Tooling Usage Guide (Claude Code + Cursor)
 
-> Best practices for leveraging AI-powered development tools in the AI Leak Checker project
+> Best practices for leveraging AI-powered development tools in the AI Leak Checker project.
+
+## Claude Code (primary)
+
+Native config lives in `.claude/` and is the maintained source:
+
+- **Agents** — `.claude/agents/`: `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`. Launch via the Agent tool.
+- **Skills** — `.claude/skills/`: `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist` (invoke with the Skill tool / `/<skill>`). Plus installed `superpowers` workflow skills (brainstorming, writing-plans, TDD, subagent-driven-development) — use these for the MCP build against `docs/internal/MCP_SERVER_TASKS.md`.
+- **Rules** — `.claude/rules/`: detection, security, content-scripts, testing, code-style — referenced from `CLAUDE.md`.
+- **Context & memory** — use **Context7** for library docs, **claude-mem** + the project memory dir for cross-session memory. See `docs/internal/OSS_INTEGRATIONS.md` Part A (local-only).
+
+The `.cursor/` directory mirrors the same agents/skills/rules for Cursor users. **Keep both in sync** when you change one.
+
+---
+
+## Cursor (mirror)
+
+> The tables below describe the `.cursor/` equivalents (same intent, Cursor invocation syntax).
 
 ## Table of Contents
 
