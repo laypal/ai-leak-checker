@@ -17,6 +17,7 @@ import { scanForApiKeys, CONTEXT_BOOST_KEYWORDS, CONTEXT_REDUCE_KEYWORDS } from 
 import { scanForEmails, scanForUKPhones, scanForUKNationalInsurance, scanForUSSSN, scanForIBAN } from './pii';
 import { findHighEntropyRegions } from '@/shared/utils/entropy';
 import { extractCreditCards } from '@/shared/utils/luhn';
+import { isPlaceholderSecret, isExampleEmail, isProductCode } from '@/shared/utils/placeholders';
 
 /**
  * Default scan options when not specified.
@@ -30,6 +31,7 @@ const DEFAULT_OPTIONS: Required<ScanOptions> = {
   filterDomains: [],
   minConfidence: 0.5,
   allowlist: [],
+  disableBuiltinAllowlist: false,
 };
 
 /**
@@ -149,8 +151,15 @@ export function scan(text: string, options?: Partial<ScanOptions>): DetectionRes
     }
   }
 
+  // Drop built-in allowlist matches: documentation placeholders, redacted keys,
+  // example email addresses, and structured product codes. These look sensitive
+  // to the detectors but are well-known non-secrets.
+  const withoutKnownSafe = opts.disableBuiltinAllowlist
+    ? allFindings
+    : allFindings.filter(f => !isKnownSafeValue(f));
+
   // Apply context analysis to boost/reduce confidence
-  const contextAdjusted = allFindings.map(f => applyContextBoost(f, text));
+  const contextAdjusted = withoutKnownSafe.map(f => applyContextBoost(f, text));
 
   // Filter by minimum confidence threshold based on sensitivity
   const minThreshold = opts.minConfidence ?? SENSITIVITY_THRESHOLDS[opts.sensitivityLevel];
@@ -258,6 +267,28 @@ function createEmptyResult(startTime: number): DetectionResult {
     scanTime: performance.now() - startTime,
     textLength: 0,
   };
+}
+
+/**
+ * Check whether a finding is a built-in allowlisted (known-safe) value.
+ * Covers documentation placeholders, redacted keys, example emails, and
+ * structured product codes across every detector type.
+ */
+function isKnownSafeValue(finding: Finding): boolean {
+  if (isPlaceholderSecret(finding.value)) {
+    return true;
+  }
+  if (finding.type === DetectorType.EMAIL && isExampleEmail(finding.value)) {
+    return true;
+  }
+  if (isProductCode(finding.value)) {
+    return true;
+  }
+  // Code references to environment variables are not secrets themselves.
+  if (/process\.env\.[A-Za-z0-9_]+/.test(finding.value)) {
+    return true;
+  }
+  return false;
 }
 
 /**

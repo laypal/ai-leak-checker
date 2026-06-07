@@ -25,7 +25,7 @@
 | Phase 4: Popup UI | ✅ Complete | 3/3 | Roadmap Phase 1 |
 | Phase 5: E2E Testing | ✅ Complete | 5/5 | Roadmap Phase 1 |
 | Phase 6: Store Submission | 🔄 Partial | 2/5 | Roadmap Phase 1 |
-| Phase 7: Hardening | 🔄 In Progress | 1/6 | Roadmap Phase 2 |
+| Phase 7: Hardening | 🔄 In Progress | 3/6 | 7.1 FP tuning ✅, 7.2 selector health ✅ (2026-06-06) |
 | Phase 8: Pro Features | ⬜ Not Started | 0/5 | Roadmap Phase 3 |
 | Phase 9: Monetization | ⬜ Not Started | 0/4 | Roadmap Phase 3 |
 | Phase 10: Platform Expansion | ⬜ Not Started | 0/4 | Roadmap Phase 4 |

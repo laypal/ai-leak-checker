@@ -22,39 +22,31 @@ AI chat platforms (ChatGPT, Claude, Gemini, etc.) frequently update their UI. Wh
 
 ### 1.1 Automated Health Checks
 
-A GitHub Actions workflow runs daily to verify selectors:
+Implemented in `.github/workflows/selector-health.yml` (Task 7.2). It runs daily
+at 07:00 UTC (and on `workflow_dispatch`), executing the health-check script and
+opening/updating a GitHub issue (label `selector-health`, deduplicated) on failure.
 
-```yaml
-# .github/workflows/selector-health.yml
-name: Selector Health Check
-on:
-  schedule:
-    - cron: '0 6 * * *'  # Daily at 6 AM UTC
-  workflow_dispatch:  # Manual trigger
+The script — `npm run check:selectors` (`scripts/check-selectors.ts`) — has two modes:
 
-jobs:
-  check-selectors:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-      - run: npm ci
-      - run: npx playwright install chromium
-      - run: npm run build
-      - run: npm run test:selector-health
-      - name: Create Issue on Failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 Selector Health Check Failed',
-              body: 'Daily selector health check failed. Check workflow logs.',
-              labels: ['selector-breakage', 'urgent']
-            })
+| Mode | What it does | Authoritative? |
+|------|--------------|----------------|
+| **Structural** (default) | Validates `configs/selectors.json`: every enabled site has input + submit selectors, no empty/duplicate entries, fallback-chain depth. Pure, deterministic. | ✅ Yes — fails the build (exit 1) on errors |
+| **Live** (`--live`) | Loads each enabled site in Chromium and checks whether any configured selector resolves. AI composers are auth-gated, so a login wall is reported as "skipped", not a failure. | ⚠️ Best-effort — not fatal unless `--live-strict` |
+
+```bash
+npm run check:selectors            # structural validation (CI-safe)
+npm run check:selectors -- --live  # + best-effort live DOM check
 ```
+
+The structural validator (`src/shared/utils/selector-validation.ts`,
+`validateSelectorConfig`) is also covered by `tests/unit/selector-validation.test.ts`,
+including a guard that the shipped `configs/selectors.json` stays valid — so the
+regular unit suite catches config breakage too, not only the daily cron.
+
+> **Limitation:** because the live check cannot reach the authenticated composer
+> in CI, it cannot by itself prove the *real* input selectors still match. It
+> verifies reachability + any-selector-resolves. True end-to-end verification
+> needs authenticated fixtures (future work).
 
 ### 1.2 Manual Detection
 
@@ -136,23 +128,31 @@ configs/selectors.json
 
 ### 3.2 Schema
 
+The file conforms to the `SelectorConfigFile` type in
+`src/shared/types/selectors.ts` and is validated by `configs/selectors.schema.json`
+(`$schema`). `sites` is a **record keyed by hostname**; each selector group is an
+**ordered array** (fallback chain — most-stable first), and `bodyExtractor` is a
+**structured object**:
+
 ```typescript
-interface SiteConfig {
-  site: string;           // Domain (e.g., "chat.openai.com")
+interface SelectorConfigFile {
+  $schema?: string;
   version: string;        // Config version (semver)
-  lastVerified: string;   // ISO date of last verification
-  selectors: {
-    input: SelectorChain;
-    submit: SelectorChain;
-    container?: SelectorChain;
-  };
+  lastUpdated: string;    // ISO-8601 datetime
+  sites: Record<string, SiteConfigFile>; // keyed by hostname
+  fallbackBehavior?: FallbackBehavior;
+  monitoring?: MonitoringConfig;
 }
 
-interface SelectorChain {
-  primary: string;        // First try this selector
-  fallback1: string;      // If primary fails, try this
-  fallback2: string;      // Last resort
-  type: 'textarea' | 'contenteditable' | 'input';
+interface SiteConfigFile {
+  name: string;
+  enabled: boolean;
+  inputSelectors: string[];      // fallback chain, tried in order
+  submitSelectors: string[];
+  containerSelectors: string[];
+  apiEndpoints: string[];        // fetch-patch fallback
+  bodyExtractor: { type: 'json'; path: string };
+  notes?: string;
 }
 ```
 
@@ -160,56 +160,54 @@ interface SelectorChain {
 
 ```json
 {
-  "sites": [
-    {
-      "site": "chat.openai.com",
-      "version": "2.1.0",
-      "lastVerified": "2026-01-13",
-      "selectors": {
-        "input": {
-          "primary": "[data-testid=\"prompt-textarea\"]",
-          "fallback1": "textarea[placeholder*=\"Send a message\"]",
-          "fallback2": "#prompt-textarea",
-          "type": "textarea"
-        },
-        "submit": {
-          "primary": "button[data-testid=\"send-button\"]",
-          "fallback1": "button[aria-label=\"Send message\"]",
-          "fallback2": "form button[type=\"submit\"]",
-          "type": "button"
-        },
-        "container": {
-          "primary": "[data-testid=\"chat-input-container\"]",
-          "fallback1": "form[action*=\"conversation\"]",
-          "fallback2": ".chat-input-wrapper",
-          "type": "container"
-        }
-      }
+  "$schema": "./selectors.schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-07T00:00:00Z",
+  "sites": {
+    "chat.openai.com": {
+      "name": "ChatGPT",
+      "enabled": true,
+      "inputSelectors": [
+        "#prompt-textarea",
+        "[data-id='root'] textarea",
+        "textarea[placeholder*='Message']"
+      ],
+      "submitSelectors": [
+        "button[data-testid='send-button']",
+        "form button[type='submit']"
+      ],
+      "containerSelectors": ["form.stretch", "main form"],
+      "apiEndpoints": ["/backend-api/conversation"],
+      "bodyExtractor": { "type": "json", "path": "messages[0].content.parts[0]" },
+      "notes": "ChatGPT changes DOM frequently. Fallback chain ordered by stability."
     },
-    {
-      "site": "claude.ai",
-      "version": "1.3.0",
-      "lastVerified": "2026-01-13",
-      "selectors": {
-        "input": {
-          "primary": "div[contenteditable=\"true\"][data-placeholder]",
-          "fallback1": ".ProseMirror[contenteditable=\"true\"]",
-          "fallback2": "[role=\"textbox\"][contenteditable]",
-          "type": "contenteditable"
-        },
-        "submit": {
-          "primary": "button[aria-label=\"Send message\"]",
-          "fallback1": "button:has(svg[data-icon=\"send\"])",
-          "fallback2": "button[type=\"button\"]:last-of-type",
-          "type": "button"
-        }
-      }
+    "claude.ai": {
+      "name": "Claude",
+      "enabled": true,
+      "inputSelectors": [
+        "div[contenteditable='true'][data-placeholder]",
+        "div.ProseMirror[contenteditable='true']"
+      ],
+      "submitSelectors": [
+        "button[aria-label='Send message']",
+        "button[data-testid='send-button']"
+      ],
+      "containerSelectors": ["div[class*='composer']"],
+      "apiEndpoints": ["/api/organizations/*/chat_conversations/*/completion"],
+      "bodyExtractor": { "type": "json", "path": "prompt" },
+      "notes": "Claude uses ProseMirror editor. contenteditable div, not textarea."
     }
-  ],
-  "metadata": {
-    "schemaVersion": "1.0.0",
-    "lastUpdated": "2026-01-13T12:00:00Z",
-    "updateURL": "https://cdn.example.com/selectors.json"
+  },
+  "fallbackBehavior": {
+    "onSelectorFailure": "warn",
+    "maxRetries": 3,
+    "retryIntervalMs": 1000,
+    "gracePeriodMs": 5000
+  },
+  "monitoring": {
+    "healthCheckIntervalMs": 3600000,
+    "reportEndpoint": null,
+    "localLogging": true
   }
 }
 ```

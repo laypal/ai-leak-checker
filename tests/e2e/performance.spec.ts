@@ -121,7 +121,9 @@ test.describe('Performance Benchmarks', () => {
       ];
       
       const start = performance.now();
-      const results = texts.map(text => scan(text));
+      // user@example.com is suppressed by the built-in allowlist; disable it so
+      // this batch exercises detection across all types (see FALSE_POSITIVES.md).
+      const results = texts.map(text => scan(text, { disableBuiltinAllowlist: true }));
       const duration = performance.now() - start;
       
       // Should scan all 5 texts quickly

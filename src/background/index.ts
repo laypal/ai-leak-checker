@@ -1,9 +1,17 @@
 /**
+ * @file index.ts
  * @fileoverview Service worker for AI Leak Checker extension
  * @module background
- * 
- * Handles message routing, storage management, and badge updates.
- * Runs as a MV3 service worker with no persistent state.
+ * @description Handles message routing, storage management, and badge updates.
+ *   Runs as an MV3 service worker with no persistent state.
+ *
+ * @dependencies
+ *   - chrome.runtime (onMessage / onInstalled / onStartup), chrome.storage.local,
+ *     chrome.action (badge), chrome.tabs
+ *   - @/shared/types (message + settings/stats types)
+ * @security
+ *   - Rejects messages whose sender.id !== chrome.runtime.id (isTrustedSender).
+ *   - Stores metadata/stats only — never prompt content. No network calls.
  */
 
 import {
@@ -84,6 +92,21 @@ chrome.runtime.onMessage.addListener(
 );
 
 /**
+ * Determine whether a message originates from our own extension.
+ *
+ * Defense-in-depth (EXT-SEC): `chrome.runtime.onMessage` only delivers messages
+ * from same-extension contexts (and, if configured, `externally_connectable`
+ * origins), but we additionally require the sender id to match our own runtime
+ * id so a stray/foreign message can never reach the handlers.
+ *
+ * @param sender - The Chrome message sender metadata.
+ * @returns `true` only when `sender.id` equals `chrome.runtime.id`.
+ */
+export function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
+  return sender.id === chrome.runtime.id;
+}
+
+/**
  * Validate message structure and type.
  * Accepts both full BaseMessage format and simplified { type, payload } format.
  */
@@ -123,10 +146,16 @@ function validateMessage(message: unknown): message is ExtensionMessage | { type
  *          `{ error: string }` for invalid or unknown messages
  * @throws Error - If `MessageType.STATS_INCREMENT` is received with an invalid payload
  */
-async function handleMessage(
+export async function handleMessage(
   message: unknown,
-  _sender: chrome.runtime.MessageSender
+  sender: chrome.runtime.MessageSender
 ): Promise<unknown> {
+  // Reject messages from any sender that is not our own extension (EXT-SEC).
+  if (!isTrustedSender(sender)) {
+    console.warn('[AI Leak Checker] Rejected message from untrusted sender:', sender.id);
+    return { error: 'Unauthorized' };
+  }
+
   // Validate message structure
   if (!validateMessage(message)) {
     console.error('[AI Leak Checker] Invalid message structure:', message);
@@ -179,7 +208,7 @@ async function handleMessage(
 
     case MessageType.SET_FALLBACK_BADGE: {
       const payload = message.payload;
-      const tabId = _sender.tab?.id;
+      const tabId = sender.tab?.id;
       
       if (!tabId) {
         return { error: 'No tab ID available' };

@@ -41,8 +41,11 @@ test.describe('Detection Engine E2E', () => {
       
       testKeys.forEach((key) => {
         const text = `AWS_KEY=${key}`;
-        const result = scan(text);
-        
+        // Fixtures are canonical/placeholder AWS keys (…EXAMPLE, AKIAXXXX…) that
+        // the built-in allowlist suppresses by design; disable it to exercise
+        // raw detector coverage (see docs/detection/FALSE_POSITIVES.md).
+        const result = scan(text, { disableBuiltinAllowlist: true });
+
         expect(result.hasSensitiveData).toBe(true);
         expect(result.findings.some(f => f.type === 'api_key_aws')).toBe(true);
       });
@@ -53,8 +56,10 @@ test.describe('Detection Engine E2E', () => {
       
       testKeys.forEach((key) => {
         const text = `github_token: ${key}`;
-        const result = scan(text);
-        
+        // Fixtures use placeholder GitHub tokens (ghp_xxx…) suppressed by the
+        // built-in allowlist; disable it to exercise raw detector coverage.
+        const result = scan(text, { disableBuiltinAllowlist: true });
+
         expect(result.hasSensitiveData).toBe(true);
         expect(result.findings.length).toBeGreaterThan(0);
       });

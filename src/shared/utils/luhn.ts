@@ -40,7 +40,9 @@ export function luhnValidate(value: string): boolean {
 
   // Process from right to left
   for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits[i]!, 10);
+    // `digits` is validated as all-ASCII-digits above, so charCodeAt - 48
+    // yields 0-9 without an out-of-bounds/undefined index access.
+    let digit = digits.charCodeAt(i) - 48;
 
     if (isEven) {
       digit *= 2;
@@ -74,20 +76,65 @@ export function extractCreditCards(
   let match: RegExpExecArray | null;
 
   while ((match = cardPattern.exec(text)) !== null) {
-    const candidate = match[1]!;
+    // Group 1 spans the whole match (the \b anchors are zero-width), so
+    // match[0] is identical and is typed as a guaranteed string.
+    const candidate = match[0];
     const normalized = candidate.replace(/[\s-]/g, '');
 
+    // Skip candidates that are part of a UUID (e.g. the trailing
+    // "4444-555555555555" of an all-numeric UUID), which are not card numbers.
+    if (isPartOfUuid(text, match.index, match.index + candidate.length)) {
+      continue;
+    }
+
     if (luhnValidate(normalized)) {
+      const issuer = identifyCardIssuer(normalized);
+
+      // A bare 13-digit run with no recognised card issuer (e.g. a unix-ms
+      // timestamp like 1647763200000) passes Luhn by chance but is not a card.
+      const hasSeparators = candidate !== normalized;
+      if (!hasSeparators && normalized.length === 13 && issuer === 'unknown') {
+        continue;
+      }
+
       results.push({
         value: candidate,
         start: match.index,
         end: match.index + candidate.length,
-        issuer: identifyCardIssuer(normalized),
+        issuer,
       });
     }
   }
 
   return results;
+}
+
+/**
+ * UUID shape: 8-4-4-4-12 hex digits.
+ */
+const UUID_PATTERN = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g;
+
+/**
+ * Check whether a candidate span lies within a UUID elsewhere in the text.
+ *
+ * @param text - Full text
+ * @param start - Candidate start index
+ * @param end - Candidate end index
+ * @returns true if the candidate overlaps a UUID
+ */
+function isPartOfUuid(text: string, start: number, end: number): boolean {
+  const ctxStart = Math.max(0, start - 30);
+  const context = text.slice(ctxStart, end + 30);
+  UUID_PATTERN.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = UUID_PATTERN.exec(context)) !== null) {
+    const uStart = ctxStart + m.index;
+    const uEnd = uStart + m[0].length;
+    if (start < uEnd && end > uStart) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**

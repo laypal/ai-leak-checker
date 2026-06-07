@@ -240,3 +240,70 @@ describe('URL exclusion in entropy detection', () => {
     // Both now require at least one character after scheme, preventing inconsistent behavior
   });
 });
+
+describe('known-safe structure exclusion in entropy detection', () => {
+  it('excludes MD5 hashes (32 hex chars)', () => {
+    const md5 = 'd41d8cd98f00b204e9800998ecf8427e';
+    const regions = findHighEntropyRegions(md5, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes SHA-1 / git commit SHAs (40 hex chars)', () => {
+    const sha1 = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+    const regions = findHighEntropyRegions(sha1, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes SHA-256 hashes (64 hex chars)', () => {
+    const sha256 =
+      'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+    const regions = findHighEntropyRegions(sha256, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes SHA-512 hashes (128 hex chars)', () => {
+    const sha512 =
+      'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+    const regions = findHighEntropyRegions(sha512, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes base64 data URI image payloads', () => {
+    const dataUri =
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const regions = findHighEntropyRegions(dataUri, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('still detects a real non-hex secret of digest-like length', () => {
+    // 40 chars but contains g-z and underscore, so not a pure-hex digest
+    const secret = 'tokN_7Qm2Xp9Vr4Wt8Bj3Yh6Cf1Dg5Gs0AqwZ2eR';
+    const regions = findHighEntropyRegions(secret, 3.5, 16);
+    expect(regions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('does not exclude a 40-char string that is not pure hex', () => {
+    // Looks like a token, has non-hex letters -> must still be flagged
+    const token = 'ghpZZ1234567890abcdefABCDEFxyzwvut987654';
+    const regions = findHighEntropyRegions(token, 3.5, 16);
+    expect(regions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('excludes long pure-hex strings of non-standard digest length', () => {
+    // 55 hex chars (e.g. truncated/concatenated digests) - still not a random secret
+    const hex = 'feedfacebadc0ffeedeadbeefcafebabe0123456789abcdef012345';
+    const regions = findHighEntropyRegions(hex, 3.5, 16);
+    expect(regions).toHaveLength(0);
+  });
+
+  it('excludes common dev filenames', () => {
+    expect(findHighEntropyRegions('webpack.config.js', 3.5, 16)).toHaveLength(0);
+    expect(findHighEntropyRegions('package-lock.json', 3.5, 16)).toHaveLength(0);
+    expect(findHighEntropyRegions('docker-compose.yml', 3.5, 16)).toHaveLength(0);
+    expect(findHighEntropyRegions('playwright.config.ts', 3.5, 16)).toHaveLength(0);
+  });
+
+  it('excludes semantic version strings', () => {
+    expect(findHighEntropyRegions('1.0.0-alpha.1+build.123', 3.5, 16)).toHaveLength(0);
+  });
+});
