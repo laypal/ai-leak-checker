@@ -56,6 +56,14 @@ const runtimeMock = {
     addListener: vi.fn(),
     removeListener: vi.fn(),
   },
+  onInstalled: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  },
+  onStartup: {
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  },
   getURL: vi.fn((path: string) => `chrome-extension://mock-id/${path}`),
   getManifest: vi.fn(() => ({ version: '0.1.0' })),
   id: 'mock-extension-id',

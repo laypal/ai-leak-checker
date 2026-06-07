@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "https://ai-leak-checker/configs/selectors.schema.json",
+  "title": "AI Leak Checker selector configuration",
+  "description": "Per-site CSS selectors and interception metadata for AI chat platforms. Mirrors the SelectorConfigFile TypeScript type in src/shared/types/selectors.ts.",
+  "type": "object",
+  "required": ["version", "lastUpdated", "sites"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string" },
+    "lastUpdated": { "type": "string" },
+    "sites": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/site" }
+    },
+    "fallbackBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onSelectorFailure": { "type": "string", "enum": ["warn", "block", "ignore"] },
+        "maxRetries": { "type": "integer", "minimum": 0 },
+        "retryIntervalMs": { "type": "integer", "minimum": 0 },
+        "gracePeriodMs": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "healthCheckIntervalMs": { "type": "integer", "minimum": 0 },
+        "reportEndpoint": { "type": ["string", "null"] },
+        "localLogging": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "site": {
+      "type": "object",
+      "required": [
+        "name",
+        "enabled",
+        "inputSelectors",
+        "submitSelectors",
+        "containerSelectors",
+        "apiEndpoints",
+        "bodyExtractor"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "inputSelectors": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "submitSelectors": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "containerSelectors": { "type": "array", "items": { "type": "string", "minLength": 1 }, "minItems": 1 },
+        "apiEndpoints": { "type": "array", "items": { "type": "string" } },
+        "bodyExtractor": {
+          "type": "object",
+          "required": ["type", "path"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string", "enum": ["json"] },
+            "path": { "type": "string", "minLength": 1 }
+          }
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

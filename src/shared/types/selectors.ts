@@ -66,6 +66,79 @@ export interface SelectorConfig {
 }
 
 // =============================================================================
+// On-disk config file model (configs/selectors.json)
+// =============================================================================
+//
+// NOTE (EXT-TYPE-DRIFT): the types above (`SiteConfig` / `BUNDLED_SELECTORS`)
+// describe the *runtime* shape the content script consumes today (singular
+// `containerSelector`, string `bodyExtractor`). The richer types below model
+// the actual `configs/selectors.json` file — the canonical, remote-config-ready
+// format used by the Phase 7.2 selector-health tooling (plural
+// `containerSelectors`, structured `bodyExtractor`, `notes`, plus file-level
+// `fallbackBehavior` / `monitoring`). They are intentionally separate so this
+// fix stays additive and does not alter shipped runtime behaviour; unifying the
+// two is tracked as a follow-up (the remote-config delivery path).
+
+/** Structured prompt extractor for a site's request body. */
+export interface BodyExtractor {
+  /** Extraction strategy (currently only JSON-path traversal). */
+  type: 'json';
+  /** Dotted/bracketed path to the prompt within the parsed body. */
+  path: string;
+}
+
+/** A single site entry as stored in `configs/selectors.json`. */
+export interface SiteConfigFile {
+  /** Human-readable site name. */
+  name: string;
+  /** Whether this site is enabled for detection. */
+  enabled: boolean;
+  /** CSS selectors for the text input element (tried in order). */
+  inputSelectors: string[];
+  /** CSS selectors for the submit/send button (tried in order). */
+  submitSelectors: string[];
+  /** Parent container selectors for MutationObserver (tried in order). */
+  containerSelectors: string[];
+  /** API endpoints to intercept (for fetch patching fallback). */
+  apiEndpoints: string[];
+  /** Structured prompt extractor for the request body. */
+  bodyExtractor: BodyExtractor;
+  /** Free-form maintenance notes. */
+  notes?: string;
+}
+
+/** Behaviour when selectors fail to resolve at runtime. */
+export interface FallbackBehavior {
+  onSelectorFailure: 'warn' | 'block' | 'ignore';
+  maxRetries: number;
+  retryIntervalMs: number;
+  gracePeriodMs: number;
+}
+
+/** Selector-health monitoring configuration. */
+export interface MonitoringConfig {
+  healthCheckIntervalMs: number;
+  reportEndpoint: string | null;
+  localLogging: boolean;
+}
+
+/** Full structure of `configs/selectors.json`. */
+export interface SelectorConfigFile {
+  /** JSON Schema reference for editor tooling. */
+  $schema?: string;
+  /** Schema version for migrations. */
+  version: string;
+  /** Last update timestamp (ISO 8601). */
+  lastUpdated: string;
+  /** Per-domain configurations. */
+  sites: Record<string, SiteConfigFile>;
+  /** Runtime fallback behaviour. */
+  fallbackBehavior?: FallbackBehavior;
+  /** Monitoring configuration. */
+  monitoring?: MonitoringConfig;
+}
+
+// =============================================================================
 // Default Configurations
 // =============================================================================
 

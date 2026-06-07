@@ -40,7 +40,9 @@ export function luhnValidate(value: string): boolean {
 
   // Process from right to left
   for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits[i]!, 10);
+    // `digits` is validated as all-ASCII-digits above, so charCodeAt - 48
+    // yields 0-9 without an out-of-bounds/undefined index access.
+    let digit = digits.charCodeAt(i) - 48;
 
     if (isEven) {
       digit *= 2;
@@ -74,7 +76,9 @@ export function extractCreditCards(
   let match: RegExpExecArray | null;
 
   while ((match = cardPattern.exec(text)) !== null) {
-    const candidate = match[1]!;
+    // Group 1 spans the whole match (the \b anchors are zero-width), so
+    // match[0] is identical and is typed as a guaranteed string.
+    const candidate = match[0];
     const normalized = candidate.replace(/[\s-]/g, '');
 
     // Skip candidates that are part of a UUID (e.g. the trailing

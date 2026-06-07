@@ -135,13 +135,14 @@ if ((window as Window & { __aiLeakCheckerInjected?: boolean }).__aiLeakCheckerIn
 
       window.addEventListener('message', handler);
 
-      // Request scan from content script
+      // Request scan from content script. Restrict targetOrigin to the current
+      // page origin (EXT-SEC) — never broadcast prompt content with '*'.
       window.postMessage({
         type: EXTENSION_MESSAGE_TYPE,
         action: 'scan_request',
         messageId,
         content,
-      }, '*');
+      }, window.location.origin);
 
       // Timeout after 5 seconds
       setTimeout(() => {
