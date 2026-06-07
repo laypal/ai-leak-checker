@@ -65,7 +65,12 @@ let currentScanOptions: Partial<ScanOptions> = buildScanOptions(DEFAULT_SETTINGS
  * @param partial - Settings fields to apply over the current settings.
  */
 function applySettings(partial: Partial<Settings>): void {
-  currentSettings = { ...currentSettings, ...partial };
+  // Deep-merge the detectors record so a partial update (only changed flags)
+  // can't wipe sibling toggles. Other fields are safe to shallow-merge.
+  const detectors = partial.detectors
+    ? { ...currentSettings.detectors, ...partial.detectors }
+    : currentSettings.detectors;
+  currentSettings = { ...currentSettings, ...partial, detectors };
   currentScanOptions = buildScanOptions(currentSettings);
 }
 
@@ -117,6 +122,19 @@ function isExtensionContextValid(): boolean {
   try {
     // Try to access chrome.runtime.id - this will throw if context is invalidated
     return typeof chrome.runtime.id !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check that a runtime message originates from this extension (background/popup)
+ * rather than a foreign sender. Mirrors the background script's EXT-SEC sender
+ * gate; used before honouring settings mutations.
+ */
+function isTrustedSender(sender: chrome.runtime.MessageSender): boolean {
+  try {
+    return sender.id === chrome.runtime.id;
   } catch {
     return false;
   }
@@ -863,6 +881,11 @@ function handleMessage(
   try {
     switch (message.type) {
       case MessageType.SETTINGS_UPDATED: {
+        // Settings mutation weakens/strengthens detection — only honour it from
+        // our own extension context, never a foreign sender.
+        if (!isTrustedSender(sender)) {
+          break;
+        }
         // Apply updated settings live so detector toggles take effect without
         // a page refresh. Payload carries the full merged Settings.
         const payload = (message as { payload?: { settings?: Partial<Settings> } }).payload;

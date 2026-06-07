@@ -71,4 +71,35 @@ describe('buildScanOptions applied to scan (the reported bug)', () => {
     const result = scan(EMAIL_TEXT, buildScanOptions(settings));
     expect(result.findings.some(f => f.type === DetectorType.EMAIL)).toBe(false);
   });
+
+  // Edge-case inputs: buildScanOptions + scan must stay robust and never emit a
+  // spurious EMAIL finding, whether the detector is on or off.
+  const emailDisabled = makeSettings({
+    detectors: { ...DEFAULT_SETTINGS.detectors, [DetectorType.EMAIL]: false },
+  });
+  const edgeCases: Array<[label: string, text: string]> = [
+    ['empty string', ''],
+    ['whitespace only', '   \n\t  '],
+    ['special characters only', '!@#$%^&*()_+-=[]{}|;:,.<>?'],
+    ['very long non-email text', 'lorem ipsum '.repeat(5000)],
+    ['UUID', '550e8400-e29b-41d4-a716-446655440000'],
+  ];
+
+  it.each(edgeCases)('does not throw and finds no email for %s (enabled)', (_label, text) => {
+    const run = (): boolean =>
+      scan(text, buildScanOptions(makeSettings())).findings.some(
+        f => f.type === DetectorType.EMAIL
+      );
+    expect(run).not.toThrow();
+    expect(run()).toBe(false);
+  });
+
+  it.each(edgeCases)('does not throw and finds no email for %s (disabled)', (_label, text) => {
+    const run = (): boolean =>
+      scan(text, buildScanOptions(emailDisabled)).findings.some(
+        f => f.type === DetectorType.EMAIL
+      );
+    expect(run).not.toThrow();
+    expect(run()).toBe(false);
+  });
 });
