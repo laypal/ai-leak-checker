@@ -8,6 +8,7 @@
 
 import { scan, quickCheck, describeFinding, buildScanOptions } from '@/shared/detectors';
 import { redact } from '@/shared/utils/redact';
+import { isHostExcluded } from '@/shared/utils/site-match';
 import {
   type Finding,
   type DetectionResult,
@@ -75,14 +76,25 @@ function applySettings(partial: Partial<Settings>): void {
 }
 
 /**
- * Scan text using the user's current detector settings.
- * Centralizes scan invocation so every call respects enabled detectors,
- * sensitivity, and allowlist rather than the engine defaults.
+ * True when the current page's host is in the user's siteAllowlist, meaning
+ * scanning is paused for this site.
+ */
+function isCurrentSiteExcluded(): boolean {
+  return isHostExcluded(window.location.hostname, currentSettings.siteAllowlist);
+}
+
+/**
+ * Scan text using the user's current detector settings. When the current site
+ * is paused (siteAllowlist), short-circuit to the engine's empty result so all
+ * call sites (DOM + fetch fallback) treat it as "no sensitive data".
  *
  * @param text - Text to scan.
  * @returns Detection result filtered by the user's settings.
  */
 function scanWithSettings(text: string): DetectionResult {
+  if (isCurrentSiteExcluded()) {
+    return scan('', currentScanOptions);
+  }
   return scan(text, currentScanOptions);
 }
 
