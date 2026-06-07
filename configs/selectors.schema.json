@@ -9,7 +9,7 @@
   "properties": {
     "$schema": { "type": "string" },
     "version": { "type": "string" },
-    "lastUpdated": { "type": "string" },
+    "lastUpdated": { "type": "string", "format": "date-time" },
     "sites": {
       "type": "object",
       "minProperties": 1,

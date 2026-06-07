@@ -53,8 +53,10 @@ replaced with realistic fake secrets.
 
 ## Regression gate
 
-`npm run test:corpus` fails the build above **4%** (`tests/corpus/run-corpus-test.ts`),
-tightened from the 5% NFR ceiling to lock in Phase 7.1 gains.
+`npm run test:corpus` fails the build at or above **4%** (i.e. the rate must be
+strictly `< 4%`; see `falsePositiveRate >= targetRate` in
+`tests/corpus/run-corpus-test.ts`), tightened from the 5% NFR ceiling to lock in
+Phase 7.1 gains.
 
 ## Residual / accepted false positives
 

@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-The **AI Leak Checker** extension is **launched live** on the Chrome Web Store (v0.1.6) — core detection, DOM interception, service worker, popup UI, and E2E testing all shipped, with the pre-release security/MV3/performance review passed. **Phase 7 hardening is underway:** false-positive tuning (7.1) and selector health monitoring (7.2) are **done** as of 2026-06-06 — the corpus false-positive rate dropped from ~23.7% to **3.19%** (high sensitivity) and a daily selector-health workflow now alerts on DOM breakage. A planned MCP server reuses the detection engine (see the local-only `docs/internal/` planning docs).
+The **AI Leak Checker** extension is **launched live** on the Chrome Web Store (live v0.1.6; v0.1.7 prepared in-repo, pending publish) — core detection, DOM interception, service worker, popup UI, and E2E testing all shipped, with the pre-release security/MV3/performance review passed. **Phase 7 hardening is underway:** false-positive tuning (7.1) and selector health monitoring (7.2) are **done** as of 2026-06-06 — the corpus false-positive rate dropped from ~23.7% to **3.19%** (high sensitivity) and a daily selector-health workflow now alerts on DOM breakage. A planned MCP server reuses the detection engine (see the local-only `docs/internal/` planning docs).
 
 > **Note:** the sections below reflect the pre-launch Jan-2026 snapshot and are retained for history. The live source of truth for remaining work is `EXTENSION_TODO.md`.
 

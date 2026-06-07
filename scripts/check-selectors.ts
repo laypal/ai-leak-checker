@@ -1,6 +1,17 @@
 /**
+ * @file check-selectors.ts
  * @fileoverview Selector health check (Task 7.2)
  * @module scripts/check-selectors
+ * @description CI/CLI selector-health checker for configs/selectors.json
+ *   (structural + best-effort live DOM check).
+ *
+ * @dependencies
+ *   - node:fs / node:path / node:url (read config, resolve paths)
+ *   - @/shared/utils/selector-validation (structural validation)
+ *   - @playwright/test (dynamically imported, optional) for --live DOM checks
+ * @security
+ *   - Read-only: parses local config and (in --live) loads target sites with no
+ *     credentials; auth walls are reported as "skipped". No writes, no egress.
  *
  * Two modes:
  *   1. Structural (default): validate configs/selectors.json — missing/empty/

@@ -200,10 +200,12 @@ function isKnownSafeStructure(text: string, start: number, fullToken: string): b
     return true;
   }
 
-  // base64 data-URI payload: candidate is immediately preceded by `base64,`.
-  // Look back a few characters to catch the `;base64,` marker.
-  const prefix = text.slice(Math.max(0, start - 8), start).toLowerCase();
-  if (prefix.includes('base64')) {
+  // base64 data-URI payload: candidate is immediately preceded by the
+  // `;base64,` marker (whitespace-tolerant). Matching only the real marker —
+  // rather than any nearby occurrence of "base64" — avoids suppressing genuine
+  // secrets that merely sit near the word.
+  const prefix = text.slice(Math.max(0, start - 12), start).toLowerCase();
+  if (/;\s*base64,$/.test(prefix)) {
     return true;
   }
 

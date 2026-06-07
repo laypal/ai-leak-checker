@@ -16,12 +16,21 @@ interface SiteEntry {
   enabled?: boolean;
   inputSelectors?: unknown;
   submitSelectors?: unknown;
+  containerSelectors?: unknown;
 }
 
 /** Loose shape of the parsed selectors.json. */
 interface SelectorConfigShape {
   version?: string;
   sites?: Record<string, SiteEntry>;
+}
+
+/**
+ * Runtime type guard narrowing untrusted parsed JSON to the loose config shape.
+ * Avoids unchecked `as` casts on attacker-controlled input.
+ */
+function isSelectorConfigShape(value: unknown): value is SelectorConfigShape {
+  return typeof value === 'object' && value !== null;
 }
 
 /** Result of validating a selector configuration. */
@@ -44,8 +53,12 @@ export function validateSelectorConfig(config: unknown): SelectorValidationResul
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const cfg = config as SelectorConfigShape;
-  const sites = cfg?.sites;
+  if (!isSelectorConfigShape(config)) {
+    errors.push('Config is not an object.');
+    return { ok: false, errors, warnings };
+  }
+
+  const sites = config.sites;
 
   if (!sites || typeof sites !== 'object' || Object.keys(sites).length === 0) {
     errors.push('Config has no sites defined.');
@@ -64,6 +77,11 @@ export function validateSelectorConfig(config: unknown): SelectorValidationResul
 
     validateSelectorList(host, 'input', site?.inputSelectors, errors, warnings);
     validateSelectorList(host, 'submit', site?.submitSelectors, errors, warnings);
+    // containerSelectors is optional in this loose validator (the runtime config
+    // omits it), but when present it must be a clean, non-empty list.
+    if (site?.containerSelectors !== undefined) {
+      validateSelectorList(host, 'container', site.containerSelectors, errors, warnings);
+    }
   }
 
   return { ok: errors.length === 0, errors, warnings };
@@ -74,7 +92,7 @@ export function validateSelectorConfig(config: unknown): SelectorValidationResul
  */
 function validateSelectorList(
   host: string,
-  kind: 'input' | 'submit',
+  kind: 'input' | 'submit' | 'container',
   list: unknown,
   errors: string[],
   warnings: string[]

@@ -1,9 +1,15 @@
 /**
  * @file selectors.ts
- * @description Type definitions for site-specific selector configurations.
- *              Selectors are used to identify input fields and submit buttons
- *              on AI chat platforms for interception.
+ * @description Type definitions and bundled defaults for site-specific selector
+ *              configurations used to identify input fields and submit buttons
+ *              on AI chat platforms for interception. Also models the on-disk
+ *              configs/selectors.json file (SelectorConfigFile) and provides
+ *              selector-health helpers.
  *
+ * @dependencies None — types plus DOM-reading helpers that use the standard
+ *               `document`/`window` globals available in the content script.
+ * @security Selectors are static, code-reviewed config. No user input is used to
+ *           build them; querying is read-only (no innerHTML / no eval).
  * @version 1.0.0
  */
 

@@ -1,9 +1,17 @@
 /**
+ * @file index.ts
  * @fileoverview Service worker for AI Leak Checker extension
  * @module background
- * 
- * Handles message routing, storage management, and badge updates.
- * Runs as a MV3 service worker with no persistent state.
+ * @description Handles message routing, storage management, and badge updates.
+ *   Runs as an MV3 service worker with no persistent state.
+ *
+ * @dependencies
+ *   - chrome.runtime (onMessage / onInstalled / onStartup), chrome.storage.local,
+ *     chrome.action (badge), chrome.tabs
+ *   - @/shared/types (message + settings/stats types)
+ * @security
+ *   - Rejects messages whose sender.id !== chrome.runtime.id (isTrustedSender).
+ *   - Stores metadata/stats only — never prompt content. No network calls.
  */
 
 import {

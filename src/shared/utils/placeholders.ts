@@ -1,15 +1,21 @@
 /**
+ * @file placeholders.ts
  * @fileoverview Built-in allowlist classifiers for placeholder / example values
  * @module utils/placeholders
- *
- * These helpers recognise values that *look* sensitive to the detectors but are
+ * @description Recognises values that *look* sensitive to the detectors but are
  * well-known non-secrets: documentation placeholders, redacted keys, example
- * email addresses, and structured product/SKU codes. They are applied as a
- * suppression filter so they cover every detector type uniformly.
+ * email addresses, and structured product/SKU codes. Applied as a suppression
+ * filter so they cover every detector type uniformly.
  *
  * Design principle: a real cryptographic secret effectively never contains
  * English placeholder words ("placeholder", "your_", "replace") or long runs of
  * redaction characters ("xxxx"), so suppressing on these markers is low-risk.
+ *
+ * @dependencies None — pure functions over strings (no imports).
+ * @security Suppression is conservative: strong markers match at any length,
+ *   weak markers only on short values (≤40 chars) to avoid hiding real long
+ *   secrets that coincidentally embed a dev word. Never relax this without a
+ *   corpus re-run (see docs/detection/FALSE_POSITIVES.md).
  */
 
 /**
