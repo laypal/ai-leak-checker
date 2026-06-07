@@ -31,9 +31,10 @@ export function isHostExcluded(host: string, siteAllowlist: string[]): boolean {
 }
 
 /**
- * Toggle a host's membership in a siteAllowlist. Returns a NEW array with the
- * normalized host removed if already present (normalized comparison) or
- * appended if absent. Result is normalized and deduped.
+ * Toggle a host's membership in a siteAllowlist. Returns a NEW array that is
+ * always normalized and deduped: with the normalized host removed if already
+ * present (normalized comparison) or appended if absent. For an empty/invalid
+ * host, returns the normalized+deduped list with membership unchanged.
  */
 export function toggleSiteExclusion(host: string, list: string[]): string[] {
   const source = Array.isArray(list) ? list : [];

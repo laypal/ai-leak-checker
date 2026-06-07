@@ -20,6 +20,9 @@ describe('normalizeHost', () => {
     expect(normalizeHost('')).toBe('');
     expect(normalizeHost('   ')).toBe('');
   });
+  it('strips only one leading www. (double prefix keeps the second)', () => {
+    expect(normalizeHost('www.www.chatgpt.com')).toBe('www.chatgpt.com');
+  });
 });
 
 describe('isHostExcluded', () => {
