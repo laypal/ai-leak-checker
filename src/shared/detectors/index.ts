@@ -4,6 +4,7 @@
  */
 
 export { scan, quickCheck, describeFinding } from './engine';
+export { buildScanOptions } from './scan-options';
 export { DetectorType } from '@/shared/types';
 export type { Finding, DetectionResult, ScanOptions } from '@/shared/types';
 export { scanForApiKeys, API_KEY_PATTERNS } from './patterns';

@@ -6,12 +6,13 @@
  * to scan for sensitive data before it's sent.
  */
 
-import { scan, quickCheck, describeFinding } from '@/shared/detectors';
+import { scan, quickCheck, describeFinding, buildScanOptions } from '@/shared/detectors';
 import { redact } from '@/shared/utils/redact';
 import {
   type Finding,
   type DetectionResult,
   type DetectorType,
+  type ScanOptions,
   type SiteConfig,
   type ExtensionMessage,
   MessageType,
@@ -45,6 +46,40 @@ function findingMetaToFindingsForRedact(meta: FindingMeta[]): Finding[] {
 
 /** Current site configuration */
 let siteConfig: SiteConfig | null = null;
+
+/**
+ * Current user settings (detector toggles, sensitivity, allowlist). Kept in
+ * sync via storage on init and SETTINGS_UPDATED broadcasts so the popup's
+ * toggles actually take effect — no page refresh required.
+ */
+let currentSettings: Settings = DEFAULT_SETTINGS;
+
+/** Scan options derived from {@link currentSettings}; passed to every scan(). */
+let currentScanOptions: Partial<ScanOptions> = buildScanOptions(DEFAULT_SETTINGS);
+
+/**
+ * Replace the active settings and recompute the derived scan options.
+ * Accepts a partial update merged over the current settings, matching the
+ * SETTINGS_UPDATED broadcast payload.
+ *
+ * @param partial - Settings fields to apply over the current settings.
+ */
+function applySettings(partial: Partial<Settings>): void {
+  currentSettings = { ...currentSettings, ...partial };
+  currentScanOptions = buildScanOptions(currentSettings);
+}
+
+/**
+ * Scan text using the user's current detector settings.
+ * Centralizes scan invocation so every call respects enabled detectors,
+ * sensitivity, and allowlist rather than the engine defaults.
+ *
+ * @param text - Text to scan.
+ * @returns Detection result filtered by the user's settings.
+ */
+function scanWithSettings(text: string): DetectionResult {
+  return scan(text, currentScanOptions);
+}
 
 /** Warning modal instance */
 let modal: WarningModal | null = null;
@@ -176,6 +211,9 @@ async function initialize(): Promise<void> {
     const result = await chrome.storage.local.get('settings');
     if (result.settings && typeof result.settings === 'object') {
       const settings = result.settings as Settings;
+      // Apply detector toggles / sensitivity / allowlist so scans honour the
+      // user's saved preferences from first load (not just engine defaults).
+      applySettings(settings);
       const rawValue = settings.fallbackDelayMs ?? DEFAULT_SETTINGS.fallbackDelayMs;
       // Coerce to number and validate
       const numericValue = Number(rawValue);
@@ -440,7 +478,7 @@ function handleKeyDown(event: KeyboardEvent): void {
   const text = getInputText(target);
 
   if (text && shouldScan(text)) {
-    const result = scan(text);
+    const result = scanWithSettings(text);
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
@@ -464,7 +502,7 @@ function handlePaste(event: ClipboardEvent): void {
 
   // Quick check on pasted content
   if (quickCheck(pastedText)) {
-    const result = scan(pastedText);
+    const result = scanWithSettings(pastedText);
     if (result.hasSensitiveData) {
       // Show warning but don't block paste - user might want to edit
       notifyPasteSensitive(result);
@@ -491,7 +529,7 @@ function handleSubmitClick(event: MouseEvent): void {
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
-    const result = scan(text);
+    const result = scanWithSettings(text);
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
@@ -523,7 +561,7 @@ function handleFormSubmit(event: SubmitEvent): void {
   const text = getCurrentInputText();
   
   if (text && shouldScan(text)) {
-    const result = scan(text);
+    const result = scanWithSettings(text);
     if (result.hasSensitiveData) {
       event.preventDefault();
       event.stopPropagation();
@@ -824,10 +862,15 @@ function handleMessage(
 
   try {
     switch (message.type) {
-      case MessageType.SETTINGS_UPDATED:
-        // Reload settings
-        console.log('[AI Leak Checker] Settings updated');
+      case MessageType.SETTINGS_UPDATED: {
+        // Apply updated settings live so detector toggles take effect without
+        // a page refresh. Payload carries the full merged Settings.
+        const payload = (message as { payload?: { settings?: Partial<Settings> } }).payload;
+        if (payload?.settings && typeof payload.settings === 'object') {
+          applySettings(payload.settings);
+        }
         break;
+      }
 
       case MessageType.GET_STATUS:
         sendResponse({
@@ -884,7 +927,7 @@ function handleWindowMessage(event: MessageEvent): void {
 
   let result: DetectionResult;
   try {
-    result = scan(content);
+    result = scanWithSettings(content);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     window.postMessage(
