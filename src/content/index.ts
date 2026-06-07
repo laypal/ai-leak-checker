@@ -78,6 +78,8 @@ function applySettings(partial: Partial<Settings>): void {
 /**
  * True when the current page's host is in the user's siteAllowlist, meaning
  * scanning is paused for this site.
+ *
+ * @returns `true` if the host is excluded, `false` otherwise.
  */
 function isCurrentSiteExcluded(): boolean {
   return isHostExcluded(window.location.hostname, currentSettings.siteAllowlist);
@@ -93,7 +95,9 @@ function isCurrentSiteExcluded(): boolean {
  */
 function scanWithSettings(text: string): DetectionResult {
   if (isCurrentSiteExcluded()) {
-    return scan('', currentScanOptions);
+    // scan('') early-exits to the canonical empty result; options are irrelevant
+    // here, so omit them to signal "no scanning happens on a paused site".
+    return scan('');
   }
   return scan(text, currentScanOptions);
 }
