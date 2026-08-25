@@ -19,4 +19,4 @@ You assess the robustness of the site selectors that the content script depends 
 - Recommend running `npm run test:e2e -- tests/e2e/chatgpt.spec.ts` (and claude) and the selector-health check.
 
 ## Output
-Per site: ✅ stable / 🟡 fragile (with replacement) / 🔴 broken. Reference the `update-selectors` skill and `docs/SELECTOR_MAINTENANCE.md`.
+Per site: ✅ stable / 🟡 fragile (with replacement) / 🔴 broken. Reference the `update-selectors` skill and `docs/selectors/index.md`.

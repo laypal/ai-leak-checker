@@ -1,0 +1,68 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": "deepseek/deepseek-chat",
+  "small_model": "deepseek/deepseek-chat",
+
+  "enabled_providers": ["deepseek", "openrouter", "anthropic"],
+
+  "instructions": [
+    "OPENCODE-DEV.md",
+    "AGENTS.md",
+    "STACK.md",
+    "docs/tasks/PLAYBOOK.md"
+  ],
+
+  "mcp": {
+    "semble": {
+      "command": ["uvx", "--from", "semble[mcp]", "semble"],
+      "type": "local",
+      "enabled": true
+    }
+  },
+
+  "compaction": {
+    "auto": true,
+    "prune": true
+  },
+
+  "permission": {
+    "skill": {
+      "*": "deny",
+      "stop-slop": "allow",
+      "security-review": "allow",
+      "tdd-workflow": "allow",
+      "voice-apply": "allow",
+      "voice-analyze": "allow",
+      "voice-create": "allow",
+      "fable-method": "allow",
+      "fable-judge": "allow"
+    }
+  },
+
+  "agent": {
+    "build": {
+      "model": "deepseek/deepseek-chat",
+      "steps": 50
+    },
+    "plan": {
+      "model": "deepseek/deepseek-reasoner",
+      "steps": 25
+    },
+    "compaction": {
+      "model": "deepseek/deepseek-chat"
+    },
+    "title": {
+      "model": "deepseek/deepseek-chat"
+    },
+    "summary": {
+      "model": "deepseek/deepseek-chat"
+    },
+    "explore": {
+      "model": "deepseek/deepseek-chat"
+    },
+    "scout": {
+      "model": "deepseek/deepseek-chat"
+    }
+  }
+}

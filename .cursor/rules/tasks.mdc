@@ -1,0 +1,34 @@
+---
+description: Task sheet and context-file hygiene. Start at docs/tasks/index.md; update status and Next up in the same commit as the code; done means verified; split orienting files past 400 lines.
+globs:
+  - docs/tasks/**/*.md
+  - docs/STATUS.md
+  - CLAUDE.md
+  - AGENTS.md
+alwaysApply: true
+---
+
+# Task Sheet & Context-File Hygiene
+
+Mirror of `.claude/rules/tasks.md`. Keep both in sync.
+
+## Where tasks live
+
+- `docs/tasks/index.md`: status tables and the prioritised **Next up** (top 5). Status and routing only.
+- `docs/tasks/<ID>-<kebab-title>.md`: one task per file (facts, deliverables, TDD plan, BDD ACs, do/don't, verify).
+- `docs/tasks/completed/`: task files moved here once verified done.
+- `docs/tasks/PLAYBOOK.md`: how to execute any task. Read once per session.
+
+## Rules
+
+1. Start at the index; pick from Next up unless the user names a task. If the top item is not ready, surface the blocker.
+2. Code change, task-file status/AC ticks, and the index row (with re-ordered Next up) land in **one commit**.
+3. Done means verified: every AC checked against reality, gate green with output seen, user-facing behaviour checked in Chrome. Otherwise 🟡 Partial.
+4. Re-order Next up on every status change.
+5. Record deviations under the AC; record rejected options in the Decision log.
+6. Re-verify `file:line` facts before acting; fix stale ones in the same commit.
+7. Out-of-scope discoveries become a new task file + index row, not a TODO.
+
+## Context-file size rule
+
+Any file loaded to orient (task files, index, STATUS, PLAYBOOK, rules, agent instructions, CLAUDE.md, AGENTS.md, OPENCODE-DEV.md) past **400 lines** is split the next time it is touched: `index.md` (routing only) + per-section leaves, verbatim, verified by line counts, 5-line stub at the old path. Exempt: `docs/tasks/completed/`, `docs/reviews/`, `docs/requirements/`, `project-documentation/`, `sessions-memory/`.

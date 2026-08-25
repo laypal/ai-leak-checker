@@ -1,0 +1,80 @@
+# =============================================================================
+# lyall-writing — Lyall's general writing voice (CV, portfolio, blog, READMEs)
+# STATUS: v1.0 — measured 2026-06-15 from 3 GENUINE samples:
+#   1. Digital-marketing cover letter — structured, evidence-led
+#   2. Mobile QA Tester cover letter — professional, honest about gaps
+#   3. Raw ChatGPT self-discovery responses — casual, personal, unfiltered
+#
+# Sibling of openclaw-repo's lyall-docs (engineering-docs variant). This one is
+# WARMER and more narrative — no status-marker/P0 scaffolding — for personal
+# and public-facing writing.
+#
+# ⚠️ Do NOT re-seed from AI-generated text. Use only genuine Lyall prose.
+# =============================================================================
+name: lyall-writing
+version: 1.0.0
+description: Lyall's writing voice — first-person, evidence-led, hedged on opinion, concrete, UK English
+analysis_source:
+  sample_words: 2800
+  sample_count: 3
+  confidence: 0.8
+
+tone:
+  formality: 0.45      # contractions in casual, reduced in formal; "i.e./e.g." common
+  confidence: 0.60     # asserts on evidence, hedges on opinion ("I believe", "one may argue")
+  warmth: 0.60         # first-person, reflective, personable, honest about own gaps
+  energy: 0.45         # measured, with occasional genuine enthusiasm
+  complexity: 0.55     # clause-rich sentences, accessible vocabulary
+
+vocabulary:
+  prefer:
+    - "concrete specifics: real names, exact figures, dates, tool names"
+    - "first-person achievements stated plainly ('I taught myself X', 'I took it from A to B')"
+    - "inline references: (see: <url>)"
+    - "for example / such as / e.g. / i.e."
+    - "honest qualifiers when genuinely uncertain"
+  avoid:               # full AI-tells list deferred to the stop-slop skill
+    - leverage
+    - robust
+    - seamless
+    - comprehensive
+    - "empty hype / superlatives with no concrete backing"
+    - "fabricated metrics or invented achievements"
+  signature_phrases:
+    - "I believe that ..."
+    - "one may argue that ... / I'd like to argue that ..."
+    - "This is not to say that ..., but ..."
+    - "I found ... really helpful"
+    - "For example, ..."
+
+structure:
+  sentence_length: medium-to-long
+  sentence_length_variance: low-to-medium   # naturally clusters long — vary deliberately
+  paragraph_length_variance: medium
+  use_lists: when-appropriate
+  use_examples: frequently
+  em_dash_usage: sparingly    # uses ' - ' hyphen connectors naturally; avoid AI em-dash peppering
+  rule_of_three: natural      # genuine tricolons ("reach, engagement and awareness") — keep
+  watch:
+    - "comma splices / run-on sentences — break the longest"
+
+conventions:                  # for CV / portfolio / project descriptions
+  - "Lead with the concrete outcome or number, then the context"
+  - "First-person and specific; name the tool, the figure, the result"
+  - "Honest about scope and gaps — no overclaiming"
+  - "Show progression with real numbers where it helps (e.g. salary/scale/impact)"
+
+perspective:
+  person: first        # CV / portfolio / blog are first-person
+  voice: active
+  tense: present-past-mix
+  spelling: UK
+
+anti_slop:
+  gate: stop-slop
+  enforce: mandatory
+
+ai_tells_report:
+  tells_found: 0
+  em_dash_frequency: low
+  overall_human_score: 0.9

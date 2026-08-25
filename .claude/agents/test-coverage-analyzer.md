@@ -22,4 +22,4 @@ You identify test gaps and weak assertions for AI Leak Checker.
 - Prefer `test.each` for multi-sample patterns; assertions should check type + count + offsets, not just "truthy".
 
 ## Output
-A prioritised list: file → missing test → suggested case (Given/When/Then). Run `npm run test:coverage` to confirm thresholds. Reference: `docs/TEST_STRATEGY.md`, the `create-e2e-test` skill.
+A prioritised list: file → missing test → suggested case (Given/When/Then). Run `npm run test:coverage` to confirm thresholds. Reference: `docs/testing/index.md`, the `create-e2e-test` skill.

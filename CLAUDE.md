@@ -2,6 +2,8 @@
 
 > Context for AI assistants (Claude Code) working on this repo. Read this first.
 > **These instructions override default behaviour.** Where they conflict with a skill, follow these.
+> Cross-tool conventions (task hygiene, delegation, handover ritual, voice) are in `AGENTS.md`;
+> OpenCode users start at `OPENCODE-DEV.md`. **Work items live in `docs/tasks/index.md`.**
 
 ## What this is
 
@@ -16,7 +18,7 @@
 | **Extension** (live) | individuals / SMB | ChatGPT, Claude (Gemini/Copilot/Perplexity planned) | Free + Pro |
 | **MCP server** (design → build) | developers using Claude Code / Cursor / Cline / Windsurf | `scan_text` / `scan_file` / `scan_diff` / `get_patterns` / `redact` | Free / Pro / Team |
 
-The shared idea: **one detection engine, used in the browser and in the IDE**. The planned `@ai-leak-checker/core` package is that engine. Pricing, positioning, and competitive analysis live in the local-only `docs/internal/` (git-ignored) — see there, not here, for go-to-market detail.
+The shared idea: **one detection engine, used in the browser and in the IDE**. The MCP server is developed in a **separate private repository**; nothing in this repo depends on it and no task here touches it. Pricing, positioning, and competitive analysis are not in this repo.
 
 ## Quick start
 
@@ -47,7 +49,7 @@ configs/selectors.json
 tests/{unit,integration,e2e,build,corpus,fixtures,property}
 ```
 
-> **Planned migration (Phase MCP-0):** pnpm + Turborepo workspace → `packages/{core,extension,mcp-server}`. Until that lands, this is a single npm package and the engine still lives under `src/shared/`. See `docs/internal/MCP_SERVER_ARCHITECTURE.md` §2 (local-only).
+> This branch is a single **npm** package and the engine lives under `src/shared/`. The private MCP repo extracted the engine into a `packages/core` workspace; that layout is **not** coming here unless the owner decides otherwise. Locked stack: `STACK.md`.
 
 ## Core files
 
@@ -80,31 +82,42 @@ tests/{unit,integration,e2e,build,corpus,fixtures,property}
 
 ## Where things are documented
 
-> **Note on `docs/internal/`:** that folder is **git-ignored / local-only** (strategy, pricing, competitive research, unreleased MCP design, OSS notes, detailed task sheets). It exists on this machine for AI context but is never pushed to the public repo. Public docs live directly under `docs/`.
+> `docs/internal/` is **git-ignored / local-only** on the owner's machine (strategy, pricing, competitive research). Everything an agent needs to execute work is public under `docs/`. If a file you are pointed at does not exist, it is local-only; do not guess its contents.
 
-| Topic | Doc | Visibility |
-|-------|-----|------------|
-| What's shipped | `docs/internal/EXTENSION_DONE.md` | local-only |
-| Extension work left | `docs/internal/EXTENSION_TODO.md` | local-only |
-| MCP build (feature-by-feature, BDD) | `docs/internal/MCP_SERVER_TASKS.md` | local-only |
-| MCP architecture | `docs/internal/MCP_SERVER_ARCHITECTURE.md` | local-only |
-| Competitive research / marketing | `docs/internal/COMPETITIVE_RESEARCH.md`, `SALES_MARKETING_PLAN.md` | local-only |
-| OSS tooling for this build | `docs/internal/OSS_INTEGRATIONS.md` | local-only |
-| Status snapshot | `docs/STATUS.md` | public |
-| Requirements / roadmap | `docs/requirements/` | public |
-| Extension architecture | `docs/architecture/ARCHITECTURE.md` | public |
-| Selector maintenance | `docs/SELECTOR_MAINTENANCE.md` | public |
-| Agents / skills usage | `docs/AGENT_USAGE_GUIDE.md` | public |
+| Topic | Doc |
+|-------|-----|
+| **What to work on next** | `docs/tasks/index.md` (Next up) |
+| How to execute any task | `docs/tasks/PLAYBOOK.md` |
+| One file per task (facts, TDD plan, BDD ACs, do/don't) | `docs/tasks/EXT-*.md`; done → `docs/tasks/completed/` |
+| Status snapshot | `docs/STATUS.md` |
+| Requirements / roadmap | `docs/requirements/` |
+| Extension architecture | `docs/architecture/index.md` (split per section) |
+| Test strategy | `docs/testing/index.md` |
+| Selector maintenance | `docs/selectors/index.md` |
+| False-positive suppression | `docs/detection/FALSE_POSITIVES.md` |
+| Agents / skills usage | `docs/agents/index.md` |
+| Historical reviews | `docs/reviews/` |
+| Narrative docs (decisions, war stories) | `project-documentation/00-index.md` |
+| Failed-approach log / locked stack / voice | `ERRORS.md`, `STACK.md`, `VOICE.md` |
 
 ## Project agents & skills (Claude Code)
 
 Native config lives in `.claude/`:
 
-- **Agents** (`.claude/agents/`): `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`.
-- **Skills** (`.claude/skills/`): `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist`.
-- **Rules** (`.claude/rules/`): detection, security, content-scripts, testing, code-style. Referenced from here.
+- **Agents** (`.claude/agents/`): `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`, plus the delegation trio `worker` / `advisor` / `verifier` (policy in `AGENTS.md`).
+- **Skills** (`.claude/skills/`): `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist`, `voice-apply` / `voice-analyze` / `voice-create`.
+- **Rules** (`.claude/rules/`): detection, security, content-scripts, testing, code-style, **tasks** (task-sheet + 400-line context-file hygiene). Referenced from here.
+- **Hook** (`.claude/settings.json`): `scripts/check-context-size.mjs` warns after any Write/Edit that pushes a context file past 400 lines.
 
-(The `.cursor/` directory mirrors these for Cursor users — keep both in sync if you change one.)
+(The `.cursor/` directory mirrors rules and skills for Cursor users; `.opencode/` + `opencode.json` carry the same agents for OpenCode. Keep them in sync if you change one.)
+
+## Task workflow (all agents)
+
+1. Open `docs/tasks/index.md`, take the top **Next up** item that is ✅ Ready (or the task the user names).
+2. Read `docs/tasks/PLAYBOOK.md` once, then the task file. Re-verify its `file:line` facts.
+3. RED test first, per the task's TDD plan; validation gate before every commit.
+4. Flip the task status, tick ACs, re-order Next up, all **in the same commit** as the code. Done means verified (gate output seen + manual check in Chrome), else 🟡 Partial.
+5. Substantive session → handover ritual in `AGENTS.md`.
 
 ## Common tasks
 
