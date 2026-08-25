@@ -67,7 +67,7 @@ for `plan`/`advisor`.
 | Selector maintenance | `docs/selectors/index.md` |
 | False-positive suppression layers | `docs/detection/FALSE_POSITIVES.md` |
 | Claude Code / Cursor agent usage | `docs/agents/index.md` |
-| Handover ritual, voice | `AGENTS.md`, `VOICE.md` |
+| Handover ritual, voice | `AGENTS.md` (voice profile is private) |
 
 ---
 

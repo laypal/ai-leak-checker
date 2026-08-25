@@ -12,7 +12,7 @@ Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫
 
 | # | Task | Why now | Ready? |
 |---|------|---------|--------|
-| 1 | [EXT-7.4 Site allowlist](EXT-7.4-site-allowlist.md) | Half built; dead `siteAllowlist` config is a trust risk in a launched privacy tool | ⚠️ Needs the `feature/site-allowlist` branch (owner's machine) or re-do T1/T2 from the file |
+| 1 | [EXT-7.4 Site allowlist](EXT-7.4-site-allowlist.md) | Tasks 1–2 of 7 done and pushed on `origin/feature/site-allowlist`; dead `siteAllowlist` config is a trust risk in a launched privacy tool | ✅ Ready (rebase onto `main` first) |
 | 2 | [EXT-7.5 Strict mode](EXT-7.5-strict-mode.md) | Popup toggle exists and does nothing; small, self-contained | ✅ Ready |
 | 3 | [EXT-7.3 User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | Engine side works; users can't populate it | ✅ Ready |
 | 4 | [EXT-7.6 CSV export](EXT-7.6-csv-export.md) | `statsToCSV` exists, needs escaping + a button | ✅ Ready |
@@ -25,7 +25,7 @@ Decisions the owner must make before their tasks can start: EXT-7.8, EXT-8.4, EX
 | ID | Task | Pri | Status | Est |
 |----|------|-----|--------|-----|
 | EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🔲 | 4 h |
-| EXT-7.4 | [Site allowlist](EXT-7.4-site-allowlist.md) | P1 | 🟡 T1+T2 done on branch | 3 h |
+| EXT-7.4 | [Site allowlist](EXT-7.4-site-allowlist.md) | P1 | 🟡 Tasks 1–2/7 on `origin/feature/site-allowlist` | 3 h |
 | EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🔲 | 3 h |
 | EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🔲 | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |

@@ -56,8 +56,8 @@ At the END of any substantive work session, run without being asked:
    decision journal; solved bugs go to war stories in the fixed format
    (Symptom → Investigation → Root Cause → Fix → Principle). Start new docs
    from `project-documentation/TEMPLATE.md`.
-2. **Write them in the author's voice.** Apply the `voice-apply` skill with
-   the `lyall-writing` profile, then `stop-slop` (see Documentation Voice).
+2. **Write them in the author's voice.** Apply the `voice-apply` skill if a
+   profile is available, then `stop-slop` (see Documentation Voice).
 3. **Refresh `00-index.md`** with an honest Blog-ready flag.
 4. **Only document what actually happened.** Real figures, real dates,
    "built but not deployed" said exactly. No fabricated metrics.
@@ -67,10 +67,10 @@ any session that produced a decision, a bug fix, or a lesson cannot.
 
 ## Documentation Voice (framework convention)
 
-Human-facing prose should read like Lyall wrote it, not like generic AI. The
-measured profile is `.aiwg/voices/lyall-writing.yaml`, readable context in
-`VOICE.md`; the `voice-apply` / `voice-analyze` / `voice-create` skills are
-under `.claude/skills/`. Essentials:
+Human-facing prose should read like the owner wrote it, not like generic AI.
+The measured voice profile is private (not in this repo); the `voice-apply` /
+`voice-analyze` / `voice-create` skills under `.claude/skills/` take a profile
+path when one is available. Without it, apply these essentials by hand:
 
 - First-person where natural; present the reasoning.
 - Assert on evidence ("test suite passed, 0 failures"), hedge on opinion.

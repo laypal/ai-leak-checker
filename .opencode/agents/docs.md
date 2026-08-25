@@ -16,8 +16,8 @@ You write and update documentation for this project.
 Voice: terse, first-person where natural, present the reasoning. No em
 dashes (use commas, parentheses, colons). No AI marketing speak (no:
 leverage, robust, seamless, comprehensive). No fabricated metrics; only
-proven outcomes. Assert on evidence, hedge on opinion. UK English. Full
-profile in `VOICE.md`.
+proven outcomes. Assert on evidence, hedge on opinion. UK English. The
+owner's measured voice profile is private; these rules are the public subset.
 
 Tasks you handle:
 - Keep `docs/tasks/index.md` true: status tables and the "Next up" order

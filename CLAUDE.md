@@ -98,7 +98,7 @@ tests/{unit,integration,e2e,build,corpus,fixtures,property}
 | Agents / skills usage | `docs/agents/index.md` |
 | Historical reviews | `docs/reviews/` |
 | Narrative docs (decisions, war stories) | `project-documentation/00-index.md` |
-| Failed-approach log / locked stack / voice | `ERRORS.md`, `STACK.md`, `VOICE.md` |
+| Failed-approach log / locked stack | `ERRORS.md`, `STACK.md` (voice profile is private, see `AGENTS.md`) |
 
 ## Project agents & skills (Claude Code)
 

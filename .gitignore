@@ -80,3 +80,7 @@ docs/internal/
 
 # Packaged release folders (build output)
 releases/
+
+# Personal voice profile stays private (lives on the private branch only)
+VOICE.md
+.aiwg/

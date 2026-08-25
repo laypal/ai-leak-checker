@@ -3,7 +3,7 @@
 > One line: what this doc covers and who should read it.
 > Blog-ready? 🟡 WIP
 
-<Write in the author's voice — see VOICE.md at the repo root. Concrete over
+<Write in the author's voice — the voice profile is private; follow the Documentation Voice section of AGENTS.md. Concrete over
 abstract: real names, exact figures, dates, commands. Document proven outcomes
 only; say "built but not deployed" exactly. Blog-like narrative sections are
 encouraged — these docs seed real posts.>
