@@ -1,7 +1,7 @@
 # Handover — Per-Site Pause (`siteAllowlist`) feature
 
 **Date:** 2026-06-07
-**Branch:** `feature/site-allowlist` (off `main` @ pre-PR#23; **pushed to origin 2026-08-25**; already based on `main` @ f95b555 (PR #23 included), full gate green on 2026-08-25, no rebase needed)
+**Branch:** `feature/site-allowlist` (off `main` @ pre-PR#23; **pushed to origin 2026-08-25**; rebased onto `main` @ c5cd82c (PR #24, the docs/tasks scaffolding) on 2026-08-25; full gate green after the rebase)
 **Public task file:** `docs/tasks/EXT-7.4-site-allowlist.md` on `main` (after the scaffolding PR merges) is the status of record; this note and the plan below are the detail.
 **Execution mode:** Subagent-Driven Development (superpowers) — fresh implementer per task + 2-stage review (spec compliance → code quality).
 
