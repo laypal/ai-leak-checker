@@ -18,7 +18,7 @@ Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫
 | 4 | [EXT-7.6 CSV export](EXT-7.6-csv-export.md) | `statsToCSV` exists, needs escaping + a button | ✅ Ready |
 | 5 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning | ⚠️ Owner uploads; agents prepare after 1–4 land |
 
-Owner decisions still open: EXT-HK-3 (worth doing?). Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropped, EXT-9.2 ExtensionPay (see Completed).
+No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropped, EXT-9.2 ExtensionPay, EXT-HK-3 closed (see Completed).
 
 ## Open tasks
 
@@ -43,7 +43,6 @@ Owner decisions still open: EXT-HK-3 (worth doing?). Decided 2026-08-25: EXT-7.8
 | EXT-REL-1 | [Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | P0 | 🔲 | 2 h |
 | EXT-HK-1 | [Test-file JSDoc sweep](EXT-HK-1-test-file-jsdoc-sweep.md) | P2 | 🔲 | 1 h |
 | EXT-HK-2 | [`isProductCode` edge tests](EXT-HK-2-isproductcode-edge-tests.md) | P2 | 🔲 | 30 m |
-| EXT-HK-3 | [Stricter selector validation](EXT-HK-3-stricter-selector-validation.md) | P2 | ❓ owner | 1 h |
 
 Sequencing: 9.1 → 9.3. 8.1 → 8.2 / 8.3. 10.1 is the recipe for 10.2 / 10.3. Selector fixes are releases (EXT-7.8 decision).
 
@@ -54,6 +53,7 @@ Sequencing: 9.1 → 9.3. 8.1 → 8.2 / 8.3. 10.1 is the recipe for 10.2 / 10.3. 
 | EXT-9.2 | [Payment rail decision](completed/EXT-9.2-payment-rail-decision.md) | Decided ExtensionPay, 2026-08-25 |
 | EXT-7.8 | [Remote selector config](completed/EXT-7.8-remote-selector-config.md) | Decided bundled-only, 2026-08-25 |
 | EXT-8.4 | [Scheduled export](completed/EXT-8.4-scheduled-export.md) | Dropped, 2026-08-25 |
+| EXT-HK-3 | [Stricter selector validation](completed/EXT-HK-3-stricter-selector-validation.md) | Closed, not needed, 2026-08-25 |
 | EXT-7.1 | [False-positive tuning](completed/EXT-7.1-false-positive-tuning.md) | Done 2026-06-06, PR #22 |
 | EXT-7.2 | [Selector health monitoring](completed/EXT-7.2-selector-health-monitoring.md) | Done 2026-06-06, PR #22 |
 | EXT-SEC-1 | [Sender + origin hardening](completed/EXT-SEC-1-sender-and-origin-hardening.md) | Done 2026-06-07 |
