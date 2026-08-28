@@ -32,9 +32,6 @@
       "stop-slop": "allow",
       "security-review": "allow",
       "tdd-workflow": "allow",
-      "voice-apply": "allow",
-      "voice-analyze": "allow",
-      "voice-create": "allow",
       "fable-method": "allow",
       "fable-judge": "allow"
     }

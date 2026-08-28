@@ -57,6 +57,6 @@ index) in `instructions[]`.
 
 ## Writing and voice
 
-Prose (handovers, docs) goes through `voice-apply` then `stop-slop`. No em
+Prose (handovers, docs) goes through `stop-slop` (and `voice-apply` where the private profile is available). No em
 dashes, no marketing buzzwords, no fabricated metrics, UK English. Keep tables
 and status markers intact.

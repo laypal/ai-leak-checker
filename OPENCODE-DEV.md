@@ -1,7 +1,7 @@
 # OpenCode Dev Context — ai-leak-checker
 
 **Repo:** ai-leak-checker — a live Chrome/Edge (MV3) extension that detects API keys, credentials, PII and card numbers locally before they reach ChatGPT / Claude. Privacy is the product: zero network calls, prompt content never stored.
-**Owner:** Lyall, UK, solo dev
+**Owner:** solo maintainer (UK)
 **Stack:** `STACK.md` (TypeScript strict, Vite, Preact popup, Vitest + Playwright, npm)
 
 ---

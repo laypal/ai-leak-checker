@@ -1,43 +1,52 @@
-# EXT-9.1: Licence / entitlement system
+# EXT-9.1: Licence / entitlement (ExtensionPay)
 
-**Area:** Extension · monetisation · **Priority:** P0 · **Status:** 🚫 Blocked on EXT-9.2 · **Estimate:** ~1 day
-**Playbook:** read `PLAYBOOK.md` first.
+**Area:** Extension · monetisation · **Priority:** P0 · **Status:** 🔲 Not started (unblocked: rail = ExtPay, see `completed/EXT-9.2-payment-rail-decision.md`) · **Estimate:** ~1 day
+**Depends on:** privacy-policy update for the ExtPay call (part of this task) · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
 
 Pro features (EXT-7.5, EXT-7.6, EXT-8.2, EXT-8.3) need an entitlement check.
+The owner chose ExtensionPay, so this task is: integrate ExtPay, cache the
+result, degrade gracefully offline.
 
-## Two shapes (pick the one EXT-9.2 chose)
+## Current-state facts (re-verify)
 
-**ExtPay:** entitlement = `extpay.getUser()` cached in storage with a 7-day
-offline grace. Pure `resolveEntitlement(cached, now)` decides Pro / grace /
-Free.
+- No licensing code exists. No network calls exist anywhere in `src/`.
+- Manifest permissions: `storage`, `activeTab`, three host permissions.
+- Settings flow: popup `updateSetting` → `SETTINGS_UPDATE` → background merges → `SETTINGS_UPDATED` broadcast.
 
-**Bespoke (Stripe):** offline-verifiable signed key. Ed25519 signature over a
-`{ plan, expiry }` payload, public key embedded, pure
-`validateLicenseKey(key): Result<Entitlement, LicenseError>` in
-`src/shared/utils/license.ts`. State in `chrome.storage.sync`. Graceful
-degradation to Free.
+## Deliverables
 
-## TDD plan (RED first, either shape)
+- [ ] Research first (Context7 / ExtPay docs, on the day): required manifest changes, which contexts can call `extpay.getUser()`, and whether it needs a host permission. **If it needs any permission beyond `storage`, stop and ask the owner.**
+- [ ] `src/shared/utils/entitlement.ts`: pure `resolveEntitlement(cached: CachedEntitlement | null, now: Date): { tier: 'free' | 'pro'; source: 'live' | 'grace' | 'none' }` with a **7-day** offline grace.
+- [ ] `src/shared/utils/pro-features.ts`: pure `isProFeatureEnabled(entitlement, feature)`.
+- [ ] Background: refresh entitlement on startup and daily via `chrome.alarms` (check whether `alarms` is already a permission; if not, refresh on popup open instead, no new permission), store `{ paid, paidAt, checkedAt }` in `chrome.storage.local` (metadata only).
+- [ ] Popup: Pro badge; "Manage subscription" opens `extpay.openPaymentPage()` on click only.
+- [ ] `PRIVACY_POLICY.md` + `docs/privacy/`: state the ExtPay call, what it carries (ExtPay user id only), and when it happens.
 
-1. `tests/unit/license.test.ts` or `entitlement.test.ts`: valid; expired; tampered; wrong format; within grace; grace exhausted → Free.
-2. Pure `isProFeatureEnabled(entitlement, feature)` truth table.
-3. UI: Pro badge in the popup; licence entry in the options page (EXT-8.1).
+## TDD plan (RED first)
+
+1. `tests/unit/entitlement.test.ts`: null cache → free; paid + checked today → pro/live; paid + checked 6 days ago → pro/grace; paid + checked 8 days ago → free/none; unpaid → free.
+2. `tests/unit/pro-features.test.ts`: truth table for the four Pro features.
+3. Background wiring test via the chrome-stub pattern with an injected `getUser` function (never call ExtPay in tests).
+4. Popup manual check.
 
 ## Acceptance criteria (BDD)
 
-- [ ] **Given** a valid Pro entitlement, **When** activated, **Then** Pro features unlock immediately and a Pro badge shows.
-- [ ] **Given** an invalid/tampered key, **Then** a clear error and no unlock.
-- [ ] **Given** an expired entitlement within 7 days of the last successful validation, **Then** Pro still works (grace).
+- [ ] **Given** a paid ExtPay user, **When** the extension starts, **Then** Pro features unlock and a Pro badge shows.
+- [ ] **Given** a paid user offline for 6 days, **Then** Pro still works (grace).
 - [ ] **Given** grace exhausted, **Then** graceful downgrade to Free: no data loss; custom rules kept but inactive.
+- [ ] **Given** a Free user, **Then** no ExtPay call is made except when they click the upgrade/manage button.
+- [ ] **Given** the privacy policy, **Then** it names the ExtPay call before this ships.
 
 ## Do / Don't
 
-- **Do** keep verification pure and offline-testable.
-- **Don't** send anything but the licence check itself over the network, and only what the chosen rail requires.
-- **Don't** log keys.
+- **Do** keep ExtPay behind an injectable interface so tests never hit the network.
+- **Do** pin the ExtPay dependency and review its source before adding it.
+- **Don't** send anything but what ExtPay's own client sends. Never stats, allowlists, or prompt content.
+- **Don't** log ExtPay user ids.
+- **Don't** add permissions without the owner's explicit yes.
 
 ## Decision log
 
-- _(pending EXT-9.2)_
+- Rail: ExtPay (2026-08-25, owner). Bespoke signed-key path removed from scope.

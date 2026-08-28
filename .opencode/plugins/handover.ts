@@ -277,7 +277,7 @@ export const HandoverPlugin: Plugin = async ({ directory }) => {
           "[handover] Handover saved. Session metrics doc written to docs/opencode/sessions/.\n" +
           "  Finish the ritual:\n" +
           "  1. Reconcile project-documentation/ with this session\n" +
-          "  2. Run new prose through voice-apply (lyall-docs) then stop-slop\n" +
+          "  2. Run new prose through voice-apply (your profile, if any) then stop-slop\n" +
           "  3. Update .clinerules/current-state.md if blockers changed\n" +
           "  4. Update memory index (MEMORY.md) if applicable"
         )
@@ -321,7 +321,7 @@ export const HandoverPlugin: Plugin = async ({ directory }) => {
       contextLines.push("### Handover checklist (complete before ending session):")
       contextLines.push("1. Write handover to .clinerules/sessions-memory/YYYY-MM-DD-handover-<topic>.md")
       contextLines.push("2. Reconcile project-documentation/ with session outcomes")
-      contextLines.push("3. Run prose through voice-apply (lyall-docs) then stop-slop")
+      contextLines.push("3. Run prose through voice-apply (your profile, if any) then stop-slop")
       contextLines.push("4. Update current-state.md if blockers changed")
       contextLines.push("5. Note next-session priorities")
 

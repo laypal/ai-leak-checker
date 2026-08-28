@@ -11,8 +11,10 @@ site" that stops scanning live, without a reload.
 
 ## Branch state (verified 2026-08-25)
 
-`origin/feature/site-allowlist` is **pushed**. It was cut from `main` before
-PR #23 (detector-settings wiring), so **rebase first**. Commits, oldest first:
+`origin/feature/site-allowlist` is **pushed** and is already based on the
+current `main` (`f95b555`, PR #23 included); no rebase needed. The full gate
+ran green on it on 2026-08-25 (typecheck clean, lint 0 errors / 8 pre-existing
+warnings, 436 unit + 5 integration tests, corpus FP 3.19%). Commits, oldest first:
 
 | Commit | What |
 | --- | --- |
@@ -28,7 +30,7 @@ Both done tasks passed a spec-compliance and a code-quality review. The
 
 ## Remaining work (Tasks 3–7; exact code in the plan file)
 
-- [ ] **Rebase:** `git fetch && git checkout feature/site-allowlist && git rebase origin/main`. Then run the gate; confirm `scanWithSettings` gating still composes with PR #23's detector-settings wiring.
+- [ ] **Start:** `git fetch && git checkout feature/site-allowlist && npm ci && npm run test` (expect green). If `main` has moved since `f95b555`, rebase onto it first.
 - [ ] **Task 3:** add `GET_SITE` and `SET_PAUSED_BADGE` to `MessageType` + payload types in `src/shared/types/messages.ts`; re-export from `src/shared/types/index.ts`.
 - [ ] **Task 4:** background `SET_PAUSED_BADGE` handler in `src/background/index.ts`, mirroring the `SET_FALLBACK_BADGE` case (~line 241): `⏸` / `#6c757d` when paused, `updateBadgeForTab(tabId)` when not. New `tests/unit/paused-badge.test.ts`.
 - [ ] **Task 5:** content `src/content/index.ts`: `notifyPausedState()` (mirror `notifyFallbackActive` ~line 350), called at the end of `initialize()` and in the `SETTINGS_UPDATED` case after `applySettings`; a `GET_SITE` case in `handleMessage` returning `{ host: window.location.hostname }`.

@@ -11,7 +11,7 @@ A place to send people: what it does, Free vs Pro, install button, FAQ.
 
 - [ ] Separate repo (Astro or similar, deployed on Vercel/Cloudflare Pages).
 - [ ] Hero ("100% local, zero network calls"), Free-vs-Pro feature table (no prices in this repo; the owner supplies them), Chrome Web Store install button (`https://chromewebstore.google.com/detail/ffdmphfcipjmoochiafeihceiodehjcc`), FAQ, privacy-respecting analytics (Plausible or none).
-- [ ] Every prose block run through `voice-apply` (owner supplies the profile) then `stop-slop` before publishing.
+- [ ] Every prose block run through `stop-slop` (owner applies their private voice profile first) before publishing.
 
 ## Acceptance criteria
 

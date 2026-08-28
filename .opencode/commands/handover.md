@@ -23,7 +23,7 @@ Check the session outcomes against existing docs. Edit existing docs by default 
 
 **Step 3 — Voice pass**
 
-Run all new prose through the `voice-apply` skill, which will also run stop-slop. This applies to the handover doc and any project-documentation edits — not to pure tables or status markers.
+Run all new prose through `stop-slop` (and `voice-apply` first if a voice profile is installed). This applies to the handover doc and any project-documentation edits — not to pure tables or status markers.
 
 **Step 4 — Update status file**
 

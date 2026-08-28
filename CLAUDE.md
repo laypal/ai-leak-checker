@@ -105,7 +105,7 @@ tests/{unit,integration,e2e,build,corpus,fixtures,property}
 Native config lives in `.claude/`:
 
 - **Agents** (`.claude/agents/`): `security-reviewer`, `manifest-v3-compliance`, `performance-analyzer`, `selector-validator`, `test-coverage-analyzer`, `documentation-sync`, plus the delegation trio `worker` / `advisor` / `verifier` (policy in `AGENTS.md`).
-- **Skills** (`.claude/skills/`): `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist`, `voice-apply` / `voice-analyze` / `voice-create`.
+- **Skills** (`.claude/skills/`): `add-detector-pattern`, `update-selectors`, `create-e2e-test`, `security-review-checklist`. (Voice skills + profile are private, not in this repo.)
 - **Rules** (`.claude/rules/`): detection, security, content-scripts, testing, code-style, **tasks** (task-sheet + 400-line context-file hygiene). Referenced from here.
 - **Hook** (`.claude/settings.json`): `scripts/check-context-size.mjs` warns after any Write/Edit that pushes a context file past 400 lines.
 
