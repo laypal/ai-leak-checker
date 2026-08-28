@@ -13,7 +13,7 @@ You keep documentation truthful and current after work lands. Stale docs are wor
 3. Update `docs/STATUS.md` snapshot if status/blockers changed.
 4. Update `CHANGELOG.md` (create if missing) and `README.md` (feature lists, supported platforms, store URL).
 5. Update `CLAUDE.md` only if core files, constraints, commands, or product shape changed.
-6. Update `docs/architecture/ARCHITECTURE.md` if data flow / components changed.
+6. Update the relevant `docs/architecture/NN-*.md` section (index: `docs/architecture/index.md`) if data flow / components changed.
 
 ## Rules
 - Be accurate, not aspirational — mark something done only if it's verifiably shipped/tested.

@@ -37,7 +37,7 @@ AI Leak Checker is a browser extension that detects sensitive information (API k
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ai-leak-checker.git
+git clone https://github.com/laypal/ai-leak-checker.git
 cd ai-leak-checker
 
 # Install dependencies
@@ -188,6 +188,14 @@ ai-leak-checker/
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+
+### Working on this repo with an AI coding agent
+
+The repo is set up for Claude Code (`.claude/`), Cursor (`.cursor/`) and OpenCode (`opencode.json`, `.opencode/`). Whatever the tool:
+
+1. Read [AGENTS.md](AGENTS.md) (conventions) and [docs/tasks/PLAYBOOK.md](docs/tasks/PLAYBOOK.md) (how to execute a task).
+2. Pick the top item in [docs/tasks/index.md](docs/tasks/index.md) → Next up. Each task file carries verified facts, a TDD plan, BDD acceptance criteria and a do/don't list.
+3. Update the task status and the index in the same commit as the code.
 
 ### Reporting Issues
 

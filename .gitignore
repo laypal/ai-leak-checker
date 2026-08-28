@@ -74,3 +74,13 @@ venv/
 # Private / internal docs — strategy, competitive research, marketing, unreleased
 # product design (MCP), OSS tooling notes, detailed task sheets. Local-only.
 docs/internal/
+
+# OpenCode plugin logs (local JSONL)
+.opencode/logs/
+
+# Packaged release folders (build output)
+releases/
+
+# Personal voice profile stays private (lives on the private branch only)
+VOICE.md
+.aiwg/
