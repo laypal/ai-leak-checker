@@ -275,6 +275,9 @@ async function initialize(): Promise<void> {
 
   // Listen for messages from injected script (main world)
   window.addEventListener('message', handleWindowMessage);
+
+  // Reflect the initial paused state on the badge (settings already applied above).
+  notifyPausedState();
 }
 
 /**
@@ -367,6 +370,17 @@ function notifyFallbackActive(): void {
   safeSendMessage({
     type: MessageType.SET_FALLBACK_BADGE,
     payload: { active: true },
+  });
+}
+
+/**
+ * Inform the background script whether scanning is currently paused on this
+ * tab (siteAllowlist) so it can show/clear the per-tab paused badge.
+ */
+function notifyPausedState(): void {
+  safeSendMessage({
+    type: MessageType.SET_PAUSED_BADGE,
+    payload: { paused: isCurrentSiteExcluded() },
   });
 }
 
@@ -907,6 +921,8 @@ function handleMessage(
         const payload = (message as { payload?: { settings?: Partial<Settings> } }).payload;
         if (payload?.settings && typeof payload.settings === 'object') {
           applySettings(payload.settings);
+          // siteAllowlist may have changed — update the per-tab paused badge live.
+          notifyPausedState();
         }
         break;
       }
@@ -916,6 +932,10 @@ function handleMessage(
           active: !!siteConfig,
           site: siteConfig?.name ?? window.location.hostname,
         });
+        return true;
+
+      case MessageType.GET_SITE:
+        sendResponse({ host: window.location.hostname });
         return true;
     }
   } catch (error) {
