@@ -245,10 +245,12 @@
 
 ### Pricing Strategy
 
-| Tier | Price | Features |
-|------|-------|----------|
-| Free | £0 | Core detection, warn/mask, basic stats |
-| Pro | £5/month or £49/year | Custom rules, strict mode, export, priority support |
+| Tier | Features |
+|------|----------|
+| Free | Core detection, warn/mask, basic stats |
+| Pro | Custom rules, strict mode, export, priority support |
+
+Prices are set by the owner outside this repo (ExtensionPay dashboard; see `docs/tasks/completed/EXT-9.2-payment-rail-decision.md`).
 
 ### Phase 3 Success Metrics
 
@@ -256,7 +258,6 @@
 |--------|--------|
 | Chrome Store installs | 500+ |
 | Paid conversions | 20+ |
-| MRR | £100+ |
 | Landing page visitors | 2,000/month |
 
 ---
@@ -289,12 +290,7 @@
 
 ### Team Pricing
 
-| Seats | Price |
-|-------|-------|
-| Up to 10 | £49/month |
-| Up to 25 | £99/month |
-| Up to 50 | £179/month |
-| 50+ | Contact |
+Seat-banded; figures are set by the owner outside this repo.
 
 ### Milestone 4.3: Partnership Program
 
@@ -311,7 +307,6 @@
 |--------|--------|
 | Chrome Store installs | 2,000+ |
 | Paid users | 100+ |
-| MRR | £1,000+ |
 | Team accounts | 5+ |
 | MSP partners | 3+ |
 
