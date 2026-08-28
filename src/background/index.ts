@@ -240,6 +240,34 @@ export async function handleMessage(
       }
     }
 
+    case MessageType.SET_PAUSED_BADGE: {
+      const payload = message.payload;
+      const tabId = sender.tab?.id;
+
+      if (!tabId) {
+        return { error: 'No tab ID available' };
+      }
+      if (!payload || typeof payload !== 'object') {
+        return { error: 'Invalid payload: payload must be an object' };
+      }
+      if (!('paused' in payload) || typeof payload.paused !== 'boolean') {
+        return { error: 'Invalid payload: payload.paused must be a boolean' };
+      }
+
+      try {
+        if (payload.paused === true) {
+          await chrome.action.setBadgeText({ text: '⏸', tabId });
+          await chrome.action.setBadgeBackgroundColor({ color: '#6c757d', tabId });
+        } else {
+          await updateBadgeForTab(tabId);
+        }
+        return { success: true };
+      } catch (error) {
+        console.warn('[AI Leak Checker] Failed to update paused badge:', error);
+        return { success: false, error: String(error) };
+      }
+    }
+
     default:
       console.warn('[AI Leak Checker] Unknown message type:', message.type);
       return { error: 'Unknown message type' };
