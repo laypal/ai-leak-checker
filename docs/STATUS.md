@@ -1,7 +1,7 @@
 # AI Leak Checker — Status
 
 > One-screen snapshot. Work items live in [docs/tasks/index.md](tasks/index.md);
-> this file only records headline facts. **Last updated:** 2026-08-25.
+> this file only records headline facts. **Last updated:** 2026-08-29.
 > History: the pre-launch phase tables that used to live here are archived in
 > `tasks/completed/ARCHIVE-2026-01-pre-launch-task-order.md`.
 
@@ -20,15 +20,15 @@
 
 ## What's next
 
-See **Next up** in [docs/tasks/index.md](tasks/index.md). As of 2026-08-25:
-finish the site allowlist (EXT-7.4), wire strict mode (EXT-7.5), user
-allowlist UI (EXT-7.3), CSV export (EXT-7.6), then publish 0.1.7.
+See **Next up** in [docs/tasks/index.md](tasks/index.md). As of 2026-08-29:
+the site allowlist is live (EXT-7.4); remaining: wire strict mode (EXT-7.5),
+user allowlist UI (EXT-7.3), CSV export (EXT-7.6), then publish 0.1.7.
 
 ## Known limitations (tracked as tasks)
 
 - No Shadow DOM traversal; fine today (both supported composers are light DOM).
 - Silent failure when all selectors fail *and* the fetch patch is not confirmed → EXT-7.7.
-- `siteAllowlist` / `allowlist` settings have no UI → EXT-7.4 / EXT-7.3.
+- `allowlist` settings have no UI → EXT-7.3.
 - `strictMode` toggle has no consumer → EXT-7.5.
 
 ## Related product

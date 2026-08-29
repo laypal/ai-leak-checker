@@ -4,7 +4,7 @@
 > task is in [PLAYBOOK.md](PLAYBOOK.md). Rules for keeping this file true:
 > `.claude/rules/tasks.md` (same-commit updates, done means verified,
 > re-order Next up on every status change).
-> **Last updated:** 2026-08-25 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
+> **Last updated:** 2026-08-29 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
 
 Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫 Blocked (named) · ❓ Decision needed
 
@@ -12,11 +12,11 @@ Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫
 
 | # | Task | Why now | Ready? |
 |---|------|---------|--------|
-| 1 | [EXT-7.4 Site allowlist](EXT-7.4-site-allowlist.md) | Tasks 1–2 of 7 done on `origin/feature/site-allowlist` (already based on current `main`, gate green 2026-08-25); dead `siteAllowlist` config is a trust risk in a launched privacy tool | ✅ Ready |
-| 2 | [EXT-7.5 Strict mode](EXT-7.5-strict-mode.md) | Popup toggle exists and does nothing; small, self-contained | ✅ Ready |
-| 3 | [EXT-7.3 User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | Engine side works; users can't populate it | ✅ Ready |
-| 4 | [EXT-7.6 CSV export](EXT-7.6-csv-export.md) | `statsToCSV` exists, needs escaping + a button | ✅ Ready |
-| 5 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning | ⚠️ Owner uploads; agents prepare after 1–4 land |
+| 1 | [EXT-7.5 Strict mode](EXT-7.5-strict-mode.md) | Popup toggle exists and does nothing; small, self-contained | ✅ Ready |
+| 2 | [EXT-7.3 User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | Engine side works; users can't populate it | ✅ Ready |
+| 3 | [EXT-7.6 CSV export](EXT-7.6-csv-export.md) | `statsToCSV` exists, needs escaping + a button | ✅ Ready |
+| 4 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning | ⚠️ Owner uploads; agents prepare after 1–3 land |
+| 5 | [EXT-7.7 Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | Next P2 after the P1 batch | ✅ Ready |
 
 No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropped, EXT-9.2 ExtensionPay, EXT-HK-3 closed (see Completed).
 
@@ -25,7 +25,6 @@ No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropp
 | ID | Task | Pri | Status | Est |
 |----|------|-----|--------|-----|
 | EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🔲 | 4 h |
-| EXT-7.4 | [Site allowlist](EXT-7.4-site-allowlist.md) | P1 | 🟡 Tasks 1–2/7 on `origin/feature/site-allowlist` | 3 h |
 | EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🔲 | 3 h |
 | EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🔲 | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |
@@ -50,6 +49,7 @@ Sequencing: 9.1 → 9.3. 8.1 → 8.2 / 8.3. 10.1 is the recipe for 10.2 / 10.3. 
 
 | ID | Task | Outcome |
 |----|------|---------|
+| EXT-7.4 | [Site allowlist](completed/EXT-7.4-site-allowlist.md) | Done 2026-08-29, PR #25 |
 | EXT-9.2 | [Payment rail decision](completed/EXT-9.2-payment-rail-decision.md) | Decided ExtensionPay, 2026-08-25 |
 | EXT-7.8 | [Remote selector config](completed/EXT-7.8-remote-selector-config.md) | Decided bundled-only, 2026-08-25 |
 | EXT-8.4 | [Scheduled export](completed/EXT-8.4-scheduled-export.md) | Dropped, 2026-08-25 |
