@@ -164,13 +164,13 @@ function App() {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) return;
-        const resp = (await chrome.tabs.sendMessage(tab.id, {
+        const resp: { host?: string } | undefined = await chrome.tabs.sendMessage(tab.id, {
           type: MessageType.GET_SITE,
           payload: undefined,
           timestamp: Date.now(),
           correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           source: 'popup',
-        })) as { host?: string } | undefined;
+        });
         if (!cancelled && resp && typeof resp.host === 'string') {
           setCurrentHost(normalizeHost(resp.host));
         }
