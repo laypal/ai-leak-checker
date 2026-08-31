@@ -8,6 +8,7 @@
 
 import { scan, quickCheck, describeFinding, buildScanOptions } from '@/shared/detectors';
 import { redact } from '@/shared/utils/redact';
+import { isHostExcluded } from '@/shared/utils/site-match';
 import {
   type Finding,
   type DetectionResult,
@@ -75,14 +76,29 @@ function applySettings(partial: Partial<Settings>): void {
 }
 
 /**
- * Scan text using the user's current detector settings.
- * Centralizes scan invocation so every call respects enabled detectors,
- * sensitivity, and allowlist rather than the engine defaults.
+ * True when the current page's host is in the user's siteAllowlist, meaning
+ * scanning is paused for this site.
+ *
+ * @returns `true` if the host is excluded, `false` otherwise.
+ */
+function isCurrentSiteExcluded(): boolean {
+  return isHostExcluded(window.location.hostname, currentSettings.siteAllowlist);
+}
+
+/**
+ * Scan text using the user's current detector settings. When the current site
+ * is paused (siteAllowlist), short-circuit to the engine's empty result so all
+ * call sites (DOM + fetch fallback) treat it as "no sensitive data".
  *
  * @param text - Text to scan.
  * @returns Detection result filtered by the user's settings.
  */
 function scanWithSettings(text: string): DetectionResult {
+  if (isCurrentSiteExcluded()) {
+    // scan('') early-exits to the canonical empty result; options are irrelevant
+    // here, so omit them to signal "no scanning happens on a paused site".
+    return scan('');
+  }
   return scan(text, currentScanOptions);
 }
 
@@ -259,6 +275,9 @@ async function initialize(): Promise<void> {
 
   // Listen for messages from injected script (main world)
   window.addEventListener('message', handleWindowMessage);
+
+  // Reflect the initial paused state on the badge (settings already applied above).
+  notifyPausedState();
 }
 
 /**
@@ -351,6 +370,17 @@ function notifyFallbackActive(): void {
   safeSendMessage({
     type: MessageType.SET_FALLBACK_BADGE,
     payload: { active: true },
+  });
+}
+
+/**
+ * Inform the background script whether scanning is currently paused on this
+ * tab (siteAllowlist) so it can show/clear the per-tab paused badge.
+ */
+function notifyPausedState(): void {
+  safeSendMessage({
+    type: MessageType.SET_PAUSED_BADGE,
+    payload: { paused: isCurrentSiteExcluded() },
   });
 }
 
@@ -891,6 +921,8 @@ function handleMessage(
         const payload = (message as { payload?: { settings?: Partial<Settings> } }).payload;
         if (payload?.settings && typeof payload.settings === 'object') {
           applySettings(payload.settings);
+          // siteAllowlist may have changed — update the per-tab paused badge live.
+          notifyPausedState();
         }
         break;
       }
@@ -900,6 +932,10 @@ function handleMessage(
           active: !!siteConfig,
           site: siteConfig?.name ?? window.location.hostname,
         });
+        return true;
+
+      case MessageType.GET_SITE:
+        sendResponse({ host: window.location.hostname });
         return true;
     }
   } catch (error) {

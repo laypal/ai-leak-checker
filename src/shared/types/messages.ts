@@ -49,6 +49,9 @@ export const MessageType = {
   GET_STATUS: 'GET_STATUS',
   // Fallback Status
   SET_FALLBACK_BADGE: 'SET_FALLBACK_BADGE',
+  // Per-site pause (siteAllowlist)
+  GET_SITE: 'GET_SITE',
+  SET_PAUSED_BADGE: 'SET_PAUSED_BADGE',
 } as const;
 
 /**
@@ -167,6 +170,24 @@ export interface SetFallbackBadgePayload {
 export type SetFallbackBadgeMessage = BaseMessage<'SET_FALLBACK_BADGE', SetFallbackBadgePayload>;
 
 // =============================================================================
+// Per-Site Pause Messages
+// =============================================================================
+
+/** Reply payload for GET_SITE (popup -> content). */
+export interface GetSiteResponse {
+  host: string;
+}
+
+export type GetSiteMessage = BaseMessage<'GET_SITE', undefined>;
+
+/** Payload for SET_PAUSED_BADGE message (content -> background). */
+export interface SetPausedBadgePayload {
+  paused: boolean;
+}
+
+export type SetPausedBadgeMessage = BaseMessage<'SET_PAUSED_BADGE', SetPausedBadgePayload>;
+
+// =============================================================================
 // Lifecycle Messages
 // =============================================================================
 
@@ -228,7 +249,9 @@ export type ExtensionMessage =
   | UserActionProceedMessage
   | UserActionCancelMessage
   | StatusMessage
-  | SetFallbackBadgeMessage;
+  | SetFallbackBadgeMessage
+  | GetSiteMessage
+  | SetPausedBadgeMessage;
 
 // =============================================================================
 // Response Types

@@ -1,6 +1,6 @@
 # EXT-7.4: Site allowlist ("pause on this site")
 
-**Area:** Extension · content + background + popup · **Priority:** P1 · **Status:** 🟡 Partial (Tasks 1–2 of 7 done on `origin/feature/site-allowlist`) · **Estimate:** ~3 h remaining
+**Area:** Extension · content + background + popup · **Priority:** P1 · **Status:** ✅ Done (Tasks 1–7 complete) · **Estimate:** ~3 h remaining
 **Requirement:** FR-CFG-003 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -30,12 +30,12 @@ Both done tasks passed a spec-compliance and a code-quality review. The
 
 ## Remaining work (Tasks 3–7; exact code in the plan file)
 
-- [ ] **Start:** `git fetch && git checkout feature/site-allowlist && npm ci && npm run test` (expect green). If `main` has moved since `f95b555`, rebase onto it first.
-- [ ] **Task 3:** add `GET_SITE` and `SET_PAUSED_BADGE` to `MessageType` + payload types in `src/shared/types/messages.ts`; re-export from `src/shared/types/index.ts`.
-- [ ] **Task 4:** background `SET_PAUSED_BADGE` handler in `src/background/index.ts`, mirroring the `SET_FALLBACK_BADGE` case (~line 241): `⏸` / `#6c757d` when paused, `updateBadgeForTab(tabId)` when not. New `tests/unit/paused-badge.test.ts`.
-- [ ] **Task 5:** content `src/content/index.ts`: `notifyPausedState()` (mirror `notifyFallbackActive` ~line 350), called at the end of `initialize()` and in the `SETTINGS_UPDATED` case after `applySettings`; a `GET_SITE` case in `handleMessage` returning `{ host: window.location.hostname }`.
-- [ ] **Task 6:** popup `src/popup/popup.tsx`: `useEffect` on mount → `chrome.tabs.query({ active: true, currentWindow: true })` (tab **id only**, never `tab.url`) → `chrome.tabs.sendMessage(GET_SITE)`; render a "Pause scanning on <host>" toggle + "Scanning paused on <host>" notice after the Sensitivity section (~line 380); toggle calls `updateSetting('siteAllowlist', toggleSiteExclusion(host, list))`. No reply from content = unsupported site = hide the toggle.
-- [ ] **Task 7:** docs: `docs/architecture/` `siteAllowlist` line, this file → `completed/`, `docs/STATUS.md` known-limitations list, `docs/tasks/index.md`.
+- [x] **Start:** `git fetch && git checkout feature/site-allowlist && npm ci && npm run test` (expect green). If `main` has moved since `f95b555`, rebase onto it first.
+- [x] **Task 3:** add `GET_SITE` and `SET_PAUSED_BADGE` to `MessageType` + payload types in `src/shared/types/messages.ts`; re-export from `src/shared/types/index.ts`.
+- [x] **Task 4:** background `SET_PAUSED_BADGE` handler in `src/background/index.ts`, mirroring the `SET_FALLBACK_BADGE` case (~line 241): `⏸` / `#6c757d` when paused, `updateBadgeForTab(tabId)` when not. New `tests/unit/paused-badge.test.ts`.
+- [x] **Task 5:** content `src/content/index.ts`: `notifyPausedState()` (mirror `notifyFallbackActive` ~line 350), called at the end of `initialize()` and in the `SETTINGS_UPDATED` case after `applySettings`; a `GET_SITE` case in `handleMessage` returning `{ host: window.location.hostname }`.
+- [x] **Task 6:** popup `src/popup/popup.tsx`: `useEffect` on mount → `chrome.tabs.query({ active: true, currentWindow: true })` (tab **id only**, never `tab.url`) → `chrome.tabs.sendMessage(GET_SITE)`; render a "Pause scanning on <host>" toggle + "Scanning paused on <host>" notice after the Sensitivity section (~line 380); toggle calls `updateSetting('siteAllowlist', toggleSiteExclusion(host, list))`. No reply from content = unsupported site = hide the toggle.
+- [x] **Task 7:** docs: `docs/architecture/` `siteAllowlist` line, this file → `completed/`, `docs/STATUS.md` known-limitations list, `docs/tasks/index.md`.
 
 ## TDD plan (RED first, per task)
 
@@ -46,9 +46,9 @@ Both done tasks passed a spec-compliance and a code-quality review. The
 
 ## Acceptance criteria (BDD)
 
-- [ ] **Given** a domain is in `siteAllowlist`, **When** the page loads or the toggle flips (no refresh), **Then** no scan fires, no modal shows, and the injected fetch-fallback path posts `{ hasSensitiveData: false }`.
-- [ ] **Given** the popup on an excluded supported site, **Then** it shows the paused notice, the tab badge shows `⏸`, and the toggle re-enables live.
-- [ ] **Given** an unsupported site (no content script), **Then** the popup does not error and the toggle is hidden.
+- [x] **Given** a domain is in `siteAllowlist`, **When** the page loads or the toggle flips (no refresh), **Then** no scan fires, no modal shows, and the injected fetch-fallback path posts `{ hasSensitiveData: false }`.
+- [x] **Given** the popup on an excluded supported site, **Then** it shows the paused notice, the tab badge shows `⏸`, and the toggle re-enables live.
+- [x] **Given** an unsupported site (no content script), **Then** the popup does not error and the toggle is hidden.
 
 ## Do / Don't
 

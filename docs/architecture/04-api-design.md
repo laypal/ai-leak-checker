@@ -16,7 +16,9 @@ type MessageType =
   | 'SETTINGS_UPDATE'
   | 'STATS_GET'
   | 'STATS_INCREMENT'
-  | 'SELECTOR_GET';
+  | 'SELECTOR_GET'
+  | 'GET_SITE'
+  | 'SET_PAUSED_BADGE';
 
 interface Message<T = unknown> {
   type: MessageType;
@@ -33,6 +35,8 @@ interface MessageHandlers {
   STATS_GET: () => Promise<Stats>;
   STATS_INCREMENT: (payload: StatsIncrement) => Promise<void>;
   SELECTOR_GET: (payload: { domain: string }) => Promise<SiteConfig | null>;
+  GET_SITE: () => Promise<{ host: string }>;
+  SET_PAUSED_BADGE: (payload: { tabId: number; paused: boolean }) => Promise<void>;
 }
 ```
 

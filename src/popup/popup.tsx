@@ -5,6 +5,7 @@
 
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
+import { toggleSiteExclusion, normalizeHost } from '@/shared/utils/site-match';
 import type { Settings, Stats } from '@/shared/types';
 import {
   MessageType,
@@ -147,10 +148,40 @@ function App() {
   const [rawFallbackDelayInput, setRawFallbackDelayInput] = useState<string>(
     String(Math.floor(DEFAULT_SETTINGS.fallbackDelayMs / 1000))
   );
+  // Host of the active tab, learned via GET_SITE to the content script
+  // (tab.id only — never tab.url). Null when the site is unsupported.
+  const [currentHost, setCurrentHost] = useState<string | null>(null);
 
   // Load settings and stats on mount
   useEffect(() => {
     void loadData();
+  }, []);
+
+  // Discover the active tab's host so we can offer the per-site pause toggle.
+  useEffect(() => {
+    let cancelled = false;
+    async function discoverHost() {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id) return;
+        const resp: { host?: string } | undefined = await chrome.tabs.sendMessage(tab.id, {
+          type: MessageType.GET_SITE,
+          payload: undefined,
+          timestamp: Date.now(),
+          correlationId: `popup-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          source: 'popup',
+        });
+        if (!cancelled && resp && typeof resp.host === 'string') {
+          setCurrentHost(normalizeHost(resp.host));
+        }
+      } catch {
+        // No content script on this tab => unsupported site => leave host null.
+      }
+    }
+    void discoverHost();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function loadData() {
@@ -222,6 +253,16 @@ function App() {
     const detectors = { ...settings.detectors };
     detectors[type] = !detectors[type];
     await updateSetting('detectors', detectors);
+  }
+
+  const isSitePaused = currentHost
+    ? settings.siteAllowlist.some((h) => normalizeHost(h) === currentHost)
+    : false;
+
+  async function toggleSitePause() {
+    if (!currentHost) return;
+    const next = toggleSiteExclusion(currentHost, settings.siteAllowlist);
+    await updateSetting('siteAllowlist', next);
   }
 
   async function resetStats() {
@@ -378,6 +419,47 @@ function App() {
               <option value="high">High (Aggressive)</option>
             </select>
           </div>
+
+          {/* Per-site pause */}
+          {currentHost && (
+            <div style={styles.section}>
+              <div style={styles.sectionTitle}>This Site</div>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  border: '1px solid #dee2e6',
+                  borderRadius: '8px',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                }}
+              >
+                <span>Pause scanning on {currentHost}</span>
+                <input
+                  type="checkbox"
+                  checked={isSitePaused}
+                  onChange={() => { void toggleSitePause(); }}
+                />
+              </label>
+              {isSitePaused && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: '#fff3cd',
+                    color: '#664d03',
+                    fontSize: '12px',
+                  }}
+                >
+                  ⏸ Scanning paused on {currentHost}. Protection is off for this site.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Fallback Delay */}
           <div style={styles.section}>
