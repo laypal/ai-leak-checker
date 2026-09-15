@@ -103,3 +103,27 @@ describe('buildScanOptions applied to scan (the reported bug)', () => {
     expect(run()).toBe(false);
   });
 });
+
+describe('buildScanOptions applied to scan with a user allowlist entry (EXT-7.3)', () => {
+  // Canonical safe AWS example key (push-protection-safe fixture).
+  const AWS_EXAMPLE_KEY = 'AKIAIOSFODNN7EXAMPLE';
+  const text = `Config: ${AWS_EXAMPLE_KEY}`;
+
+  it('raises no finding for a value present in settings.allowlist', () => {
+    const settings = makeSettings({ allowlist: [AWS_EXAMPLE_KEY] });
+    const result = scan(text, {
+      ...buildScanOptions(settings),
+      disableBuiltinAllowlist: true,
+    });
+    expect(result.findings.some(f => f.value === AWS_EXAMPLE_KEY)).toBe(false);
+  });
+
+  it('still detects the same value when the allowlist is empty', () => {
+    const settings = makeSettings({ allowlist: [] });
+    const result = scan(text, {
+      ...buildScanOptions(settings),
+      disableBuiltinAllowlist: true,
+    });
+    expect(result.findings.some(f => f.value === AWS_EXAMPLE_KEY)).toBe(true);
+  });
+});

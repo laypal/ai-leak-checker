@@ -6,6 +6,7 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { toggleSiteExclusion, normalizeHost } from '@/shared/utils/site-match';
+import { AllowlistEditor } from './AllowlistEditor';
 import type { Settings, Stats } from '@/shared/types';
 import {
   MessageType,
@@ -601,6 +602,15 @@ function App() {
               label="Strict Mode (no bypass option)"
               checked={settings.strictMode}
               onChange={() => { void updateSetting('strictMode', !settings.strictMode); }}
+            />
+          </div>
+
+          {/* Allowlist */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Allowlist</div>
+            <AllowlistEditor
+              allowlist={settings.allowlist}
+              onChange={(next) => { void updateSetting('allowlist', next); }}
             />
           </div>
         </div>

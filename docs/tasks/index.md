@@ -4,7 +4,7 @@
 > task is in [PLAYBOOK.md](PLAYBOOK.md). Rules for keeping this file true:
 > `.claude/rules/tasks.md` (same-commit updates, done means verified,
 > re-order Next up on every status change).
-> **Last updated:** 2026-08-29 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
+> **Last updated:** 2026-09-15 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
 
 Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫 Blocked (named) · ❓ Decision needed
 
@@ -24,7 +24,7 @@ No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropp
 
 | ID | Task | Pri | Status | Est |
 |----|------|-----|--------|-----|
-| EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🔲 | 4 h |
+| EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🟡 code done, Chrome smoke pending | 4 h |
 | EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🔲 | 3 h |
 | EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🔲 | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |

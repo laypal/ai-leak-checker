@@ -9,6 +9,7 @@
 import { scan, quickCheck, describeFinding, buildScanOptions } from '@/shared/detectors';
 import { redact } from '@/shared/utils/redact';
 import { isHostExcluded } from '@/shared/utils/site-match';
+import { allowlistTransition } from '@/shared/utils/allowlist-edit';
 import {
   type Finding,
   type DetectionResult,
@@ -104,6 +105,13 @@ function scanWithSettings(text: string): DetectionResult {
 
 /** Warning modal instance */
 let modal: WarningModal | null = null;
+
+/**
+ * Findings currently shown in the modal (with raw `.value`), so "Don't warn
+ * about this" can allowlist the exact value. Only held in memory while the
+ * modal is open — never persisted or transmitted.
+ */
+let currentModalFindings: Finding[] = [];
 
 /** Pending submission metadata when showing modal. No raw prompt or finding values stored; re-read from input on Mask & Continue. */
 let pendingSubmission: {
@@ -234,6 +242,7 @@ async function initialize(): Promise<void> {
     onContinue: handleContinueWithRedaction,
     onSendAnyway: handleSendAnyway,
     onCancel: handleCancel,
+    onAllowlist: handleAllowlist,
   });
 
   // Set up interception
@@ -391,7 +400,8 @@ function notifyPausedState(): void {
 function resetStateForNewChat(): void {
   // Clear pending submission
   pendingSubmission = null;
-  
+  currentModalFindings = [];
+
   // Reset programmatic submit flag
   isProgrammaticSubmit = false;
   
@@ -692,6 +702,7 @@ function showWarning(
     originalEvent,
   };
 
+  currentModalFindings = result.findings;
   modal.show(result.findings);
 
   // Send stats to service worker (legacy format supported by background)
@@ -702,6 +713,55 @@ function showWarning(
       byDetector: result.summary.byType,
     },
   });
+}
+
+/**
+ * Handle "Don't warn about this" for a single finding: allowlist its value,
+ * persist the updated settings, and re-show the modal with that finding
+ * removed. Also prunes `pendingSubmission.findingMeta`/`detectorTypes` to
+ * match, so a later "Mask & Continue" only redacts what's still pending
+ * (an allowlisted finding must not still get masked from the input text).
+ * If none remain, hide the modal (does not auto-submit — same as Cancel).
+ * If the value is rejected by validation (e.g. too short), no-op.
+ */
+function handleAllowlist(finding: Finding): void {
+  if (!pendingSubmission) return;
+
+  const transition = allowlistTransition(
+    {
+      findings: currentModalFindings,
+      findingMeta: pendingSubmission.findingMeta,
+      detectorTypes: pendingSubmission.detectorTypes,
+      allowlist: currentSettings.allowlist,
+    },
+    finding
+  );
+
+  if (!transition.changed) {
+    console.warn(`[AI Leak Checker] Could not allowlist finding of type ${finding.type}`);
+    return;
+  }
+
+  applySettings({ allowlist: transition.allowlist });
+  safeSendMessage({
+    type: MessageType.SETTINGS_UPDATE,
+    payload: { settings: { allowlist: transition.allowlist } },
+  });
+
+  currentModalFindings = transition.remaining;
+  pendingSubmission = {
+    ...pendingSubmission,
+    findingMeta: transition.findingMeta,
+    detectorTypes: transition.detectorTypes,
+  };
+
+  if (!modal) return;
+  if (transition.remaining.length === 0) {
+    modal.hide();
+    handleCancel();
+  } else {
+    modal.show(transition.remaining);
+  }
 }
 
 /**
@@ -735,6 +795,7 @@ function handleContinueWithRedaction(): void {
   }, 100);
 
   pendingSubmission = null;
+  currentModalFindings = [];
 }
 
 /**
@@ -752,6 +813,7 @@ function handleSendAnyway(): void {
   // Trigger the original submission
   triggerSubmit();
   pendingSubmission = null;
+  currentModalFindings = [];
 }
 
 /**
@@ -759,7 +821,8 @@ function handleSendAnyway(): void {
  */
 function handleCancel(): void {
   pendingSubmission = null;
-  
+  currentModalFindings = [];
+
   // Return focus to input
   if (siteConfig) {
     for (const selector of siteConfig.inputSelectors) {
@@ -1025,6 +1088,7 @@ function handleWindowMessage(event: MessageEvent): void {
       detectorTypes: result.findings.map((f) => f.type),
       timestamp: new Date().toISOString(),
     };
+    currentModalFindings = result.findings;
     modal.show(result.findings);
     safeSendMessage({
       type: MessageType.STATS_INCREMENT,

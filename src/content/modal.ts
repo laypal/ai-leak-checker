@@ -13,6 +13,8 @@ export interface WarningModalCallbacks {
   onContinue: () => void;
   onSendAnyway: () => void;
   onCancel: () => void;
+  /** Optional: called with a single finding when the user allowlists it via "Don't warn about this". */
+  onAllowlist?: (finding: Finding) => void;
 }
 
 /** Optional constructor options. shadowMode: 'open' for unit tests only. */
@@ -334,6 +336,20 @@ export class WarningModal {
           background: #bb2d3b;
         }
 
+        .allowlist-btn {
+          display: block;
+          margin-top: 8px;
+          padding: 4px 8px;
+          font-size: 11px;
+          background: transparent;
+          color: #6c757d;
+          text-decoration: underline;
+        }
+
+        .allowlist-btn:hover {
+          color: #495057;
+        }
+
         .send-anyway-warning {
           font-size: 11px;
           color: #6c757d;
@@ -349,7 +365,7 @@ export class WarningModal {
    */
   private renderContent(findings: Finding[]): string {
     const findingsList = findings
-      .map(f => this.renderFinding(f))
+      .map((f, index) => this.renderFinding(f, index))
       .join('');
 
     return `
@@ -392,7 +408,7 @@ export class WarningModal {
   /**
    * Render a single finding.
    */
-  private renderFinding(finding: Finding): string {
+  private renderFinding(finding: Finding, index: number): string {
     const maskedValue = mask(finding.value, finding.type);
     const confidenceClass = finding.confidence >= 0.8
       ? 'confidence-high'
@@ -418,6 +434,7 @@ export class WarningModal {
             <span class="confidence-badge ${confidenceClass}">${confidenceText}</span>
           </div>
           <div class="finding-value">${this.escapeHtml(maskedValue)}</div>
+          <button class="allowlist-btn" type="button" data-index="${index}">Don't warn about this</button>
         </div>
       </li>
     `;
@@ -453,6 +470,18 @@ export class WarningModal {
         this.hide();
         this.callbacks.onCancel();
       }
+    });
+
+    const allowlistBtns = this.shadowRoot.querySelectorAll('.allowlist-btn');
+    allowlistBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const indexAttr = btn.getAttribute('data-index');
+        const index = indexAttr === null ? NaN : Number(indexAttr);
+        const finding = this.currentFindings[index];
+        if (finding) {
+          this.callbacks.onAllowlist?.(finding);
+        }
+      });
     });
   }
 
