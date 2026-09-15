@@ -17,6 +17,8 @@ import {
   MIN_FALLBACK_DELAY_MS,
   MAX_FALLBACK_DELAY_MS,
 } from '@/shared/types';
+import { statsToCsv, buildExportFilename } from '@/shared/utils/stats-export';
+import { downloadTextFile } from './download';
 
 // Styles
 const styles = {
@@ -277,6 +279,11 @@ function App() {
     setStats(DEFAULT_STATS);
   }
 
+  function exportStats() {
+    const now = new Date();
+    downloadTextFile(statsToCsv(stats, now), buildExportFilename(now));
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -392,6 +399,20 @@ function App() {
               }}
             >
               Reset Statistics
+            </button>
+            <button
+              onClick={exportStats}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: '#6c757d',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Export Stats
             </button>
           </div>
         </div>

@@ -26,7 +26,7 @@ No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropp
 |----|------|-----|--------|-----|
 | EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🟡 code done, Chrome smoke pending | 4 h |
 | EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🔲 | 3 h |
-| EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🔲 | 3 h |
+| EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🟡 code done, Chrome/Edge check pending | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |
 | EXT-8.1 | [Options page](EXT-8.1-options-page.md) | P1 | 🔲 | 8 h |
 | EXT-8.2 | [Custom regex rules (Pro)](EXT-8.2-custom-regex-rules.md) | P1 | 🔲 needs 8.1 | 8 h |

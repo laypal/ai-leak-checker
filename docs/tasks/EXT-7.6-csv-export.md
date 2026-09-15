@@ -1,6 +1,6 @@
 # EXT-7.6: CSV export of stats
 
-**Area:** Extension · popup + shared utils · **Priority:** P1 · **Status:** 🔲 Not started · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
+**Area:** Extension · popup + shared utils · **Priority:** P1 · **Status:** 🟡 Partial (code + gate green 2026-09-15; Chrome/Edge download check pending owner) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
 **Requirement:** FR-DAT-003 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -8,7 +8,7 @@
 One-click export of detection stats. A `statsToCSV()` already exists but has
 no escaping, stamps today's date on lifetime aggregates, and has no UI.
 
-## Current-state facts (verified 2026-07-12; re-verify)
+## Current-state facts (as of 2026-07-12; superseded 2026-09-15, see Shipped)
 
 - `statsToCSV(stats)` at `src/shared/types/storage.ts:265-294` produces `Date,Detector Type,Site,Count` rows with a naive `join(',')`. Nothing imports it (grep to confirm).
 - `Stats` schema (`storage.ts:108`) holds **lifetime aggregates** (`byDetector`, `bySite`, `actions`). There is **no date-bucketed history**, so a time series export is impossible from the current schema.
@@ -21,10 +21,10 @@ migration) is a separate task; create one if the owner wants trend export.
 
 ## Deliverables
 
-- [ ] `src/shared/utils/csv.ts`: pure `escapeCsvField(value)` (RFC 4180: quote fields containing `,` / `"` / newline, double embedded quotes) + `rowsToCsv(rows)`.
-- [ ] `src/shared/utils/stats-export.ts`: `statsToCsv(stats, now: Date)` using the helpers, snapshot columns, zero-count rows omitted, empty stats → header only. Remove the old function from the types file (types files hold no logic).
-- [ ] `buildExportFilename(now: Date)` → `ai-leak-checker-stats-YYYY-MM-DD.csv`.
-- [ ] Popup "Export Stats" button: `Blob` → `URL.createObjectURL` → programmatic `<a download>` click → `revokeObjectURL`. Synchronous inside the click handler.
+- [x] `src/shared/utils/csv.ts`: pure `escapeCsvField(value)` (RFC 4180: quote fields containing `,` / `"` / newline, double embedded quotes) + `rowsToCsv(rows)`.
+- [x] `src/shared/utils/stats-export.ts`: `statsToCsv(stats, now: Date)` using the helpers, snapshot columns, zero-count rows omitted, empty stats → header only. Remove the old function from the types file (types files hold no logic).
+- [x] `buildExportFilename(now: Date)` → `ai-leak-checker-stats-YYYY-MM-DD.csv`.
+- [x] Popup "Export Stats" button: `Blob` → `URL.createObjectURL` → programmatic `<a download>` click → `revokeObjectURL`. Synchronous inside the click handler.
 
 ## TDD plan (in order; RED first)
 
@@ -43,9 +43,9 @@ migration) is a separate task; create one if the owner wants trend export.
 
 ## Acceptance criteria (BDD)
 
-- [ ] **Given** stored stats, **When** "Export Stats" is clicked, **Then** a correctly escaped CSV downloads containing only `exported_at,detector_type,site,count`. No raw values, no prompt content.
-- [ ] **Given** empty stats, **Then** the export succeeds with headers only.
-- [ ] **Given** Chrome and Edge, **Then** both download successfully (manual check on Edge).
+- [x] **Given** stored stats, **When** "Export Stats" is clicked, **Then** a correctly escaped CSV downloads containing only `exported_at,detector_type,site,count`. No raw values, no prompt content.
+- [x] **Given** empty stats, **Then** the export succeeds with headers only.
+- [ ] (manual, pending) **Given** Chrome and Edge, **Then** both download successfully (manual check on Edge).
 
 ## Do / Don't
 
@@ -57,6 +57,17 @@ migration) is a separate task; create one if the owner wants trend export.
 ## Verify
 
 Gate + manual: export from the popup in Chrome and Edge, open the file, check escaping on a site name with a comma if one exists in your stats (or add a unit case).
+
+## Shipped 2026-09-15 (branch `feature/ext-7.3-7.6-7.5`)
+
+- Old `statsToCSV`/`StatsExportRow` deleted from `src/shared/types/storage.ts`
+  and `types/index.ts`; replaced by `src/shared/utils/csv.ts`,
+  `src/shared/utils/stats-export.ts` (pure) and `src/popup/download.ts`
+  (DOM-only anchor download). Popup `exportStats()` is synchronous.
+- Tests: `tests/unit/csv.test.ts`, `stats-export.test.ts` (exact output,
+  comma-bearing hostname, row keys = the four columns), `download.test.ts`.
+- `exported_at` and filename use the UTC date (`toISOString`).
+- Remaining: manual download check in Chrome and Edge.
 
 ## Decision log
 
