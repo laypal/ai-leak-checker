@@ -624,6 +624,9 @@ function App() {
               checked={settings.strictMode}
               onChange={() => { void updateSetting('strictMode', !settings.strictMode); }}
             />
+            <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+              Removes the Send Anyway option; detections must be masked or cancelled.
+            </div>
           </div>
 
           {/* Allowlist */}

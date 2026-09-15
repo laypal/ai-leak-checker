@@ -703,7 +703,7 @@ function showWarning(
   };
 
   currentModalFindings = result.findings;
-  modal.show(result.findings);
+  modal.show(result.findings, { strictMode: currentSettings.strictMode });
 
   // Send stats to service worker (legacy format supported by background)
   safeSendMessage({
@@ -760,7 +760,7 @@ function handleAllowlist(finding: Finding): void {
     modal.hide();
     handleCancel();
   } else {
-    modal.show(transition.remaining);
+    modal.show(transition.remaining, { strictMode: currentSettings.strictMode });
   }
 }
 
@@ -803,6 +803,12 @@ function handleContinueWithRedaction(): void {
  */
 function handleSendAnyway(): void {
   if (!pendingSubmission) return;
+  // Defense in depth: strict mode never offers this button, but if invoked
+  // directly, treat it like Cancel (clear pending state, return focus).
+  if (currentSettings.strictMode) {
+    handleCancel();
+    return;
+  }
 
   // Log the bypass (legacy format supported by background)
   safeSendMessage({
@@ -1089,7 +1095,7 @@ function handleWindowMessage(event: MessageEvent): void {
       timestamp: new Date().toISOString(),
     };
     currentModalFindings = result.findings;
-    modal.show(result.findings);
+    modal.show(result.findings, { strictMode: currentSettings.strictMode });
     safeSendMessage({
       type: MessageType.STATS_INCREMENT,
       payload: {

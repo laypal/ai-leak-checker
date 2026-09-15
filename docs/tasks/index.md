@@ -12,11 +12,11 @@ Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫
 
 | # | Task | Why now | Ready? |
 |---|------|---------|--------|
-| 1 | [EXT-7.5 Strict mode](EXT-7.5-strict-mode.md) | Popup toggle exists and does nothing; small, self-contained | ✅ Ready |
-| 2 | [EXT-7.3 User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | Engine side works; users can't populate it | ✅ Ready |
-| 3 | [EXT-7.6 CSV export](EXT-7.6-csv-export.md) | `statsToCSV` exists, needs escaping + a button | ✅ Ready |
-| 4 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning | ⚠️ Owner uploads; agents prepare after 1–3 land |
-| 5 | [EXT-7.7 Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | Next P2 after the P1 batch | ✅ Ready |
+| 1 | Chrome smoke of [EXT-7.5](EXT-7.5-strict-mode.md) / [EXT-7.3](EXT-7.3-user-value-allowlist-ui.md) / [EXT-7.6](EXT-7.6-csv-export.md) | All three coded + gate green on `feature/ext-7.3-7.6-7.5`; owner loads `dist/` and ticks the manual ACs, then PR | ⚠️ Owner (manual) |
+| 2 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning; 7.3/7.5/7.6 ride along | ⚠️ Owner uploads; after 1 |
+| 3 | [EXT-7.7 Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | Next P2 after the P1 batch | ✅ Ready |
+| 4 | [EXT-8.1 Options page](EXT-8.1-options-page.md) | Unblocks 8.2 / 8.3; popup.tsx is 680+ lines and needs the split anyway | ✅ Ready |
+| 5 | [EXT-HK-2 `isProductCode` edge tests](EXT-HK-2-isproductcode-edge-tests.md) | 30-min filler while 1–2 wait on the owner | ✅ Ready |
 
 No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropped, EXT-9.2 ExtensionPay, EXT-HK-3 closed (see Completed).
 
@@ -25,7 +25,7 @@ No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropp
 | ID | Task | Pri | Status | Est |
 |----|------|-----|--------|-----|
 | EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🟡 code done, Chrome smoke pending | 4 h |
-| EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🔲 | 3 h |
+| EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🟡 code done, Chrome smoke pending | 3 h |
 | EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🟡 code done, Chrome/Edge check pending | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |
 | EXT-8.1 | [Options page](EXT-8.1-options-page.md) | P1 | 🔲 | 8 h |

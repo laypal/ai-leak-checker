@@ -23,6 +23,12 @@ export interface WarningModalOptions {
   shadowMode?: 'open' | 'closed';
 }
 
+/** Optional per-call render options for {@link WarningModal.show}. */
+export interface ShowOptions {
+  /** When true, omits "Send Anyway" so unmasked findings cannot be submitted. */
+  strictMode?: boolean;
+}
+
 /**
  * Warning modal component displayed when sensitive data is detected.
  * Uses Shadow DOM for style isolation.
@@ -55,11 +61,12 @@ export class WarningModal {
    * If the modal is already visible, updates the content in-place to avoid flicker.
    * Otherwise, renders and displays the modal normally.
    */
-  show(findings: Finding[]): void {
+  show(findings: Finding[], opts?: ShowOptions): void {
     // Store findings for test API (only masked/sanitized data)
     this.currentFindings = findings;
 
-    const content = this.renderContent(findings);
+    const strictMode = opts?.strictMode ?? false;
+    const content = this.renderContent(findings, strictMode);
     
     // If already visible, update content in-place to avoid flicker
     if (this.isVisible) {
@@ -356,6 +363,16 @@ export class WarningModal {
           margin-top: 8px;
           text-align: center;
         }
+
+        .strict-notice {
+          font-size: 11px;
+          font-weight: 600;
+          color: #ffffff;
+          background: rgba(0, 0, 0, 0.15);
+          border-radius: 6px;
+          padding: 4px 8px;
+          margin-top: 8px;
+        }
       </style>
     `;
   }
@@ -363,10 +380,20 @@ export class WarningModal {
   /**
    * Render modal content.
    */
-  private renderContent(findings: Finding[]): string {
+  private renderContent(findings: Finding[], strictMode: boolean): string {
     const findingsList = findings
       .map((f, index) => this.renderFinding(f, index))
       .join('');
+
+    const strictNotice = strictMode
+      ? '<p class="strict-notice">Strict mode: sending blocked until masked</p>'
+      : '';
+    const sendBtn = strictMode
+      ? ''
+      : '<button class="send-btn" type="button">Send Anyway</button>';
+    const sendAnywayWarning = strictMode
+      ? ''
+      : '<p class="send-anyway-warning">"Send Anyway" will submit your message without changes</p>';
 
     return `
       <div class="overlay">
@@ -378,28 +405,27 @@ export class WarningModal {
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
             <h2 id="modal-title">Sensitive Data Detected</h2>
+            ${strictNotice}
           </div>
-          
+
           <div class="body">
             <p class="warning-text">
-              The following sensitive information was detected in your message. 
+              The following sensitive information was detected in your message.
               Sending this data to an AI service could expose your credentials or personal information.
             </p>
-            
+
             <ul class="findings-list">
               ${findingsList}
             </ul>
           </div>
-          
+
           <div class="footer">
             <button class="cancel-btn" type="button">Cancel</button>
             <button class="redact-btn" type="button">Mask & Continue</button>
-            <button class="send-btn" type="button">Send Anyway</button>
+            ${sendBtn}
           </div>
-          
-          <p class="send-anyway-warning">
-            "Send Anyway" will submit your message without changes
-          </p>
+
+          ${sendAnywayWarning}
         </div>
       </div>
     `;
