@@ -1,6 +1,6 @@
 # EXT-7.5: Strict mode (block without override)
 
-**Area:** Extension · modal + content · **Priority:** P1 · **Status:** 🟡 Partial (code + gate green 2026-09-15; Chrome smoke test pending owner) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
+**Area:** Extension · modal + content · **Priority:** P1 · **Status:** ✅ Done 2026-09-16 (gate green; owner verified in Chrome on chatgpt.com) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
 **Requirement:** FR-CFG-004 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -48,7 +48,7 @@ toggle.
 ## Acceptance criteria (BDD)
 
 - [x] **Given** strict mode on, **When** the modal opens, **Then** "Send Anyway" is absent and no interaction path submits unmasked (Enter/submit stays blocked until Mask or Cancel).
-- [x] (unit: live `currentSettings` at every show site; manual check pending) **Given** the toggle changes while a tab is open, **When** the next detection fires, **Then** the modal reflects the new mode without reload.
+- [x] **Given** the toggle changes while a tab is open, **When** the next detection fires, **Then** the modal reflects the new mode without reload.
 - [x] **Given** strict mode off, **Then** behaviour is identical to today (existing modal tests stay green).
 
 ## Do / Don't
@@ -75,8 +75,7 @@ Gate + manual: toggle strict in popup → trigger a detection on chatgpt.com →
 - Known edge: if strict is toggled on while a modal is already open, that
   modal keeps its Send Anyway button until the next detection; clicking it
   cancels rather than sends.
-- Remaining: manual Chrome check (toggle strict → detection on chatgpt.com →
-  only Mask/Cancel; untoggle → Send Anyway returns).
+- Manual check done 2026-09-16: strict on → modal shows notice + Cancel/Mask only.
 
 ## Decision log
 

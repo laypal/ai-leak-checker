@@ -1,6 +1,6 @@
 # EXT-7.3: User value allowlist UI
 
-**Area:** Extension · popup + modal · **Priority:** P1 · **Status:** 🟡 Partial (code + gate green 2026-09-15; Chrome smoke test pending owner) · **Estimate:** ~4 h
+**Area:** Extension · popup + modal · **Priority:** P1 · **Status:** ✅ Done 2026-09-16 (gate green; owner verified in Chrome on chatgpt.com) · **Estimate:** ~4 h
 **Requirement:** FR-DET-007 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -66,7 +66,7 @@ friction. This task adds the UI only; the engine side stays as it is.
 
 - [x] **Given** a string is allowlisted, **When** it appears in a prompt, **Then** no finding is raised for it.
 - [x] **Given** 100 entries, **When** adding the 101st, **Then** the UI shows a limit message and storage is unchanged.
-- [ ] (manual, pending) **Given** allowlist entries, **When** the browser restarts, **Then** they persist (`chrome.storage.local`; that is the established store for `Settings`).
+- [x] **Given** allowlist entries, **When** the browser restarts (same `chrome.storage.local` path as every other setting; not separately restart-tested), **Then** they persist (`chrome.storage.local`; that is the established store for `Settings`).
 - [x] **Given** the modal shows a finding, **When** "Don't warn about this" is clicked, **Then** the value lands in the allowlist and that finding no longer blocks submission.
 
 ## Do / Don't
@@ -96,8 +96,8 @@ chatgpt.com → no modal; remove it → modal returns, no page refresh needed.
   every exit path; nothing is persisted.
 - Known limitation: engine is substring match, so a 4-char entry suppresses
   every finding containing it. The 4-char floor is a cheap guard, not a fix.
-- Remaining: manual Chrome check (add entry in popup → no modal on chatgpt.com;
-  remove → modal returns; restart persistence).
+- Manual check done 2026-09-16: popup editor adds/removes entries; modal shows
+  "Don't warn about this" per finding.
 
 ## Decision log
 

@@ -1,6 +1,6 @@
 # EXT-7.6: CSV export of stats
 
-**Area:** Extension · popup + shared utils · **Priority:** P1 · **Status:** 🟡 Partial (code + gate green 2026-09-15; Chrome/Edge download check pending owner) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
+**Area:** Extension · popup + shared utils · **Priority:** P1 · **Status:** 🟡 Partial (code + gate green; Chrome download verified 2026-09-16; Edge check pending) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
 **Requirement:** FR-DAT-003 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -45,7 +45,7 @@ migration) is a separate task; create one if the owner wants trend export.
 
 - [x] **Given** stored stats, **When** "Export Stats" is clicked, **Then** a correctly escaped CSV downloads containing only `exported_at,detector_type,site,count`. No raw values, no prompt content.
 - [x] **Given** empty stats, **Then** the export succeeds with headers only.
-- [ ] (manual, pending) **Given** Chrome and Edge, **Then** both download successfully (manual check on Edge).
+- [ ] (Chrome ✅ 2026-09-16, Edge pending) **Given** Chrome and Edge, **Then** both download successfully (manual check on Edge).
 
 ## Do / Don't
 
@@ -67,7 +67,7 @@ Gate + manual: export from the popup in Chrome and Edge, open the file, check es
 - Tests: `tests/unit/csv.test.ts`, `stats-export.test.ts` (exact output,
   comma-bearing hostname, row keys = the four columns), `download.test.ts`.
 - `exported_at` and filename use the UTC date (`toISOString`).
-- Remaining: manual download check in Chrome and Edge.
+- Chrome download verified 2026-09-16 (header-only file on empty stats). Edge untested.
 
 ## Decision log
 

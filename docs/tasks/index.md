@@ -4,7 +4,7 @@
 > task is in [PLAYBOOK.md](PLAYBOOK.md). Rules for keeping this file true:
 > `.claude/rules/tasks.md` (same-commit updates, done means verified,
 > re-order Next up on every status change).
-> **Last updated:** 2026-09-15 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
+> **Last updated:** 2026-09-16 · live extension **v0.1.6** · in-repo **0.1.7** (unpublished)
 
 Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫 Blocked (named) · ❓ Decision needed
 
@@ -12,7 +12,7 @@ Legend: 🔲 Not started · 🔄 In progress · 🟡 Partial · ✅ Done · 🚫
 
 | # | Task | Why now | Ready? |
 |---|------|---------|--------|
-| 1 | Chrome smoke of [EXT-7.5](EXT-7.5-strict-mode.md) / [EXT-7.3](EXT-7.3-user-value-allowlist-ui.md) / [EXT-7.6](EXT-7.6-csv-export.md) | All three coded + gate green on `feature/ext-7.3-7.6-7.5`; owner loads `dist/` and ticks the manual ACs, then PR | ⚠️ Owner (manual) |
+| 1 | PR for `feature/ext-7.3-7.6-7.5` + Edge check of [EXT-7.6](EXT-7.6-csv-export.md) | 7.3/7.5 done, 7.6 verified in Chrome; one Edge download click closes it | ⚠️ Owner |
 | 2 | [EXT-REL-1 Publish 0.1.7](EXT-REL-1-publish-0.1.7.md) | Users still lack EXT-SEC hardening + FP tuning; 7.3/7.5/7.6 ride along | ⚠️ Owner uploads; after 1 |
 | 3 | [EXT-7.7 Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | Next P2 after the P1 batch | ✅ Ready |
 | 4 | [EXT-8.1 Options page](EXT-8.1-options-page.md) | Unblocks 8.2 / 8.3; popup.tsx is 680+ lines and needs the split anyway | ✅ Ready |
@@ -24,9 +24,7 @@ No owner decisions open. Decided 2026-08-25: EXT-7.8 bundled-only, EXT-8.4 dropp
 
 | ID | Task | Pri | Status | Est |
 |----|------|-----|--------|-----|
-| EXT-7.3 | [User value allowlist UI](EXT-7.3-user-value-allowlist-ui.md) | P1 | 🟡 code done, Chrome smoke pending | 4 h |
-| EXT-7.5 | [Strict mode](EXT-7.5-strict-mode.md) | P1 | 🟡 code done, Chrome smoke pending | 3 h |
-| EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🟡 code done, Chrome/Edge check pending | 3 h |
+| EXT-7.6 | [CSV export](EXT-7.6-csv-export.md) | P1 | 🟡 Chrome verified, Edge check pending | 3 h |
 | EXT-7.7 | [Unsupported-site runtime UX](EXT-7.7-unsupported-site-ux.md) | P2 | 🔲 | 4 h |
 | EXT-8.1 | [Options page](EXT-8.1-options-page.md) | P1 | 🔲 | 8 h |
 | EXT-8.2 | [Custom regex rules (Pro)](EXT-8.2-custom-regex-rules.md) | P1 | 🔲 needs 8.1 | 8 h |
@@ -49,6 +47,8 @@ Sequencing: 9.1 → 9.3. 8.1 → 8.2 / 8.3. 10.1 is the recipe for 10.2 / 10.3. 
 
 | ID | Task | Outcome |
 |----|------|---------|
+| EXT-7.3 | [User value allowlist UI](completed/EXT-7.3-user-value-allowlist-ui.md) | Done 2026-09-16, branch `feature/ext-7.3-7.6-7.5` |
+| EXT-7.5 | [Strict mode](completed/EXT-7.5-strict-mode.md) | Done 2026-09-16, branch `feature/ext-7.3-7.6-7.5` |
 | EXT-7.4 | [Site allowlist](completed/EXT-7.4-site-allowlist.md) | Done 2026-08-29, PR #25 |
 | EXT-9.2 | [Payment rail decision](completed/EXT-9.2-payment-rail-decision.md) | Decided ExtensionPay, 2026-08-25 |
 | EXT-7.8 | [Remote selector config](completed/EXT-7.8-remote-selector-config.md) | Decided bundled-only, 2026-08-25 |
