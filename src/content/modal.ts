@@ -13,12 +13,20 @@ export interface WarningModalCallbacks {
   onContinue: () => void;
   onSendAnyway: () => void;
   onCancel: () => void;
+  /** Optional: called with a single finding when the user allowlists it via "Don't warn about this". */
+  onAllowlist?: (finding: Finding) => void;
 }
 
 /** Optional constructor options. shadowMode: 'open' for unit tests only. */
 export interface WarningModalOptions {
   /** Default 'closed'. Use 'open' in unit tests to query shadow DOM for button clicks. */
   shadowMode?: 'open' | 'closed';
+}
+
+/** Optional per-call render options for {@link WarningModal.show}. */
+export interface ShowOptions {
+  /** When true, omits "Send Anyway" so unmasked findings cannot be submitted. */
+  strictMode?: boolean;
 }
 
 /**
@@ -53,11 +61,12 @@ export class WarningModal {
    * If the modal is already visible, updates the content in-place to avoid flicker.
    * Otherwise, renders and displays the modal normally.
    */
-  show(findings: Finding[]): void {
+  show(findings: Finding[], opts?: ShowOptions): void {
     // Store findings for test API (only masked/sanitized data)
     this.currentFindings = findings;
 
-    const content = this.renderContent(findings);
+    const strictMode = opts?.strictMode ?? false;
+    const content = this.renderContent(findings, strictMode);
     
     // If already visible, update content in-place to avoid flicker
     if (this.isVisible) {
@@ -334,11 +343,35 @@ export class WarningModal {
           background: #bb2d3b;
         }
 
+        .allowlist-btn {
+          display: block;
+          margin-top: 8px;
+          padding: 4px 8px;
+          font-size: 11px;
+          background: transparent;
+          color: #6c757d;
+          text-decoration: underline;
+        }
+
+        .allowlist-btn:hover {
+          color: #495057;
+        }
+
         .send-anyway-warning {
           font-size: 11px;
           color: #6c757d;
           margin-top: 8px;
           text-align: center;
+        }
+
+        .strict-notice {
+          font-size: 11px;
+          font-weight: 600;
+          color: #ffffff;
+          background: rgba(0, 0, 0, 0.15);
+          border-radius: 6px;
+          padding: 4px 8px;
+          margin-top: 8px;
         }
       </style>
     `;
@@ -347,10 +380,20 @@ export class WarningModal {
   /**
    * Render modal content.
    */
-  private renderContent(findings: Finding[]): string {
+  private renderContent(findings: Finding[], strictMode: boolean): string {
     const findingsList = findings
-      .map(f => this.renderFinding(f))
+      .map((f, index) => this.renderFinding(f, index))
       .join('');
+
+    const strictNotice = strictMode
+      ? '<p class="strict-notice">Strict mode: sending blocked until masked</p>'
+      : '';
+    const sendBtn = strictMode
+      ? ''
+      : '<button class="send-btn" type="button">Send Anyway</button>';
+    const sendAnywayWarning = strictMode
+      ? ''
+      : '<p class="send-anyway-warning">"Send Anyway" will submit your message without changes</p>';
 
     return `
       <div class="overlay">
@@ -362,28 +405,27 @@ export class WarningModal {
               <line x1="12" y1="17" x2="12.01" y2="17"></line>
             </svg>
             <h2 id="modal-title">Sensitive Data Detected</h2>
+            ${strictNotice}
           </div>
-          
+
           <div class="body">
             <p class="warning-text">
-              The following sensitive information was detected in your message. 
+              The following sensitive information was detected in your message.
               Sending this data to an AI service could expose your credentials or personal information.
             </p>
-            
+
             <ul class="findings-list">
               ${findingsList}
             </ul>
           </div>
-          
+
           <div class="footer">
             <button class="cancel-btn" type="button">Cancel</button>
             <button class="redact-btn" type="button">Mask & Continue</button>
-            <button class="send-btn" type="button">Send Anyway</button>
+            ${sendBtn}
           </div>
-          
-          <p class="send-anyway-warning">
-            "Send Anyway" will submit your message without changes
-          </p>
+
+          ${sendAnywayWarning}
         </div>
       </div>
     `;
@@ -392,7 +434,7 @@ export class WarningModal {
   /**
    * Render a single finding.
    */
-  private renderFinding(finding: Finding): string {
+  private renderFinding(finding: Finding, index: number): string {
     const maskedValue = mask(finding.value, finding.type);
     const confidenceClass = finding.confidence >= 0.8
       ? 'confidence-high'
@@ -418,6 +460,7 @@ export class WarningModal {
             <span class="confidence-badge ${confidenceClass}">${confidenceText}</span>
           </div>
           <div class="finding-value">${this.escapeHtml(maskedValue)}</div>
+          <button class="allowlist-btn" type="button" data-index="${index}">Don't warn about this</button>
         </div>
       </li>
     `;
@@ -453,6 +496,18 @@ export class WarningModal {
         this.hide();
         this.callbacks.onCancel();
       }
+    });
+
+    const allowlistBtns = this.shadowRoot.querySelectorAll('.allowlist-btn');
+    allowlistBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const indexAttr = btn.getAttribute('data-index');
+        const index = indexAttr === null ? NaN : Number(indexAttr);
+        const finding = this.currentFindings[index];
+        if (finding) {
+          this.callbacks.onAllowlist?.(finding);
+        }
+      });
     });
   }
 

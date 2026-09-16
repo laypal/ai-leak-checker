@@ -1,6 +1,6 @@
 # EXT-7.5: Strict mode (block without override)
 
-**Area:** Extension · modal + content · **Priority:** P1 · **Status:** 🔲 Not started · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
+**Area:** Extension · modal + content · **Priority:** P1 · **Status:** ✅ Done 2026-09-16 (gate green; owner verified in Chrome on chatgpt.com) · **Estimate:** ~3 h · *(Pro hook, ships ungated for now)*
 **Requirement:** FR-CFG-004 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -10,7 +10,7 @@ through the standard broadcast path, but nothing consumes it. The modal always
 renders "Send Anyway". A visible toggle that does nothing is worse than no
 toggle.
 
-## Current-state facts (verified 2026-07-12; re-verify)
+## Current-state facts (as of 2026-07-12; line numbers drifted, shape still accurate 2026-09-15)
 
 - Popup toggle: `src/popup/popup.tsx:516-523` ("Strict Mode (no bypass option)").
 - `Settings.strictMode: boolean`, default `false`: `src/shared/types/storage.ts:28`.
@@ -19,10 +19,10 @@ toggle.
 
 ## Deliverables
 
-- [ ] `show(findings, opts?: { strictMode?: boolean })`. When strict: omit `.send-btn` **and** `.send-anyway-warning` from the rendered template; `attachHandlers` tolerates the missing button.
-- [ ] Content passes `currentSettings.strictMode` at every `show` call site. Escape still cancels. No code path calls `callbacks.onSendAnyway()` while strict.
-- [ ] Modal heading strip indicates strict mode ("Strict mode: sending blocked until masked"). Constant string.
-- [ ] Popup toggle gets a one-line explainer under the label.
+- [x] `show(findings, opts?: { strictMode?: boolean })`. When strict: omit `.send-btn` **and** `.send-anyway-warning` from the rendered template; `attachHandlers` tolerates the missing button.
+- [x] Content passes `currentSettings.strictMode` at every `show` call site. Escape still cancels. No code path calls `callbacks.onSendAnyway()` while strict.
+- [x] Modal heading strip indicates strict mode ("Strict mode: sending blocked until masked"). Constant string.
+- [x] Popup toggle gets a one-line explainer under the label.
 
 ## TDD plan (in order; RED first)
 
@@ -47,9 +47,9 @@ toggle.
 
 ## Acceptance criteria (BDD)
 
-- [ ] **Given** strict mode on, **When** the modal opens, **Then** "Send Anyway" is absent and no interaction path submits unmasked (Enter/submit stays blocked until Mask or Cancel).
-- [ ] **Given** the toggle changes while a tab is open, **When** the next detection fires, **Then** the modal reflects the new mode without reload.
-- [ ] **Given** strict mode off, **Then** behaviour is identical to today (existing modal tests stay green).
+- [x] **Given** strict mode on, **When** the modal opens, **Then** "Send Anyway" is absent and no interaction path submits unmasked (Enter/submit stays blocked until Mask or Cancel).
+- [x] **Given** the toggle changes while a tab is open, **When** the next detection fires, **Then** the modal reflects the new mode without reload.
+- [x] **Given** strict mode off, **Then** behaviour is identical to today (existing modal tests stay green).
 
 ## Do / Don't
 
@@ -61,6 +61,21 @@ toggle.
 ## Verify
 
 Gate + manual: toggle strict in popup → trigger a detection on chatgpt.com → only Mask/Cancel offered; untoggle → Send Anyway returns.
+
+## Shipped 2026-09-15 (branch `feature/ext-7.3-7.6-7.5`)
+
+- `tests/unit/modal.strict.test.ts` (6 cases incl. in-place re-show without
+  hide, and Escape never reaching `onSendAnyway`).
+- Content passes `{ strictMode: currentSettings.strictMode }` inline at all
+  three `modal.show` sites (including the EXT-7.3 allowlist re-show).
+  `handleSendAnyway` additionally guards on strict and behaves like cancel.
+- Deviation from TDD step 3: content wiring is covered by inline option
+  literals rather than a separate content-handler test; a settings→options
+  helper was tried and removed in review (one field, no need).
+- Known edge: if strict is toggled on while a modal is already open, that
+  modal keeps its Send Anyway button until the next detection; clicking it
+  cancels rather than sends.
+- Manual check done 2026-09-16: strict on → modal shows notice + Cancel/Mask only.
 
 ## Decision log
 

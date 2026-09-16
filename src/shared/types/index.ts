@@ -113,7 +113,6 @@ export type {
   StorageKey,
   MigrationFn,
   MigrationRegistry,
-  StatsExportRow,
 } from './storage';
 
 export {
@@ -122,7 +121,6 @@ export {
   DEFAULT_STORAGE,
   CURRENT_SCHEMA_VERSION,
   STORAGE_KEYS,
-  statsToCSV,
   MIN_FALLBACK_DELAY_MS,
   MAX_FALLBACK_DELAY_MS,
 } from './storage';

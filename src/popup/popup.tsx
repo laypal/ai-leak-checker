@@ -6,6 +6,7 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { toggleSiteExclusion, normalizeHost } from '@/shared/utils/site-match';
+import { AllowlistEditor } from './AllowlistEditor';
 import type { Settings, Stats } from '@/shared/types';
 import {
   MessageType,
@@ -16,6 +17,8 @@ import {
   MIN_FALLBACK_DELAY_MS,
   MAX_FALLBACK_DELAY_MS,
 } from '@/shared/types';
+import { statsToCsv, buildExportFilename } from '@/shared/utils/stats-export';
+import { downloadTextFile } from './download';
 
 // Styles
 const styles = {
@@ -276,6 +279,11 @@ function App() {
     setStats(DEFAULT_STATS);
   }
 
+  function exportStats() {
+    const now = new Date();
+    downloadTextFile(statsToCsv(stats, now), buildExportFilename(now));
+  }
+
   return (
     <div style={styles.container}>
       {/* Header */}
@@ -391,6 +399,20 @@ function App() {
               }}
             >
               Reset Statistics
+            </button>
+            <button
+              onClick={exportStats}
+              style={{
+                padding: '8px 16px',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: '#6c757d',
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              Export Stats
             </button>
           </div>
         </div>
@@ -601,6 +623,18 @@ function App() {
               label="Strict Mode (no bypass option)"
               checked={settings.strictMode}
               onChange={() => { void updateSetting('strictMode', !settings.strictMode); }}
+            />
+            <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+              Removes the Send Anyway option; detections must be masked or cancelled.
+            </div>
+          </div>
+
+          {/* Allowlist */}
+          <div style={styles.section}>
+            <div style={styles.sectionTitle}>Allowlist</div>
+            <AllowlistEditor
+              allowlist={settings.allowlist}
+              onChange={(next) => { void updateSetting('allowlist', next); }}
             />
           </div>
         </div>

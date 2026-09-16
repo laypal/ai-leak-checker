@@ -1,6 +1,6 @@
 # EXT-7.3: User value allowlist UI
 
-**Area:** Extension · popup + modal · **Priority:** P1 · **Status:** 🔲 Not started · **Estimate:** ~4 h
+**Area:** Extension · popup + modal · **Priority:** P1 · **Status:** ✅ Done 2026-09-16 (gate green; owner verified in Chrome on chatgpt.com) · **Estimate:** ~4 h
 **Requirement:** FR-DET-007 · **Playbook:** read `PLAYBOOK.md` first.
 
 ## Why
@@ -9,7 +9,7 @@ The engine already filters findings against `Settings.allowlist`, but there is
 no UI to add or remove entries. Every false positive a user hits is permanent
 friction. This task adds the UI only; the engine side stays as it is.
 
-## Current-state facts (verified 2026-07-12 on `main` @ `f95b555`; re-verify)
+## Current-state facts (re-verified 2026-09-15 on `main` @ `43f6e6a`)
 
 - `Settings.allowlist: string[]` exists, default `[]`: `src/shared/types/storage.ts:31`.
 - It is honoured at scan time: `buildScanOptions()` passes it through at
@@ -23,14 +23,14 @@ friction. This task adds the UI only; the engine side stays as it is.
 
 ## Deliverables
 
-- [ ] `src/shared/utils/allowlist-edit.ts`: pure `addAllowlistEntry(list, raw)`
+- [x] `src/shared/utils/allowlist-edit.ts`: pure `addAllowlistEntry(list, raw)`
       (trim, reject empty, reject < 4 chars, dedupe case-sensitively, enforce
       **max 100**) and `removeAllowlistEntry(list, value)`. Return
       `{ ok: true, list } | { ok: false, reason: 'empty' | 'too_short' | 'duplicate' | 'limit' }`.
-- [ ] Popup Settings tab editor: text input + "Add" button + chips with a
+- [x] Popup Settings tab editor (`src/popup/AllowlistEditor.tsx`): text input + "Add" button + chips with a
       remove ×, persisting via the existing `updateSetting('allowlist', next)`.
       Inline reason text on a rejected add. Count indicator ("37 / 100").
-- [ ] Modal action "Don't warn about this": adds the finding's value through
+- [x] Modal action "Don't warn about this": adds the finding's value through
       the same path, then dismisses that finding (re-scan or filter in place).
 
 ## TDD plan (in order; RED first)
@@ -64,10 +64,10 @@ friction. This task adds the UI only; the engine side stays as it is.
 
 ## Acceptance criteria (BDD)
 
-- [ ] **Given** a string is allowlisted, **When** it appears in a prompt, **Then** no finding is raised for it.
-- [ ] **Given** 100 entries, **When** adding the 101st, **Then** the UI shows a limit message and storage is unchanged.
-- [ ] **Given** allowlist entries, **When** the browser restarts, **Then** they persist (`chrome.storage.local`; that is the established store for `Settings`).
-- [ ] **Given** the modal shows a finding, **When** "Don't warn about this" is clicked, **Then** the value lands in the allowlist and that finding no longer blocks submission.
+- [x] **Given** a string is allowlisted, **When** it appears in a prompt, **Then** no finding is raised for it.
+- [x] **Given** 100 entries, **When** adding the 101st, **Then** the UI shows a limit message and storage is unchanged.
+- [x] **Given** allowlist entries, **When** the browser restarts (same `chrome.storage.local` path as every other setting; not separately restart-tested), **Then** they persist (`chrome.storage.local`; that is the established store for `Settings`).
+- [x] **Given** the modal shows a finding, **When** "Don't warn about this" is clicked, **Then** the value lands in the allowlist and that finding no longer blocks submission.
 
 ## Do / Don't
 
@@ -81,6 +81,23 @@ friction. This task adds the UI only; the engine side stays as it is.
 
 Gate (§3 of PLAYBOOK) + manual: add an entry in the popup → type it on
 chatgpt.com → no modal; remove it → modal returns, no page refresh needed.
+
+## Shipped 2026-09-15 (branch `feature/ext-7.3-7.6-7.5`)
+
+- Tests: `tests/unit/allowlist-edit.test.ts`, `modal.allowlist.test.ts`,
+  `content-allowlist.test.ts` (pure `allowlistTransition` keeps
+  `pendingSubmission.findingMeta`/`detectorTypes` in step so a later
+  Mask & Continue does not redact the allowlisted value), and a scan-path
+  assertion in `scan-options.test.ts`.
+- Deviations: `onAllowlist` is optional on `WarningModalCallbacks` (keeps the
+  existing modal test constructors compiling). Rejection logs print only the
+  detector type, never the value. The content script keeps raw finding values
+  in memory only while the modal is open (`currentModalFindings`), cleared on
+  every exit path; nothing is persisted.
+- Known limitation: engine is substring match, so a 4-char entry suppresses
+  every finding containing it. The 4-char floor is a cheap guard, not a fix.
+- Manual check done 2026-09-16: popup editor adds/removes entries; modal shows
+  "Don't warn about this" per finding.
 
 ## Decision log
 
